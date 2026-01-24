@@ -1,25 +1,34 @@
 import { useState, useEffect } from 'react';
-import { getEvaluations, getEvaluation } from '../utils/api';
+import { getEvaluations, getEvaluation, getStudents, getCourses } from '../utils/api';
 import { formatPercentage, getStatusColor, getStatusText, SCORE_VALUES } from '../utils/scoreCalculations';
 
 function StudentStats() {
   const [evaluations, setEvaluations] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expandedCourse, setExpandedCourse] = useState(null);
   const [expandedStudent, setExpandedStudent] = useState(null);
   const [selectedEvaluation, setSelectedEvaluation] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
-    fetchEvaluations();
+    fetchData();
   }, []);
 
-  const fetchEvaluations = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await getEvaluations();
-      setEvaluations(data);
+      const [evaluationsData, studentsData, coursesData] = await Promise.all([
+        getEvaluations(),
+        getStudents(),
+        getCourses()
+      ]);
+      setEvaluations(evaluationsData);
+      setStudents(studentsData);
+      setCourses(coursesData);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -36,26 +45,76 @@ function StudentStats() {
     });
   };
 
-  // Group evaluations by student and sort alphabetically by first_name
-  const getStudentsWithEvaluations = () => {
-    const studentMap = new Map();
-
+  // Group students by courses with their evaluations
+  const getCoursesWithStudents = () => {
+    // Build student evaluation map
+    const studentEvaluationsMap = new Map();
     evaluations.forEach(evaluation => {
       const studentId = evaluation.student_id;
-      if (!studentMap.has(studentId)) {
-        studentMap.set(studentId, {
-          id: studentId,
-          firstName: evaluation.student_first_name,
-          lastName: evaluation.student_last_name,
-          evaluations: []
-        });
+      if (!studentEvaluationsMap.has(studentId)) {
+        studentEvaluationsMap.set(studentId, []);
       }
-      studentMap.get(studentId).evaluations.push(evaluation);
+      studentEvaluationsMap.get(studentId).push(evaluation);
     });
 
-    // Convert to array and sort by first name
-    return Array.from(studentMap.values())
-      .sort((a, b) => a.firstName.localeCompare(b.firstName, 'he'));
+    // Group students by course
+    const courseMap = new Map();
+
+    // Add "ללא קורס" for students without courses
+    courseMap.set(0, {
+      id: 0,
+      name: 'ללא קורס',
+      students: []
+    });
+
+    // Initialize all courses
+    courses.forEach(course => {
+      courseMap.set(course.id, {
+        id: course.id,
+        name: course.name,
+        students: []
+      });
+    });
+
+    // Assign students to their courses
+    students.forEach(student => {
+      const studentData = {
+        id: student.id,
+        firstName: student.first_name,
+        lastName: student.last_name,
+        evaluations: studentEvaluationsMap.get(student.id) || []
+      };
+
+      if (student.courses && student.courses.length > 0) {
+        student.courses.forEach(course => {
+          if (courseMap.has(course.id)) {
+            courseMap.get(course.id).students.push(studentData);
+          }
+        });
+      } else {
+        courseMap.get(0).students.push(studentData);
+      }
+    });
+
+    // Convert to array, filter out empty courses, and sort
+    return Array.from(courseMap.values())
+      .filter(course => course.students.length > 0)
+      .map(course => ({
+        ...course,
+        students: course.students.sort((a, b) =>
+          a.firstName.localeCompare(b.firstName, 'he')
+        )
+      }))
+      .sort((a, b) => {
+        // Keep "ללא קורס" at the end
+        if (a.id === 0) return 1;
+        if (b.id === 0) return -1;
+        return a.name.localeCompare(b.name, 'he');
+      });
+  };
+
+  const toggleCourse = (courseId) => {
+    setExpandedCourse(expandedCourse === courseId ? null : courseId);
   };
 
   const toggleStudent = (studentId) => {
@@ -90,7 +149,7 @@ function StudentStats() {
     return scoreValue ? scoreValue.label : '';
   };
 
-  const studentsWithEvaluations = getStudentsWithEvaluations();
+  const coursesWithStudents = getCoursesWithStudents();
 
   if (loading) {
     return <div className="loading">טוען סטטיסטיקות...</div>;
@@ -104,128 +163,162 @@ function StudentStats() {
 
       {error && <div className="error">{error}</div>}
 
-      {studentsWithEvaluations.length === 0 ? (
+      {coursesWithStudents.length === 0 ? (
         <div className="empty-state">
           <p>אין נתונים להצגה</p>
         </div>
       ) : (
-        <>
-          {/* Desktop Table View */}
-          <div className="stats-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>שם תלמיד</th>
-                  <th>נושא</th>
-                  <th>קורס</th>
-                  <th>תאריך</th>
-                  <th>ציון</th>
-                  <th>סטטוס</th>
-                </tr>
-              </thead>
-              <tbody>
-                {studentsWithEvaluations.map(student => (
-                  student.evaluations.map((evaluation, evalIndex) => (
-                    <tr
-                      key={evaluation.id}
-                      className="student-row clickable-row"
-                      onClick={() => openDetailModal(evaluation.id)}
-                    >
-                      {evalIndex === 0 ? (
-                        <td rowSpan={student.evaluations.length} className="student-name-cell">
-                          {student.firstName} {student.lastName}
-                        </td>
-                      ) : null}
-                      <td>{evaluation.subject_name}</td>
-                      <td>{evaluation.lesson_name || '-'}</td>
-                      <td>{formatDate(evaluation.evaluation_date)}</td>
-                      <td>
-                        <span
-                          className="score-badge-small"
-                          style={{
-                            backgroundColor: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
-                          }}
-                        >
-                          {formatPercentage(evaluation.percentage_score)}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          className="status-text"
-                          style={{
-                            color: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
-                          }}
-                        >
-                          {getStatusText(evaluation.is_passing, evaluation.has_critical_fail)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Card View */}
-          <div className="stats-cards">
-            {studentsWithEvaluations.map(student => (
-              <div key={student.id} className="student-card">
-                <div
-                  className="student-card-header"
-                  onClick={() => toggleStudent(student.id)}
-                >
-                  <div className="student-card-info">
-                    <h4>{student.firstName} {student.lastName}</h4>
-                    <span className="evaluation-count">
-                      {student.evaluations.length} הערכות
-                    </span>
-                  </div>
-                  <span className={`expand-icon ${expandedStudent === student.id ? 'expanded' : ''}`}>
-                    ▼
-                  </span>
+        <div className="stats-by-course">
+          {coursesWithStudents.map(course => (
+            <div key={course.id} className="course-group">
+              <div
+                className="course-group-header"
+                onClick={() => toggleCourse(course.id)}
+              >
+                <div className="course-group-info">
+                  <h3>{course.name}</h3>
+                  <span className="student-count">{course.students.length} תלמידים</span>
                 </div>
+                <span className={`expand-icon ${expandedCourse === course.id ? 'expanded' : ''}`}>
+                  ▼
+                </span>
+              </div>
 
-                {expandedStudent === student.id && (
-                  <div className="student-card-evaluations">
-                    {student.evaluations.map(evaluation => (
-                      <div
-                        key={evaluation.id}
-                        className="evaluation-item clickable-row"
-                        onClick={() => openDetailModal(evaluation.id)}
-                      >
-                        <div className="evaluation-item-header">
-                          <span className="evaluation-item-subject">{evaluation.subject_name}</span>
-                          <span
-                            className="score-badge-small"
-                            style={{
-                              backgroundColor: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
-                            }}
-                          >
-                            {formatPercentage(evaluation.percentage_score)}
+              {expandedCourse === course.id && (
+                <div className="course-students">
+                  {/* Desktop Table View */}
+                  <div className="stats-table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>שם תלמיד</th>
+                          <th>נושא</th>
+                          <th>שיעור</th>
+                          <th>תאריך</th>
+                          <th>ציון</th>
+                          <th>סטטוס</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {course.students.map(student => (
+                          student.evaluations.length > 0 ? (
+                            student.evaluations.map((evaluation, evalIndex) => (
+                              <tr
+                                key={evaluation.id}
+                                className="student-row clickable-row"
+                                onClick={() => openDetailModal(evaluation.id)}
+                              >
+                                {evalIndex === 0 ? (
+                                  <td rowSpan={student.evaluations.length} className="student-name-cell">
+                                    {student.firstName} {student.lastName}
+                                  </td>
+                                ) : null}
+                                <td>{evaluation.subject_name}</td>
+                                <td>{evaluation.lesson_name || '-'}</td>
+                                <td>{formatDate(evaluation.evaluation_date)}</td>
+                                <td>
+                                  <span
+                                    className="score-badge-small"
+                                    style={{
+                                      backgroundColor: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
+                                    }}
+                                  >
+                                    {formatPercentage(evaluation.percentage_score)}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span
+                                    className="status-text"
+                                    style={{
+                                      color: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
+                                    }}
+                                  >
+                                    {getStatusText(evaluation.is_passing, evaluation.has_critical_fail)}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr key={student.id} className="student-row no-evaluations">
+                              <td className="student-name-cell">
+                                {student.firstName} {student.lastName}
+                              </td>
+                              <td colSpan={5} className="no-data-cell">אין הערכות</td>
+                            </tr>
+                          )
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="stats-cards">
+                    {course.students.map(student => (
+                      <div key={student.id} className="student-card">
+                        <div
+                          className="student-card-header"
+                          onClick={() => toggleStudent(student.id)}
+                        >
+                          <div className="student-card-info">
+                            <h4>{student.firstName} {student.lastName}</h4>
+                            <span className="evaluation-count">
+                              {student.evaluations.length} הערכות
+                            </span>
+                          </div>
+                          <span className={`expand-icon ${expandedStudent === student.id ? 'expanded' : ''}`}>
+                            ▼
                           </span>
                         </div>
-                        <div className="evaluation-item-details">
-                          {evaluation.lesson_name && (
-                            <span className="evaluation-item-course">{evaluation.lesson_name}</span>
-                          )}
-                          <span className="evaluation-item-date">{formatDate(evaluation.evaluation_date)}</span>
-                          <span
-                            className="evaluation-item-status"
-                            style={{
-                              color: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
-                            }}
-                          >
-                            {getStatusText(evaluation.is_passing, evaluation.has_critical_fail)}
-                          </span>
-                        </div>
+
+                        {expandedStudent === student.id && (
+                          <div className="student-card-evaluations">
+                            {student.evaluations.length > 0 ? (
+                              student.evaluations.map(evaluation => (
+                                <div
+                                  key={evaluation.id}
+                                  className="evaluation-item clickable-row"
+                                  onClick={() => openDetailModal(evaluation.id)}
+                                >
+                                  <div className="evaluation-item-header">
+                                    <span className="evaluation-item-subject">{evaluation.subject_name}</span>
+                                    <span
+                                      className="score-badge-small"
+                                      style={{
+                                        backgroundColor: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
+                                      }}
+                                    >
+                                      {formatPercentage(evaluation.percentage_score)}
+                                    </span>
+                                  </div>
+                                  <div className="evaluation-item-details">
+                                    {evaluation.lesson_name && (
+                                      <span className="evaluation-item-course">{evaluation.lesson_name}</span>
+                                    )}
+                                    <span className="evaluation-item-date">{formatDate(evaluation.evaluation_date)}</span>
+                                    <span
+                                      className="evaluation-item-status"
+                                      style={{
+                                        color: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
+                                      }}
+                                    >
+                                      {getStatusText(evaluation.is_passing, evaluation.has_critical_fail)}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="no-evaluations-message">אין הערכות</div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       )}
 
       {showDetailModal && (

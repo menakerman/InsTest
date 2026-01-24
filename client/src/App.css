@@ -2170,6 +2170,90 @@ body {
   color: #0077b6;
 }
 
+/* Course Groups */
+.stats-by-course {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.course-group {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.course-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.course-group-header:hover {
+  opacity: 0.95;
+}
+
+.course-group-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.course-group-info h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.course-group-header .student-count {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+.course-group-header .expand-icon {
+  color: white;
+  font-size: 0.9rem;
+  transition: transform 0.2s;
+}
+
+.course-group-header .expand-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.course-students {
+  padding: 1rem;
+}
+
+.course-students .stats-table {
+  box-shadow: none;
+  border: 1px solid #e9ecef;
+}
+
+.no-evaluations {
+  color: #6c757d;
+}
+
+.no-data-cell {
+  text-align: center !important;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.no-evaluations-message {
+  padding: 1rem;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+}
+
 /* Desktop Table View */
 .stats-table {
   background: white;
@@ -2313,12 +2397,26 @@ body {
 
 /* Mobile Portrait (<480px) */
 @media screen and (max-width: 480px) {
-  .stats-table {
+  .course-students .stats-table {
     display: none;
   }
 
-  .stats-cards {
+  .course-students .stats-cards {
     display: flex;
+  }
+
+  .course-group-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .course-group-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .course-group-info h3 {
+    font-size: 1rem;
   }
 
   .student-card-header {
@@ -2337,11 +2435,11 @@ body {
 
 /* Mobile Landscape (481px-768px) */
 @media screen and (min-width: 481px) and (max-width: 768px) {
-  .stats-table {
+  .course-students .stats-table {
     display: none;
   }
 
-  .stats-cards {
+  .course-students .stats-cards {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
@@ -2366,11 +2464,11 @@ body {
 
 /* Desktop (769px+) */
 @media screen and (min-width: 769px) {
-  .stats-table {
+  .course-students .stats-table {
     display: block;
   }
 
-  .stats-cards {
+  .course-students .stats-cards {
     display: none;
   }
 }

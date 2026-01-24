@@ -1,4 +1,10 @@
 import ExcelJS from 'exceljs';
+import {
+  classLessonNames,
+  waterLessonNames,
+  classLessonCriteria,
+  waterLessonCriteria
+} from '../data/lessonNames.js';
 
 // Hebrew month names for formatting
 const hebrewMonths = [
@@ -282,9 +288,196 @@ function createExamsSheet(workbook, students, evaluations, subjects) {
 }
 
 /**
+ * Convert column number to Excel column letter (1=A, 2=B, ..., 27=AA, etc.)
+ */
+function getColumnLetter(colNum) {
+  let letter = '';
+  while (colNum > 0) {
+    const mod = (colNum - 1) % 26;
+    letter = String.fromCharCode(65 + mod) + letter;
+    colNum = Math.floor((colNum - 1) / 26);
+  }
+  return letter;
+}
+
+/**
+ * Create a lesson scores table (class or water) on a sheet
+ * Returns the row number after the table
+ */
+function createLessonTable(sheet, startRow, lessonNames, criteriaItems, evaluations, itemScores, subjectCode, tableTitle) {
+  // Filter evaluations for this subject type
+  const subjectEvals = evaluations.filter(e => e.subject_code === subjectCode);
+
+  // Group evaluations by lesson_name
+  const evalsByLesson = {};
+  subjectEvals.forEach(evaluation => {
+    const lessonName = evaluation.lesson_name;
+    if (lessonName) {
+      if (!evalsByLesson[lessonName]) {
+        evalsByLesson[lessonName] = [];
+      }
+      evalsByLesson[lessonName].push(evaluation);
+    }
+  });
+
+  // Get unique lesson names that have evaluations (preserving order from predefined list)
+  const usedLessonNames = lessonNames.filter(name => evalsByLesson[name]);
+
+  if (usedLessonNames.length === 0) {
+    sheet.getCell(`A${startRow}`).value = tableTitle;
+    sheet.getCell(`A${startRow}`).font = { bold: true, size: 12 };
+    sheet.getCell(`A${startRow + 1}`).value = 'אין נתונים';
+    return startRow + 3;
+  }
+
+  // Table header
+  sheet.getCell(`A${startRow}`).value = tableTitle;
+  sheet.getCell(`A${startRow}`).font = { bold: true, size: 12 };
+  sheet.mergeCells(`A${startRow}:${getColumnLetter(usedLessonNames.length + 3)}${startRow}`);
+
+  const headerRow = startRow + 1;
+
+  // Column headers: Criterion | Lesson1 | Lesson2 | ... | Average | Trend
+  sheet.getCell(`A${headerRow}`).value = 'קריטריון';
+
+  usedLessonNames.forEach((lessonName, index) => {
+    const col = getColumnLetter(index + 2); // B, C, D...
+    sheet.getCell(`${col}${headerRow}`).value = lessonName;
+    sheet.getColumn(col).width = 10;
+  });
+
+  const avgCol = getColumnLetter(usedLessonNames.length + 2);
+  const trendCol = getColumnLetter(usedLessonNames.length + 3);
+
+  sheet.getCell(`${avgCol}${headerRow}`).value = 'ממוצע';
+  sheet.getCell(`${trendCol}${headerRow}`).value = 'מגמה';
+
+  // Style header row
+  const headerRowObj = sheet.getRow(headerRow);
+  headerRowObj.font = { bold: true };
+  headerRowObj.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' }
+  };
+
+  // Data rows - one per criterion
+  let currentRow = headerRow + 1;
+
+  criteriaItems.forEach((criterion, criterionIndex) => {
+    sheet.getCell(`A${currentRow}`).value = criterion.name;
+
+    const scoreCells = [];
+
+    usedLessonNames.forEach((lessonName, lessonIndex) => {
+      const col = getColumnLetter(lessonIndex + 2);
+      const cellRef = `${col}${currentRow}`;
+
+      // Find the evaluation for this lesson
+      const evals = evalsByLesson[lessonName] || [];
+      // Take the most recent evaluation if multiple exist
+      const latestEval = evals.sort((a, b) =>
+        new Date(b.evaluation_date) - new Date(a.evaluation_date)
+      )[0];
+
+      if (latestEval) {
+        // Find the item score for this criterion
+        const evalItemScores = itemScores.filter(is => is.evaluation_id === latestEval.id);
+        // Match by criterion display_order (since criteria IDs may differ)
+        const criterionItemScore = evalItemScores.find(is =>
+          is.criterion_display_order === criterionIndex + 1
+        );
+
+        if (criterionItemScore) {
+          sheet.getCell(cellRef).value = criterionItemScore.score;
+          scoreCells.push(cellRef);
+        } else {
+          sheet.getCell(cellRef).value = '-';
+        }
+      } else {
+        sheet.getCell(cellRef).value = '-';
+      }
+    });
+
+    // Average formula
+    if (scoreCells.length > 0) {
+      const startCol = getColumnLetter(2);
+      const endCol = getColumnLetter(usedLessonNames.length + 1);
+      sheet.getCell(`${avgCol}${currentRow}`).value = {
+        formula: `IFERROR(AVERAGE(${startCol}${currentRow}:${endCol}${currentRow}),"-")`
+      };
+      sheet.getCell(`${avgCol}${currentRow}`).numFmt = '0.0';
+    } else {
+      sheet.getCell(`${avgCol}${currentRow}`).value = '-';
+    }
+
+    // SLOPE formula for trend
+    if (usedLessonNames.length >= 2 && scoreCells.length >= 2) {
+      const startCol = getColumnLetter(2);
+      const endCol = getColumnLetter(usedLessonNames.length + 1);
+      // SLOPE(y_values, x_values) - x_values are column numbers (1,2,3...)
+      sheet.getCell(`${trendCol}${currentRow}`).value = {
+        formula: `IFERROR(SLOPE(${startCol}${currentRow}:${endCol}${currentRow},COLUMN(${startCol}1:${endCol}1)),"-")`
+      };
+      sheet.getCell(`${trendCol}${currentRow}`).numFmt = '0.00';
+    } else {
+      sheet.getCell(`${trendCol}${currentRow}`).value = '-';
+    }
+
+    currentRow++;
+  });
+
+  // Total row
+  const totalRow = currentRow;
+  sheet.getCell(`A${totalRow}`).value = 'סה"כ';
+  sheet.getCell(`A${totalRow}`).font = { bold: true };
+
+  usedLessonNames.forEach((lessonName, lessonIndex) => {
+    const col = getColumnLetter(lessonIndex + 2);
+    const startDataRow = headerRow + 1;
+    const endDataRow = totalRow - 1;
+    sheet.getCell(`${col}${totalRow}`).value = {
+      formula: `IFERROR(SUM(${col}${startDataRow}:${col}${endDataRow}),"-")`
+    };
+    sheet.getCell(`${col}${totalRow}`).font = { bold: true };
+  });
+
+  // Total average
+  const startCol = getColumnLetter(2);
+  const endCol = getColumnLetter(usedLessonNames.length + 1);
+  sheet.getCell(`${avgCol}${totalRow}`).value = {
+    formula: `IFERROR(AVERAGE(${startCol}${totalRow}:${endCol}${totalRow}),"-")`
+  };
+  sheet.getCell(`${avgCol}${totalRow}`).numFmt = '0.0';
+  sheet.getCell(`${avgCol}${totalRow}`).font = { bold: true };
+
+  // Total trend
+  if (usedLessonNames.length >= 2) {
+    sheet.getCell(`${trendCol}${totalRow}`).value = {
+      formula: `IFERROR(SLOPE(${startCol}${totalRow}:${endCol}${totalRow},COLUMN(${startCol}1:${endCol}1)),"-")`
+    };
+    sheet.getCell(`${trendCol}${totalRow}`).numFmt = '0.00';
+    sheet.getCell(`${trendCol}${totalRow}`).font = { bold: true };
+  } else {
+    sheet.getCell(`${trendCol}${totalRow}`).value = '-';
+    sheet.getCell(`${trendCol}${totalRow}`).font = { bold: true };
+  }
+
+  // Style total row
+  const totalRowObj = sheet.getRow(totalRow);
+  totalRowObj.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFD9EAD3' }
+  };
+
+  return totalRow + 2;
+}
+
+/**
  * Create individual student sheet with progress data and chart
  */
-function createStudentSheet(workbook, student, evaluations, subjects, absences) {
+function createStudentSheet(workbook, student, evaluations, subjects, absences, itemScores) {
   const sheetName = `${student.first_name} ${student.last_name}`.substring(0, 31);
   const sheet = workbook.addWorksheet(sheetName, {
     views: [{ rightToLeft: true }]
@@ -469,6 +662,33 @@ function createStudentSheet(workbook, student, evaluations, subjects, absences) 
     sheet.getCell(`${col}${chartDataRow + 3}`).value = 60;
   }
 
+  // Add lesson tables section
+  let lessonTablesRow = chartDataRow + 6;
+
+  // Class lessons table (העברת הרצאה - lecture_delivery)
+  lessonTablesRow = createLessonTable(
+    sheet,
+    lessonTablesRow,
+    classLessonNames,
+    classLessonCriteria,
+    studentEvals,
+    itemScores.filter(is => studentEvals.some(e => e.id === is.evaluation_id)),
+    'lecture_delivery',
+    'טבלת שיעורי כיתה (הרצאה)'
+  );
+
+  // Water lessons table (העברת שיעור מים - water_lesson)
+  lessonTablesRow = createLessonTable(
+    sheet,
+    lessonTablesRow,
+    waterLessonNames,
+    waterLessonCriteria,
+    studentEvals,
+    itemScores.filter(is => studentEvals.some(e => e.id === is.evaluation_id)),
+    'water_lesson',
+    'טבלת שיעורי מים'
+  );
+
   return sheet;
 }
 
@@ -485,7 +705,8 @@ export async function generateFinalReport(pool) {
     studentsResult,
     subjectsResult,
     evaluationsResult,
-    absencesResult
+    absencesResult,
+    itemScoresResult
   ] = await Promise.all([
     pool.query('SELECT * FROM students ORDER BY last_name, first_name'),
     pool.query('SELECT * FROM evaluation_subjects ORDER BY display_order'),
@@ -504,13 +725,23 @@ export async function generateFinalReport(pool) {
       LEFT JOIN evaluation_subjects es ON se.subject_id = es.id
       ORDER BY se.evaluation_date DESC
     `),
-    pool.query('SELECT * FROM student_absences ORDER BY absence_date DESC')
+    pool.query('SELECT * FROM student_absences ORDER BY absence_date DESC'),
+    pool.query(`
+      SELECT
+        eis.*,
+        ec.display_order as criterion_display_order,
+        ec.name_he as criterion_name
+      FROM evaluation_item_scores eis
+      LEFT JOIN evaluation_criteria ec ON eis.criterion_id = ec.id
+      ORDER BY eis.evaluation_id, ec.display_order
+    `)
   ]);
 
   const students = studentsResult.rows;
   const subjects = subjectsResult.rows;
   const evaluations = evaluationsResult.rows;
   const absences = absencesResult.rows;
+  const itemScores = itemScoresResult.rows;
 
   // Derive course info
   const courseInfo = deriveCourseInfo(evaluations);
@@ -523,7 +754,7 @@ export async function generateFinalReport(pool) {
 
   // Create individual student sheets
   for (const student of students) {
-    createStudentSheet(workbook, student, evaluations, subjects, absences);
+    createStudentSheet(workbook, student, evaluations, subjects, absences, itemScores);
   }
 
   return workbook;

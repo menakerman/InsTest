@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getEvaluationSubject, getEvaluation, createEvaluation, updateEvaluation } from '../utils/api';
 import { calculateEvaluationScores } from '../utils/scoreCalculations';
+import { getLessonNamesForSubject, subjectHasLessonNames } from '../data/lessonNames';
 import StudentSelector from '../components/StudentSelector';
 import InstructorSelector from '../components/InstructorSelector';
 import CriterionCard from '../components/CriterionCard';
@@ -20,6 +21,8 @@ function EvaluationForm() {
   const [studentId, setStudentId] = useState(null);
   const [instructorId, setInstructorId] = useState(null);
   const [lessonName, setLessonName] = useState('');
+  const [lessonNameSelection, setLessonNameSelection] = useState('');
+  const [customLessonName, setCustomLessonName] = useState('');
   const [notes, setNotes] = useState('');
   const [scores, setScores] = useState({});
 
@@ -34,7 +37,20 @@ function EvaluationForm() {
         setSubject(subjectData);
         setStudentId(evalData.student_id);
         setInstructorId(evalData.instructor_id);
-        setLessonName(evalData.lesson_name || '');
+
+        // Handle lesson name for edit mode
+        const savedLessonName = evalData.lesson_name || '';
+        setLessonName(savedLessonName);
+        const predefinedNames = getLessonNamesForSubject(subjectData.code);
+        if (predefinedNames && predefinedNames.includes(savedLessonName)) {
+          setLessonNameSelection(savedLessonName);
+        } else if (savedLessonName && subjectHasLessonNames(subjectData.code)) {
+          setLessonNameSelection('__other__');
+          setCustomLessonName(savedLessonName);
+        } else {
+          setLessonNameSelection(savedLessonName);
+        }
+
         setNotes(evalData.notes || '');
 
         const existingScores = {};
@@ -86,6 +102,11 @@ function EvaluationForm() {
 
     if (!studentId) {
       setError('נא לבחור תלמיד');
+      return;
+    }
+
+    if (subject && subjectHasLessonNames(subject.code) && !lessonName) {
+      setError('נא לבחור שם שיעור');
       return;
     }
 
@@ -172,13 +193,56 @@ function EvaluationForm() {
               </div>
 
               <div className="form-group">
-                <label>שם השיעור / נושא</label>
-                <input
-                  type="text"
-                  value={lessonName}
-                  onChange={(e) => setLessonName(e.target.value)}
-                  placeholder="לדוגמה: שיעור ציוד ABC, צלילה באילת"
-                />
+                <label>
+                  שם השיעור / נושא
+                  {subject && subjectHasLessonNames(subject.code) && ' *'}
+                </label>
+                {subject && subjectHasLessonNames(subject.code) ? (
+                  <>
+                    <select
+                      value={lessonNameSelection}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setLessonNameSelection(value);
+                        if (value !== '__other__') {
+                          setLessonName(value);
+                          setCustomLessonName('');
+                        } else {
+                          setLessonName('');
+                        }
+                      }}
+                      required
+                      className="lesson-name-select"
+                    >
+                      <option value="">-- בחר שיעור --</option>
+                      {getLessonNamesForSubject(subject.code)?.map((name, index) => (
+                        <option key={index} value={name}>{name}</option>
+                      ))}
+                      <option value="__other__">אחר (הזן ידנית)</option>
+                    </select>
+                    {lessonNameSelection === '__other__' && (
+                      <input
+                        type="text"
+                        value={customLessonName}
+                        onChange={(e) => {
+                          setCustomLessonName(e.target.value);
+                          setLessonName(e.target.value);
+                        }}
+                        placeholder="הזן שם שיעור"
+                        className="lesson-name-other-input"
+                        style={{ marginTop: '8px' }}
+                        required
+                      />
+                    )}
+                  </>
+                ) : (
+                  <input
+                    type="text"
+                    value={lessonName}
+                    onChange={(e) => setLessonName(e.target.value)}
+                    placeholder="לדוגמה: שיעור ציוד ABC, צלילה באילת"
+                  />
+                )}
               </div>
             </div>
 
@@ -228,7 +292,7 @@ function EvaluationForm() {
             <button
               type="submit"
               className="btn btn-primary btn-submit"
-              disabled={saving || !allAnswered || !studentId}
+              disabled={saving || !allAnswered || !studentId || (subject && subjectHasLessonNames(subject.code) && !lessonName)}
             >
               {saving ? 'שומר...' : (isEditMode ? 'עדכון הערכה' : 'שמור הערכה')}
             </button>

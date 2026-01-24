@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import pg from 'pg';
 import dotenv from 'dotenv';
+import bcrypt from 'bcrypt';
 import authRoutes from './routes/auth.js';
 import usersRoutes from './routes/users.js';
 import absencesRoutes from './routes/absences.js';
@@ -171,8 +172,9 @@ app.get('/api/instructors/:id', authenticateToken, requireRole('admin', 'instruc
   }
 });
 
-// Create instructor
+// Create instructor (also creates a user account for login)
 app.post('/api/instructors', authenticateToken, requireRole('admin'), async (req, res) => {
+  const client = await pool.connect();
   try {
     const { first_name, last_name, email, phone } = req.body;
 
@@ -180,24 +182,56 @@ app.post('/api/instructors', authenticateToken, requireRole('admin'), async (req
       return res.status(400).json({ error: 'First name and last name are required' });
     }
 
-    const result = await pool.query(
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required for instructor login' });
+    }
+
+    await client.query('BEGIN');
+
+    // Create instructor record
+    const instructorResult = await client.query(
       `INSERT INTO instructors (first_name, last_name, email, phone)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [first_name, last_name, email || null, phone || null]
+      [first_name, last_name, email, phone || null]
     );
-    res.status(201).json(result.rows[0]);
+
+    // Create user account with default password (instructor's email as initial password)
+    const defaultPassword = email.split('@')[0] + '123';
+    const passwordHash = await bcrypt.hash(defaultPassword, 10);
+
+    await client.query(
+      `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active)
+       VALUES ($1, $2, $3, $4, 'instructor', true)`,
+      [email.toLowerCase(), passwordHash, first_name, last_name]
+    );
+
+    await client.query('COMMIT');
+
+    res.status(201).json({
+      ...instructorResult.rows[0],
+      user_created: true,
+      default_password: defaultPassword,
+      message: `User account created. Default password: ${defaultPassword}`
+    });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error creating instructor:', error);
     if (error.code === '23505') {
+      if (error.constraint?.includes('users')) {
+        return res.status(400).json({ error: 'A user with this email already exists' });
+      }
       return res.status(400).json({ error: 'An instructor with this email already exists' });
     }
     res.status(500).json({ error: 'Failed to create instructor' });
+  } finally {
+    client.release();
   }
 });
 
-// Update instructor
+// Update instructor (also updates the associated user account)
 app.put('/api/instructors/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+  const client = await pool.connect();
   try {
     const { id } = req.params;
     const { first_name, last_name, email, phone } = req.body;
@@ -206,43 +240,98 @@ app.put('/api/instructors/:id', authenticateToken, requireRole('admin'), async (
       return res.status(400).json({ error: 'First name and last name are required' });
     }
 
-    const result = await pool.query(
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required for instructor login' });
+    }
+
+    await client.query('BEGIN');
+
+    // Get current instructor email
+    const currentInstructor = await client.query(
+      'SELECT email FROM instructors WHERE id = $1',
+      [id]
+    );
+
+    if (currentInstructor.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Instructor not found' });
+    }
+
+    const oldEmail = currentInstructor.rows[0].email;
+
+    // Update instructor record
+    const result = await client.query(
       `UPDATE instructors
        SET first_name = $1, last_name = $2, email = $3, phone = $4
        WHERE id = $5
        RETURNING *`,
-      [first_name, last_name, email || null, phone || null, id]
+      [first_name, last_name, email, phone || null, id]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Instructor not found' });
+    // Update associated user account
+    if (oldEmail) {
+      await client.query(
+        `UPDATE users
+         SET email = $1, first_name = $2, last_name = $3
+         WHERE email = $4 AND role = 'instructor'`,
+        [email.toLowerCase(), first_name, last_name, oldEmail.toLowerCase()]
+      );
     }
+
+    await client.query('COMMIT');
     res.json(result.rows[0]);
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error updating instructor:', error);
     if (error.code === '23505') {
+      if (error.constraint?.includes('users')) {
+        return res.status(400).json({ error: 'A user with this email already exists' });
+      }
       return res.status(400).json({ error: 'An instructor with this email already exists' });
     }
     res.status(500).json({ error: 'Failed to update instructor' });
+  } finally {
+    client.release();
   }
 });
 
-// Delete instructor
+// Delete instructor (also deletes the associated user account)
 app.delete('/api/instructors/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+  const client = await pool.connect();
   try {
     const { id } = req.params;
-    const result = await pool.query(
+
+    await client.query('BEGIN');
+
+    // Get instructor email before deleting
+    const instructorResult = await client.query(
       'DELETE FROM instructors WHERE id = $1 RETURNING *',
       [id]
     );
 
-    if (result.rows.length === 0) {
+    if (instructorResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Instructor not found' });
     }
-    res.json({ message: 'Instructor deleted successfully' });
+
+    const deletedInstructor = instructorResult.rows[0];
+
+    // Delete associated user account if email exists
+    if (deletedInstructor.email) {
+      await client.query(
+        'DELETE FROM users WHERE email = $1 AND role = $2',
+        [deletedInstructor.email.toLowerCase(), 'instructor']
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ message: 'Instructor and user account deleted successfully' });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error deleting instructor:', error);
     res.status(500).json({ error: 'Failed to delete instructor' });
+  } finally {
+    client.release();
   }
 });
 

@@ -9,6 +9,8 @@ function ManageInstructors() {
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [createdInstructorInfo, setCreatedInstructorInfo] = useState(null);
   const [editingInstructor, setEditingInstructor] = useState(null);
   const [deletingInstructor, setDeletingInstructor] = useState(null);
   const [formData, setFormData] = useState({
@@ -86,11 +88,22 @@ function ManageInstructors() {
     try {
       if (editingInstructor) {
         await updateInstructor(editingInstructor.id, formData);
+        await fetchInstructors();
+        closeModal();
       } else {
-        await createInstructor(formData);
+        const result = await createInstructor(formData);
+        await fetchInstructors();
+        closeModal();
+        // Show the default password to the admin
+        if (result.default_password) {
+          setCreatedInstructorInfo({
+            name: `${result.first_name} ${result.last_name}`,
+            email: result.email,
+            password: result.default_password
+          });
+          setShowPasswordModal(true);
+        }
       }
-      await fetchInstructors();
-      closeModal();
     } catch (err) {
       setError(err.message);
     }
@@ -195,14 +208,18 @@ function ManageInstructors() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="email">אימייל</label>
+                <label htmlFor="email">אימייל *</label>
                 <input
                   type="email"
                   id="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
+                  required
                 />
+                {!editingInstructor && (
+                  <small className="form-hint">המדריך ישתמש באימייל זה כדי להתחבר למערכת</small>
+                )}
               </div>
               <div className="form-group">
                 <label htmlFor="phone">טלפון</label>
@@ -237,12 +254,51 @@ function ManageInstructors() {
                 <strong>{deletingInstructor.first_name} {deletingInstructor.last_name}</strong>?
                 לא ניתן לבטל פעולה זו.
               </p>
+              <p className="warning-text">
+                פעולה זו תמחק גם את חשבון המשתמש של המדריך.
+              </p>
               <div className="form-actions">
                 <button className="btn btn-secondary" onClick={closeDeleteModal}>
                   ביטול
                 </button>
                 <button className="btn btn-danger" onClick={handleDelete}>
                   מחיקה
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPasswordModal && createdInstructorInfo && (
+        <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="password-info">
+              <h3>מדריך נוצר בהצלחה</h3>
+              <p>
+                נוצר חשבון משתמש עבור <strong>{createdInstructorInfo.name}</strong>
+              </p>
+              <div className="credentials-box">
+                <div className="credential-row">
+                  <span className="credential-label">אימייל:</span>
+                  <span className="credential-value">{createdInstructorInfo.email}</span>
+                </div>
+                <div className="credential-row">
+                  <span className="credential-label">סיסמה ראשונית:</span>
+                  <span className="credential-value password">{createdInstructorInfo.password}</span>
+                </div>
+              </div>
+              <p className="warning-text">
+                שמור את הסיסמה הראשונית - היא לא תוצג שוב.
+                <br />
+                המדריך יכול לשנות את הסיסמה לאחר ההתחברות הראשונה.
+              </p>
+              <div className="form-actions">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowPasswordModal(false)}
+                >
+                  הבנתי
                 </button>
               </div>
             </div>

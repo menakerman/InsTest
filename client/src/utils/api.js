@@ -148,9 +148,12 @@ export const deleteCourse = (id) => fetchAPI(`/courses/${id}`, {
 });
 
 // Export
-export const exportFinalReport = async () => {
+export const exportFinalReport = async (courseId = null) => {
   const token = localStorage.getItem('token');
-  const response = await fetch(`${API_URL}/export/final-report`, {
+  const url = courseId
+    ? `${API_URL}/export/final-report?courseId=${courseId}`
+    : `${API_URL}/export/final-report`;
+  const response = await fetch(url, {
     headers: {
       'Authorization': token ? `Bearer ${token}` : ''
     }
@@ -169,9 +172,9 @@ export const exportFinalReport = async () => {
 
   // Get the blob and create download
   const blob = await response.blob();
-  const url = window.URL.createObjectURL(blob);
+  const blobUrl = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
+  a.href = blobUrl;
 
   // Get filename from Content-Disposition header or use default
   const contentDisposition = response.headers.get('Content-Disposition');
@@ -186,7 +189,7 @@ export const exportFinalReport = async () => {
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  window.URL.revokeObjectURL(url);
+  window.URL.revokeObjectURL(blobUrl);
   document.body.removeChild(a);
 };
 

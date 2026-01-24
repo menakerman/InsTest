@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEvaluations, getEvaluation, deleteEvaluation } from '../utils/api';
 import { formatPercentage, getStatusColor, getStatusText } from '../utils/scoreCalculations';
-import ExportReportButton from '../components/ExportReportButton';
 
 function EvaluationHistory() {
   const [evaluations, setEvaluations] = useState([]);
@@ -85,7 +84,6 @@ function EvaluationHistory() {
       <div className="page-header">
         <h2>היסטוריית הערכות</h2>
         <div className="header-actions">
-          <ExportReportButton />
           <button className="btn btn-primary" onClick={() => navigate('/grade')}>
             הערכה חדשה
           </button>

@@ -694,11 +694,30 @@ function createStudentSheet(workbook, student, evaluations, subjects, absences, 
 
 /**
  * Main function to generate the final report
+ * @param {Pool} pool - Database connection pool
+ * @param {number|null} courseId - Optional course ID to filter by
  */
-export async function generateFinalReport(pool) {
+export async function generateFinalReport(pool, courseId = null) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'InsTest';
   workbook.created = new Date();
+
+  // Build student query based on courseId
+  let studentsQuery;
+  let studentsParams = [];
+
+  if (courseId) {
+    // Get only students enrolled in this course
+    studentsQuery = `
+      SELECT s.* FROM students s
+      JOIN course_students cs ON s.id = cs.student_id
+      WHERE cs.course_id = $1
+      ORDER BY s.last_name, s.first_name
+    `;
+    studentsParams = [courseId];
+  } else {
+    studentsQuery = 'SELECT * FROM students ORDER BY last_name, first_name';
+  }
 
   // Fetch all required data
   const [
@@ -706,9 +725,10 @@ export async function generateFinalReport(pool) {
     subjectsResult,
     evaluationsResult,
     absencesResult,
-    itemScoresResult
+    itemScoresResult,
+    courseResult
   ] = await Promise.all([
-    pool.query('SELECT * FROM students ORDER BY last_name, first_name'),
+    pool.query(studentsQuery, studentsParams),
     pool.query('SELECT * FROM evaluation_subjects ORDER BY display_order'),
     pool.query(`
       SELECT
@@ -734,17 +754,33 @@ export async function generateFinalReport(pool) {
       FROM evaluation_item_scores eis
       LEFT JOIN evaluation_criteria ec ON eis.criterion_id = ec.id
       ORDER BY eis.evaluation_id, ec.display_order
-    `)
+    `),
+    courseId ? pool.query('SELECT * FROM courses WHERE id = $1', [courseId]) : Promise.resolve({ rows: [] })
   ]);
 
   const students = studentsResult.rows;
   const subjects = subjectsResult.rows;
-  const evaluations = evaluationsResult.rows;
-  const absences = absencesResult.rows;
-  const itemScores = itemScoresResult.rows;
+  const studentIds = students.map(s => s.id);
 
-  // Derive course info
-  const courseInfo = deriveCourseInfo(evaluations);
+  // Filter evaluations and absences to only include students in the course
+  const evaluations = evaluationsResult.rows.filter(e => studentIds.includes(e.student_id));
+  const absences = absencesResult.rows.filter(a => studentIds.includes(a.student_id));
+
+  // Filter item scores to only include evaluations for these students
+  const evaluationIds = evaluations.map(e => e.id);
+  const itemScores = itemScoresResult.rows.filter(is => evaluationIds.includes(is.evaluation_id));
+
+  // Derive course info - use actual course data if courseId provided
+  let courseInfo;
+  if (courseId && courseResult.rows.length > 0) {
+    const course = courseResult.rows[0];
+    courseInfo = {
+      name: course.name,
+      date: formatDateHebrew(course.start_date)
+    };
+  } else {
+    courseInfo = deriveCourseInfo(evaluations);
+  }
 
   // Create all sheets
   createCourseSheet(workbook, courseInfo);

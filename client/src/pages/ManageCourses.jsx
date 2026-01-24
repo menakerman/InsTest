@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts';
-import { getCourses, getCourse, createCourse, updateCourse, deleteCourse, getStudents } from '../utils/api';
+import { getCourses, getCourse, createCourse, updateCourse, deleteCourse, getStudents, exportFinalReport } from '../utils/api';
 import StudentMultiSelect from '../components/StudentMultiSelect';
 
 const courseTypeOptions = [
@@ -21,6 +21,7 @@ function ManageCourses() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [deletingCourse, setDeletingCourse] = useState(null);
   const [formData, setFormData] = useState({
@@ -139,6 +140,18 @@ function ManageCourses() {
   const closeDetailsModal = () => {
     setShowDetailsModal(false);
     setSelectedCourse(null);
+  };
+
+  const handleExportCourseReport = async () => {
+    if (!selectedCourse) return;
+    try {
+      setExporting(true);
+      await exportFinalReport(selectedCourse.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -460,6 +473,13 @@ function ManageCourses() {
                 )}
 
                 <div className="form-actions">
+                  <button
+                    className="btn btn-success"
+                    onClick={handleExportCourseReport}
+                    disabled={exporting}
+                  >
+                    {exporting ? 'מייצא...' : 'יצוא דוח Excel'}
+                  </button>
                   {canEdit && (
                     <button
                       className="btn btn-secondary"

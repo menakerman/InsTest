@@ -2,6 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import pg from 'pg';
 import dotenv from 'dotenv';
+import authRoutes from './routes/auth.js';
+import usersRoutes from './routes/users.js';
+import absencesRoutes from './routes/absences.js';
+import exportRoutes from './routes/export.js';
+import { authenticateToken } from './middleware/auth.js';
+import { requireRole } from './middleware/roles.js';
 
 dotenv.config();
 
@@ -16,8 +22,23 @@ const pool = new Pool({
 app.use(cors());
 app.use(express.json());
 
+// Auth routes (public)
+app.use('/api/auth', authRoutes);
+
+// User management routes (admin only)
+app.use('/api/users', usersRoutes);
+
+// Absences routes (admin/instructor only)
+app.use('/api/absences', absencesRoutes);
+
+// Export routes
+app.use('/api/export', exportRoutes);
+
+// ==================== STUDENTS ====================
+// Roles: admin/instructor = CRUD, tester = view only, student = no access
+
 // Get all students
-app.get('/api/students', async (req, res) => {
+app.get('/api/students', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT * FROM students ORDER BY created_at DESC'
@@ -30,7 +51,7 @@ app.get('/api/students', async (req, res) => {
 });
 
 // Get single student
-app.get('/api/students/:id', async (req, res) => {
+app.get('/api/students/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM students WHERE id = $1', [id]);
@@ -45,7 +66,7 @@ app.get('/api/students/:id', async (req, res) => {
 });
 
 // Create student
-app.post('/api/students', async (req, res) => {
+app.post('/api/students', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
   try {
     const { first_name, last_name, email, phone, unit_id } = req.body;
 
@@ -70,7 +91,7 @@ app.post('/api/students', async (req, res) => {
 });
 
 // Update student
-app.put('/api/students/:id', async (req, res) => {
+app.put('/api/students/:id', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
   try {
     const { id } = req.params;
     const { first_name, last_name, email, phone, unit_id } = req.body;
@@ -101,7 +122,7 @@ app.put('/api/students/:id', async (req, res) => {
 });
 
 // Delete student
-app.delete('/api/students/:id', async (req, res) => {
+app.delete('/api/students/:id', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
@@ -116,6 +137,456 @@ app.delete('/api/students/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting student:', error);
     res.status(500).json({ error: 'Failed to delete student' });
+  }
+});
+
+// ==================== INSTRUCTORS ====================
+// Roles: admin = CRUD, instructor/tester = view only, student = no access
+
+// Get all instructors
+app.get('/api/instructors', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM instructors ORDER BY created_at DESC'
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching instructors:', error);
+    res.status(500).json({ error: 'Failed to fetch instructors' });
+  }
+});
+
+// Get single instructor
+app.get('/api/instructors/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('SELECT * FROM instructors WHERE id = $1', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Instructor not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching instructor:', error);
+    res.status(500).json({ error: 'Failed to fetch instructor' });
+  }
+});
+
+// Create instructor
+app.post('/api/instructors', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { first_name, last_name, email, phone } = req.body;
+
+    if (!first_name || !last_name) {
+      return res.status(400).json({ error: 'First name and last name are required' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO instructors (first_name, last_name, email, phone)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [first_name, last_name, email || null, phone || null]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating instructor:', error);
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'An instructor with this email already exists' });
+    }
+    res.status(500).json({ error: 'Failed to create instructor' });
+  }
+});
+
+// Update instructor
+app.put('/api/instructors/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { first_name, last_name, email, phone } = req.body;
+
+    if (!first_name || !last_name) {
+      return res.status(400).json({ error: 'First name and last name are required' });
+    }
+
+    const result = await pool.query(
+      `UPDATE instructors
+       SET first_name = $1, last_name = $2, email = $3, phone = $4
+       WHERE id = $5
+       RETURNING *`,
+      [first_name, last_name, email || null, phone || null, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Instructor not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating instructor:', error);
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'An instructor with this email already exists' });
+    }
+    res.status(500).json({ error: 'Failed to update instructor' });
+  }
+});
+
+// Delete instructor
+app.delete('/api/instructors/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'DELETE FROM instructors WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Instructor not found' });
+    }
+    res.json({ message: 'Instructor deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting instructor:', error);
+    res.status(500).json({ error: 'Failed to delete instructor' });
+  }
+});
+
+// ==================== EVALUATION SUBJECTS ====================
+// Roles: admin/instructor/tester = full access, student = no access
+
+// Get all evaluation subjects with criteria
+app.get('/api/evaluation-subjects', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  try {
+    const subjectsResult = await pool.query(
+      'SELECT * FROM evaluation_subjects ORDER BY display_order'
+    );
+
+    const subjects = await Promise.all(
+      subjectsResult.rows.map(async (subject) => {
+        const criteriaResult = await pool.query(
+          'SELECT * FROM evaluation_criteria WHERE subject_id = $1 ORDER BY display_order',
+          [subject.id]
+        );
+        return { ...subject, criteria: criteriaResult.rows };
+      })
+    );
+
+    res.json(subjects);
+  } catch (error) {
+    console.error('Error fetching evaluation subjects:', error);
+    res.status(500).json({ error: 'Failed to fetch evaluation subjects' });
+  }
+});
+
+// Get single evaluation subject by code with criteria
+app.get('/api/evaluation-subjects/:code', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  try {
+    const { code } = req.params;
+    const subjectResult = await pool.query(
+      'SELECT * FROM evaluation_subjects WHERE code = $1',
+      [code]
+    );
+
+    if (subjectResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Evaluation subject not found' });
+    }
+
+    const subject = subjectResult.rows[0];
+    const criteriaResult = await pool.query(
+      'SELECT * FROM evaluation_criteria WHERE subject_id = $1 ORDER BY display_order',
+      [subject.id]
+    );
+
+    res.json({ ...subject, criteria: criteriaResult.rows });
+  } catch (error) {
+    console.error('Error fetching evaluation subject:', error);
+    res.status(500).json({ error: 'Failed to fetch evaluation subject' });
+  }
+});
+
+// ==================== EVALUATIONS ====================
+// Roles: admin/instructor/tester = full access, student = no access
+
+// Get all evaluations with filters
+app.get('/api/evaluations', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  try {
+    const { student_id, subject_id, instructor_id, from_date, to_date } = req.query;
+
+    let query = `
+      SELECT
+        se.*,
+        s.first_name as student_first_name,
+        s.last_name as student_last_name,
+        i.first_name as instructor_first_name,
+        i.last_name as instructor_last_name,
+        es.name_he as subject_name,
+        es.code as subject_code
+      FROM student_evaluations se
+      LEFT JOIN students s ON se.student_id = s.id
+      LEFT JOIN instructors i ON se.instructor_id = i.id
+      LEFT JOIN evaluation_subjects es ON se.subject_id = es.id
+      WHERE 1=1
+    `;
+    const params = [];
+    let paramIndex = 1;
+
+    if (student_id) {
+      query += ` AND se.student_id = $${paramIndex++}`;
+      params.push(student_id);
+    }
+    if (subject_id) {
+      query += ` AND se.subject_id = $${paramIndex++}`;
+      params.push(subject_id);
+    }
+    if (instructor_id) {
+      query += ` AND se.instructor_id = $${paramIndex++}`;
+      params.push(instructor_id);
+    }
+    if (from_date) {
+      query += ` AND se.evaluation_date >= $${paramIndex++}`;
+      params.push(from_date);
+    }
+    if (to_date) {
+      query += ` AND se.evaluation_date <= $${paramIndex++}`;
+      params.push(to_date);
+    }
+
+    query += ' ORDER BY se.evaluation_date DESC';
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching evaluations:', error);
+    res.status(500).json({ error: 'Failed to fetch evaluations' });
+  }
+});
+
+// Get single evaluation with all item scores
+app.get('/api/evaluations/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const evalResult = await pool.query(
+      `SELECT
+        se.*,
+        s.first_name as student_first_name,
+        s.last_name as student_last_name,
+        i.first_name as instructor_first_name,
+        i.last_name as instructor_last_name,
+        es.name_he as subject_name,
+        es.code as subject_code,
+        es.max_raw_score,
+        es.passing_raw_score
+      FROM student_evaluations se
+      LEFT JOIN students s ON se.student_id = s.id
+      LEFT JOIN instructors i ON se.instructor_id = i.id
+      LEFT JOIN evaluation_subjects es ON se.subject_id = es.id
+      WHERE se.id = $1`,
+      [id]
+    );
+
+    if (evalResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Evaluation not found' });
+    }
+
+    const evaluation = evalResult.rows[0];
+
+    const scoresResult = await pool.query(
+      `SELECT
+        eis.*,
+        ec.name_he as criterion_name,
+        ec.is_critical
+      FROM evaluation_item_scores eis
+      LEFT JOIN evaluation_criteria ec ON eis.criterion_id = ec.id
+      WHERE eis.evaluation_id = $1
+      ORDER BY ec.display_order`,
+      [id]
+    );
+
+    res.json({ ...evaluation, item_scores: scoresResult.rows });
+  } catch (error) {
+    console.error('Error fetching evaluation:', error);
+    res.status(500).json({ error: 'Failed to fetch evaluation' });
+  }
+});
+
+// Create evaluation with item scores
+app.post('/api/evaluations', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const {
+      student_id,
+      subject_id,
+      instructor_id,
+      course_name,
+      lesson_name,
+      evaluation_date,
+      raw_score,
+      percentage_score,
+      final_score,
+      is_passing,
+      has_critical_fail,
+      notes,
+      item_scores
+    } = req.body;
+
+    if (!student_id || !subject_id || !item_scores || item_scores.length === 0) {
+      return res.status(400).json({ error: 'Student, subject, and item scores are required' });
+    }
+
+    // Insert evaluation
+    const evalResult = await client.query(
+      `INSERT INTO student_evaluations
+        (student_id, subject_id, instructor_id, course_name, lesson_name, evaluation_date,
+         raw_score, percentage_score, final_score, is_passing, has_critical_fail, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING *`,
+      [
+        student_id,
+        subject_id,
+        instructor_id || null,
+        course_name || null,
+        lesson_name || null,
+        evaluation_date || new Date(),
+        raw_score,
+        percentage_score,
+        final_score,
+        is_passing,
+        has_critical_fail || false,
+        notes || null
+      ]
+    );
+
+    const evaluationId = evalResult.rows[0].id;
+
+    // Insert item scores
+    for (const item of item_scores) {
+      await client.query(
+        `INSERT INTO evaluation_item_scores (evaluation_id, criterion_id, score)
+         VALUES ($1, $2, $3)`,
+        [evaluationId, item.criterion_id, item.score]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    // Fetch complete evaluation with scores
+    const completeResult = await pool.query(
+      `SELECT
+        se.*,
+        s.first_name as student_first_name,
+        s.last_name as student_last_name,
+        es.name_he as subject_name
+      FROM student_evaluations se
+      LEFT JOIN students s ON se.student_id = s.id
+      LEFT JOIN evaluation_subjects es ON se.subject_id = es.id
+      WHERE se.id = $1`,
+      [evaluationId]
+    );
+
+    res.status(201).json(completeResult.rows[0]);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error creating evaluation:', error);
+    res.status(500).json({ error: 'Failed to create evaluation' });
+  } finally {
+    client.release();
+  }
+});
+
+// Update evaluation
+app.put('/api/evaluations/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const { id } = req.params;
+    const {
+      student_id,
+      subject_id,
+      instructor_id,
+      course_name,
+      lesson_name,
+      evaluation_date,
+      raw_score,
+      percentage_score,
+      final_score,
+      is_passing,
+      has_critical_fail,
+      notes,
+      item_scores
+    } = req.body;
+
+    // Update evaluation
+    const evalResult = await client.query(
+      `UPDATE student_evaluations
+       SET student_id = $1, subject_id = $2, instructor_id = $3, course_name = $4,
+           lesson_name = $5, evaluation_date = $6, raw_score = $7, percentage_score = $8,
+           final_score = $9, is_passing = $10, has_critical_fail = $11, notes = $12
+       WHERE id = $13
+       RETURNING *`,
+      [
+        student_id,
+        subject_id,
+        instructor_id || null,
+        course_name || null,
+        lesson_name || null,
+        evaluation_date,
+        raw_score,
+        percentage_score,
+        final_score,
+        is_passing,
+        has_critical_fail || false,
+        notes || null,
+        id
+      ]
+    );
+
+    if (evalResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Evaluation not found' });
+    }
+
+    // Delete existing item scores and insert new ones
+    await client.query('DELETE FROM evaluation_item_scores WHERE evaluation_id = $1', [id]);
+
+    if (item_scores && item_scores.length > 0) {
+      for (const item of item_scores) {
+        await client.query(
+          `INSERT INTO evaluation_item_scores (evaluation_id, criterion_id, score)
+           VALUES ($1, $2, $3)`,
+          [id, item.criterion_id, item.score]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+
+    res.json(evalResult.rows[0]);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error updating evaluation:', error);
+    res.status(500).json({ error: 'Failed to update evaluation' });
+  } finally {
+    client.release();
+  }
+});
+
+// Delete evaluation
+app.delete('/api/evaluations/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'DELETE FROM student_evaluations WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Evaluation not found' });
+    }
+    res.json({ message: 'Evaluation deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting evaluation:', error);
+    res.status(500).json({ error: 'Failed to delete evaluation' });
   }
 });
 

@@ -556,6 +556,37 @@ body {
   text-align: center;
 }
 
+/* Score Description Display */
+.score-description-display {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #e8f4f8;
+  border-radius: 6px;
+  border-right: 3px solid #0077b6;
+}
+
+.score-description-label {
+  font-weight: 600;
+  color: #0077b6;
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.score-description-text {
+  color: #495057;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  display: block;
+}
+
+.score-legend-note {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
 /* Score Button */
 .score-button {
   display: flex;

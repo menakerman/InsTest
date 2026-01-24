@@ -101,10 +101,10 @@ async function seedSubjectsAndCriteria() {
     if (criteria) {
       for (const criterion of criteria) {
         const critResult = await pool.query(
-          `INSERT INTO evaluation_criteria (subject_id, name_he, description_he, display_order, is_critical)
-           VALUES ($1, $2, $3, $4, $5)
+          `INSERT INTO evaluation_criteria (subject_id, name_he, description_he, display_order, is_critical, score_descriptions)
+           VALUES ($1, $2, $3, $4, $5, $6)
            RETURNING id`,
-          [subjectId, criterion.name_he, criterion.description_he, criterion.display_order, criterion.is_critical]
+          [subjectId, criterion.name_he, criterion.description_he, criterion.display_order, criterion.is_critical, JSON.stringify(criterion.score_descriptions || null)]
         );
         criteriaBySubject[subject.code].push({
           id: critResult.rows[0].id,

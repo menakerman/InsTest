@@ -80,9 +80,20 @@ const createTablesQuery = `
     description_he TEXT,
     display_order INTEGER DEFAULT 0,
     is_critical BOOLEAN DEFAULT FALSE,
+    score_descriptions JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
+
+  -- Add score_descriptions column if it doesn't exist (for existing databases)
+  DO $$
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'evaluation_criteria'
+                   AND column_name = 'score_descriptions') THEN
+      ALTER TABLE evaluation_criteria ADD COLUMN score_descriptions JSONB;
+    END IF;
+  END $$;
 
   -- Student evaluations table (evaluation sessions)
   CREATE TABLE IF NOT EXISTS student_evaluations (
@@ -230,9 +241,9 @@ async function seedEvaluationData() {
       if (criteria) {
         for (const criterion of criteria) {
           await pool.query(
-            `INSERT INTO evaluation_criteria (subject_id, name_he, description_he, display_order, is_critical)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [subjectId, criterion.name_he, criterion.description_he, criterion.display_order, criterion.is_critical]
+            `INSERT INTO evaluation_criteria (subject_id, name_he, description_he, display_order, is_critical, score_descriptions)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [subjectId, criterion.name_he, criterion.description_he, criterion.display_order, criterion.is_critical, JSON.stringify(criterion.score_descriptions || null)]
           );
         }
       }

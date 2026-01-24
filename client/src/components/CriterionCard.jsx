@@ -2,6 +2,9 @@ import ScoreButton from './ScoreButton';
 import { SCORE_VALUES } from '../utils/scoreCalculations';
 
 function CriterionCard({ criterion, score, onScoreChange, scoreDescriptions = {} }) {
+  // Get the description for the currently selected score
+  const selectedScoreDescription = score ? scoreDescriptions[score] : null;
+
   return (
     <div className={`criterion-card ${criterion.is_critical ? 'critical' : ''}`}>
       <div className="criterion-header">
@@ -25,6 +28,14 @@ function CriterionCard({ criterion, score, onScoreChange, scoreDescriptions = {}
           />
         ))}
       </div>
+
+      {/* Show score description when a score is selected */}
+      {selectedScoreDescription && (
+        <div className="score-description-display">
+          <span className="score-description-label">תיאור הציון:</span>
+          <span className="score-description-text">{selectedScoreDescription}</span>
+        </div>
+      )}
 
       {criterion.is_critical && score === 1 && (
         <div className="critical-fail-warning">

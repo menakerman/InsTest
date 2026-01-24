@@ -194,22 +194,38 @@ function createAbsencesSheet(workbook, students, absences) {
 /**
  * Create Sheet 4: Exams matrix (Students × 5 Subjects)
  */
-function createExamsSheet(workbook, students, evaluations, subjects) {
+function createExamsSheet(workbook, students, evaluations, subjects, externalTests) {
   const sheet = workbook.addWorksheet('מבחנים', {
     views: [{ rightToLeft: true }]
   });
+
+  // External test definitions
+  const externalTestDefs = [
+    { key: 'physics_score', label: 'פיזיקה' },
+    { key: 'physiology_score', label: 'פיזיולוגיה' },
+    { key: 'eye_contact_score', label: 'קשר עין' },
+    { key: 'equipment_score', label: 'ציוד' },
+    { key: 'decompression_score', label: 'דקומפרסיה' }
+  ];
 
   // Header
   sheet.getCell('A1').value = 'ריכוז מבחנים';
   sheet.getCell('A1').font = { bold: true, size: 14 };
 
-  // Headers row - student name + 5 subjects
+  // Headers row - student name + external tests + average
   sheet.getCell('A3').value = 'שם התלמיד';
-  subjects.forEach((subject, index) => {
+
+  // External test headers
+  externalTestDefs.forEach((test, index) => {
     const col = String.fromCharCode(66 + index); // B, C, D, E, F
-    sheet.getCell(`${col}3`).value = subject.name_he;
-    sheet.getColumn(col).width = 18;
+    sheet.getCell(`${col}3`).value = test.label;
+    sheet.getColumn(col).width = 12;
   });
+
+  // Average column
+  const avgCol = String.fromCharCode(66 + externalTestDefs.length); // G
+  sheet.getCell(`${avgCol}3`).value = 'ממוצע';
+  sheet.getColumn(avgCol).width = 10;
 
   const headerRow = sheet.getRow(3);
   headerRow.font = { bold: true };
@@ -224,38 +240,52 @@ function createExamsSheet(workbook, students, evaluations, subjects) {
     const row = studentIndex + 4;
     sheet.getCell(`A${row}`).value = `${student.first_name} ${student.last_name}`;
 
-    subjects.forEach((subject, subjectIndex) => {
-      const col = String.fromCharCode(66 + subjectIndex);
+    // Find external tests for this student
+    const studentTests = externalTests.find(et => et.student_id === student.id);
 
-      // Find the most recent evaluation for this student/subject
-      const studentEvals = evaluations.filter(e =>
-        e.student_id === student.id && e.subject_id === subject.id
-      );
+    // Fill in external test scores
+    externalTestDefs.forEach((test, testIndex) => {
+      const col = String.fromCharCode(66 + testIndex);
+      const score = studentTests?.[test.key];
+      const cell = sheet.getCell(`${col}${row}`);
 
-      if (studentEvals.length > 0) {
-        // Sort by date desc and take most recent
-        const latestEval = studentEvals.sort((a, b) =>
-          new Date(b.evaluation_date) - new Date(a.evaluation_date)
-        )[0];
-
-        const passed = latestEval.is_passing && !latestEval.has_critical_fail;
-        const cell = sheet.getCell(`${col}${row}`);
-        cell.value = passed ? 'V' : 'X';
+      if (score !== null && score !== undefined) {
+        cell.value = `${parseFloat(score).toFixed(0)}%`;
         cell.alignment = { horizontal: 'center' };
-        cell.font = {
-          bold: true,
-          color: { argb: passed ? 'FF008000' : 'FFFF0000' }
-        };
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: passed ? 'FFC6EFCE' : 'FFFFC7CE' }
-        };
+
+        // Color coding based on passing (60%)
+        if (score >= 60) {
+          cell.font = { color: { argb: 'FF008000' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+        } else {
+          cell.font = { color: { argb: 'FFFF0000' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+        }
       } else {
-        sheet.getCell(`${col}${row}`).value = '-';
-        sheet.getCell(`${col}${row}`).alignment = { horizontal: 'center' };
+        cell.value = '-';
+        cell.alignment = { horizontal: 'center' };
       }
     });
+
+    // Average column
+    const avgCell = sheet.getCell(`${avgCol}${row}`);
+    const avgScore = studentTests?.average_score;
+    if (avgScore !== null && avgScore !== undefined) {
+      avgCell.value = `${parseFloat(avgScore).toFixed(1)}%`;
+      avgCell.alignment = { horizontal: 'center' };
+      avgCell.font = { bold: true };
+
+      if (avgScore >= 60) {
+        avgCell.font = { bold: true, color: { argb: 'FF008000' } };
+        avgCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+      } else {
+        avgCell.font = { bold: true, color: { argb: 'FFFF0000' } };
+        avgCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+      }
+    } else {
+      avgCell.value = '-';
+      avgCell.alignment = { horizontal: 'center' };
+    }
   });
 
   // Column widths
@@ -266,23 +296,41 @@ function createExamsSheet(workbook, students, evaluations, subjects) {
   sheet.getCell(`A${summaryRow}`).value = 'סה"כ עברו:';
   sheet.getCell(`A${summaryRow}`).font = { bold: true };
 
-  subjects.forEach((subject, subjectIndex) => {
-    const col = String.fromCharCode(66 + subjectIndex);
+  // Count students who passed each external test (score >= 60)
+  externalTestDefs.forEach((test, testIndex) => {
+    const col = String.fromCharCode(66 + testIndex);
     const passedCount = students.filter(student => {
-      const studentEvals = evaluations.filter(e =>
-        e.student_id === student.id && e.subject_id === subject.id
-      );
-      if (studentEvals.length === 0) return false;
-      const latestEval = studentEvals.sort((a, b) =>
-        new Date(b.evaluation_date) - new Date(a.evaluation_date)
-      )[0];
-      return latestEval.is_passing && !latestEval.has_critical_fail;
+      const studentTests = externalTests.find(et => et.student_id === student.id);
+      const score = studentTests?.[test.key];
+      return score !== null && score !== undefined && score >= 60;
     }).length;
 
-    sheet.getCell(`${col}${summaryRow}`).value = `${passedCount}/${students.length}`;
+    const testedCount = students.filter(student => {
+      const studentTests = externalTests.find(et => et.student_id === student.id);
+      const score = studentTests?.[test.key];
+      return score !== null && score !== undefined;
+    }).length;
+
+    sheet.getCell(`${col}${summaryRow}`).value = testedCount > 0 ? `${passedCount}/${testedCount}` : '-';
     sheet.getCell(`${col}${summaryRow}`).font = { bold: true };
     sheet.getCell(`${col}${summaryRow}`).alignment = { horizontal: 'center' };
   });
+
+  // Average summary
+  const avgPassedCount = students.filter(student => {
+    const studentTests = externalTests.find(et => et.student_id === student.id);
+    const avgScore = studentTests?.average_score;
+    return avgScore !== null && avgScore !== undefined && avgScore >= 60;
+  }).length;
+
+  const avgTestedCount = students.filter(student => {
+    const studentTests = externalTests.find(et => et.student_id === student.id);
+    return studentTests?.average_score !== null && studentTests?.average_score !== undefined;
+  }).length;
+
+  sheet.getCell(`${avgCol}${summaryRow}`).value = avgTestedCount > 0 ? `${avgPassedCount}/${avgTestedCount}` : '-';
+  sheet.getCell(`${avgCol}${summaryRow}`).font = { bold: true };
+  sheet.getCell(`${avgCol}${summaryRow}`).alignment = { horizontal: 'center' };
 
   return sheet;
 }
@@ -477,7 +525,7 @@ function createLessonTable(sheet, startRow, lessonNames, criteriaItems, evaluati
 /**
  * Create individual student sheet with progress data and chart
  */
-function createStudentSheet(workbook, student, evaluations, subjects, absences, itemScores) {
+function createStudentSheet(workbook, student, evaluations, subjects, absences, itemScores, externalTests, studentSkills) {
   const sheetName = `${student.first_name} ${student.last_name}`.substring(0, 31);
   const sheet = workbook.addWorksheet(sheetName, {
     views: [{ rightToLeft: true }]
@@ -689,6 +737,109 @@ function createStudentSheet(workbook, student, evaluations, subjects, absences, 
     'טבלת שיעורי מים'
   );
 
+  // External Tests Section
+  let externalTestsRow = lessonTablesRow + 2;
+  sheet.getCell(`A${externalTestsRow}`).value = 'מבחנים חיצוניים';
+  sheet.getCell(`A${externalTestsRow}`).font = { bold: true, size: 12 };
+
+  // Headers for external tests
+  const testHeaders = ['מבחן', 'ציון'];
+  testHeaders.forEach((header, index) => {
+    const col = String.fromCharCode(65 + index);
+    sheet.getCell(`${col}${externalTestsRow + 2}`).value = header;
+    sheet.getCell(`${col}${externalTestsRow + 2}`).font = { bold: true };
+  });
+
+  const headerRow = sheet.getRow(externalTestsRow + 2);
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' }
+  };
+
+  // External test data
+  const testNames = [
+    { key: 'physics_score', label: 'פיזיקה' },
+    { key: 'physiology_score', label: 'פיזיולוגיה' },
+    { key: 'eye_contact_score', label: 'קשר עין' },
+    { key: 'equipment_score', label: 'ציוד' },
+    { key: 'decompression_score', label: 'דקומפרסיה' }
+  ];
+
+  testNames.forEach((test, index) => {
+    const row = externalTestsRow + 3 + index;
+    sheet.getCell(`A${row}`).value = test.label;
+    const score = externalTests?.[test.key];
+    sheet.getCell(`B${row}`).value = score !== null && score !== undefined ? `${score}%` : '-';
+
+    // Color coding for scores
+    if (score !== null && score !== undefined) {
+      const cell = sheet.getCell(`B${row}`);
+      if (score >= 60) {
+        cell.font = { color: { argb: 'FF008000' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+      } else {
+        cell.font = { color: { argb: 'FFFF0000' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+      }
+    }
+  });
+
+  // Average row
+  const avgRow = externalTestsRow + 3 + testNames.length;
+  sheet.getCell(`A${avgRow}`).value = 'ממוצע';
+  sheet.getCell(`A${avgRow}`).font = { bold: true };
+
+  const avgScore = externalTests?.average_score;
+  sheet.getCell(`B${avgRow}`).value = avgScore !== null && avgScore !== undefined ? `${parseFloat(avgScore).toFixed(1)}%` : '-';
+  sheet.getCell(`B${avgRow}`).font = { bold: true };
+
+  if (avgScore !== null && avgScore !== undefined) {
+    const avgCell = sheet.getCell(`B${avgRow}`);
+    if (avgScore >= 60) {
+      avgCell.font = { bold: true, color: { argb: 'FF008000' } };
+      avgCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+    } else {
+      avgCell.font = { bold: true, color: { argb: 'FFFF0000' } };
+      avgCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+    }
+  }
+
+  // Skills Section (מיומנויות)
+  let skillsRow = avgRow + 3;
+  sheet.getCell(`A${skillsRow}`).value = 'מיומנויות';
+  sheet.getCell(`A${skillsRow}`).font = { bold: true, size: 12 };
+
+  // Headers for skills
+  sheet.getCell(`A${skillsRow + 2}`).value = 'מיומנות';
+  sheet.getCell(`B${skillsRow + 2}`).value = 'בוצע';
+  const skillsHeaderRow = sheet.getRow(skillsRow + 2);
+  skillsHeaderRow.font = { bold: true };
+  skillsHeaderRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' }
+  };
+
+  // Skills data
+  const skills = [
+    { key: 'meters_30', label: '30 מטר' },
+    { key: 'meters_40', label: '40 מטר' },
+    { key: 'guidance', label: 'הובלה' }
+  ];
+
+  skills.forEach((skill, index) => {
+    const row = skillsRow + 3 + index;
+    sheet.getCell(`A${row}`).value = skill.label;
+    const performed = studentSkills?.[skill.key] || false;
+    const cell = sheet.getCell(`B${row}`);
+    cell.value = performed ? '✓' : '-';
+    if (performed) {
+      cell.font = { bold: true, color: { argb: 'FF008000' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+    }
+  });
+
   return sheet;
 }
 
@@ -726,7 +877,9 @@ export async function generateFinalReport(pool, courseId = null) {
     evaluationsResult,
     absencesResult,
     itemScoresResult,
-    courseResult
+    courseResult,
+    externalTestsResult,
+    studentSkillsResult
   ] = await Promise.all([
     pool.query(studentsQuery, studentsParams),
     pool.query('SELECT * FROM evaluation_subjects ORDER BY display_order'),
@@ -755,7 +908,9 @@ export async function generateFinalReport(pool, courseId = null) {
       LEFT JOIN evaluation_criteria ec ON eis.criterion_id = ec.id
       ORDER BY eis.evaluation_id, ec.display_order
     `),
-    courseId ? pool.query('SELECT * FROM courses WHERE id = $1', [courseId]) : Promise.resolve({ rows: [] })
+    courseId ? pool.query('SELECT * FROM courses WHERE id = $1', [courseId]) : Promise.resolve({ rows: [] }),
+    pool.query('SELECT * FROM external_tests'),
+    pool.query('SELECT * FROM student_skills')
   ]);
 
   const students = studentsResult.rows;
@@ -769,6 +924,12 @@ export async function generateFinalReport(pool, courseId = null) {
   // Filter item scores to only include evaluations for these students
   const evaluationIds = evaluations.map(e => e.id);
   const itemScores = itemScoresResult.rows.filter(is => evaluationIds.includes(is.evaluation_id));
+
+  // Filter external tests to only include students in the course
+  const externalTests = externalTestsResult.rows.filter(et => studentIds.includes(et.student_id));
+
+  // Filter student skills to only include students in the course
+  const studentSkills = studentSkillsResult.rows.filter(ss => studentIds.includes(ss.student_id));
 
   // Derive course info - use actual course data if courseId provided
   let courseInfo;
@@ -786,11 +947,13 @@ export async function generateFinalReport(pool, courseId = null) {
   createCourseSheet(workbook, courseInfo);
   createMainSheet(workbook, subjects);
   createAbsencesSheet(workbook, students, absences);
-  createExamsSheet(workbook, students, evaluations, subjects);
+  createExamsSheet(workbook, students, evaluations, subjects, externalTests);
 
   // Create individual student sheets
   for (const student of students) {
-    createStudentSheet(workbook, student, evaluations, subjects, absences, itemScores);
+    const studentExternalTests = externalTests.find(et => et.student_id === student.id);
+    const studentSkillsData = studentSkills.find(ss => ss.student_id === student.id);
+    createStudentSheet(workbook, student, evaluations, subjects, absences, itemScores, studentExternalTests, studentSkillsData);
   }
 
   return workbook;

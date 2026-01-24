@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts';
-import { getStudents, createStudent, updateStudent, deleteStudent } from '../utils/api';
+import { getStudents, createStudent, updateStudent, deleteStudent, getExternalTests, saveExternalTests, getStudentSkills, saveStudentSkills } from '../utils/api';
 
 function ManageStudents() {
   const { user } = useAuth();
@@ -9,8 +9,24 @@ function ManageStudents() {
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showExternalTestsModal, setShowExternalTestsModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [externalTestsLoading, setExternalTestsLoading] = useState(false);
+  const [externalTestsSaving, setExternalTestsSaving] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [deletingStudent, setDeletingStudent] = useState(null);
+  const [externalTestsData, setExternalTestsData] = useState({
+    physics_score: '',
+    physiology_score: '',
+    eye_contact_score: '',
+    equipment_score: '',
+    decompression_score: ''
+  });
+  const [skillsData, setSkillsData] = useState({
+    meters_30: false,
+    meters_40: false,
+    guidance: false
+  });
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -109,6 +125,102 @@ function ManageStudents() {
     }
   };
 
+  const openExternalTestsModal = async (student) => {
+    setSelectedStudent(student);
+    setShowExternalTestsModal(true);
+    setExternalTestsLoading(true);
+    try {
+      const [testsData, skillsResult] = await Promise.all([
+        getExternalTests(student.id),
+        getStudentSkills(student.id)
+      ]);
+      setExternalTestsData({
+        physics_score: testsData.physics_score ?? '',
+        physiology_score: testsData.physiology_score ?? '',
+        eye_contact_score: testsData.eye_contact_score ?? '',
+        equipment_score: testsData.equipment_score ?? '',
+        decompression_score: testsData.decompression_score ?? ''
+      });
+      setSkillsData({
+        meters_30: skillsResult.meters_30 || false,
+        meters_40: skillsResult.meters_40 || false,
+        guidance: skillsResult.guidance || false
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExternalTestsLoading(false);
+    }
+  };
+
+  const closeExternalTestsModal = () => {
+    setShowExternalTestsModal(false);
+    setSelectedStudent(null);
+    setExternalTestsData({
+      physics_score: '',
+      physiology_score: '',
+      eye_contact_score: '',
+      equipment_score: '',
+      decompression_score: ''
+    });
+    setSkillsData({
+      meters_30: false,
+      meters_40: false,
+      guidance: false
+    });
+  };
+
+  const handleExternalTestChange = (e) => {
+    const { name, value } = e.target;
+    // Allow empty string or numbers 0-100
+    if (value === '' || (parseFloat(value) >= 0 && parseFloat(value) <= 100)) {
+      setExternalTestsData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleSkillChange = (e) => {
+    const { name, checked } = e.target;
+    setSkillsData(prev => ({ ...prev, [name]: checked }));
+  };
+
+  const handleSaveExternalTests = async (e) => {
+    e.preventDefault();
+    if (!selectedStudent) return;
+
+    try {
+      setExternalTestsSaving(true);
+      await Promise.all([
+        saveExternalTests(selectedStudent.id, {
+          physics_score: externalTestsData.physics_score === '' ? null : parseFloat(externalTestsData.physics_score),
+          physiology_score: externalTestsData.physiology_score === '' ? null : parseFloat(externalTestsData.physiology_score),
+          eye_contact_score: externalTestsData.eye_contact_score === '' ? null : parseFloat(externalTestsData.eye_contact_score),
+          equipment_score: externalTestsData.equipment_score === '' ? null : parseFloat(externalTestsData.equipment_score),
+          decompression_score: externalTestsData.decompression_score === '' ? null : parseFloat(externalTestsData.decompression_score)
+        }),
+        saveStudentSkills(selectedStudent.id, skillsData)
+      ]);
+      closeExternalTestsModal();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExternalTestsSaving(false);
+    }
+  };
+
+  const calculateAverageScore = () => {
+    const scores = [
+      externalTestsData.physics_score,
+      externalTestsData.physiology_score,
+      externalTestsData.eye_contact_score,
+      externalTestsData.equipment_score,
+      externalTestsData.decompression_score
+    ].filter(s => s !== '' && s !== null && s !== undefined).map(s => parseFloat(s));
+
+    if (scores.length === 0) return null;
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    return avg.toFixed(1);
+  };
+
   if (loading) {
     return <div className="loading">טוען תלמידים...</div>;
   }
@@ -145,7 +257,7 @@ function ManageStudents() {
             </thead>
             <tbody>
               {students.map(student => (
-                <tr key={student.id}>
+                <tr key={student.id} className="clickable-row" onClick={() => openExternalTestsModal(student)}>
                   <td data-label="שם">{student.first_name} {student.last_name}</td>
                   <td data-label="אימייל">{student.email}</td>
                   <td data-label="טלפון">{student.phone || '-'}</td>
@@ -162,7 +274,7 @@ function ManageStudents() {
                     )}
                   </td>
                   {canEdit && (
-                    <td className="actions">
+                    <td className="actions" onClick={(e) => e.stopPropagation()}>
                       <button
                         className="btn btn-secondary btn-sm"
                         onClick={() => openEditModal(student)}
@@ -274,6 +386,172 @@ function ManageStudents() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showExternalTestsModal && selectedStudent && (
+        <div className="modal-overlay" onClick={closeExternalTestsModal}>
+          <div className="modal modal-large" onClick={e => e.stopPropagation()}>
+            <h3>מבחנים חיצוניים - {selectedStudent.first_name} {selectedStudent.last_name}</h3>
+            {externalTestsLoading ? (
+              <div className="loading-small">טוען נתונים...</div>
+            ) : (
+              <form onSubmit={handleSaveExternalTests}>
+                <div className="external-tests-grid">
+                  <div className="form-group">
+                    <label htmlFor="physics_score">פיזיקה</label>
+                    <div className="score-input-wrapper">
+                      <input
+                        type="number"
+                        id="physics_score"
+                        name="physics_score"
+                        value={externalTestsData.physics_score}
+                        onChange={handleExternalTestChange}
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        placeholder="0-100"
+                        disabled={!canEdit}
+                      />
+                      <span className="score-suffix">%</span>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="physiology_score">פיזיולוגיה</label>
+                    <div className="score-input-wrapper">
+                      <input
+                        type="number"
+                        id="physiology_score"
+                        name="physiology_score"
+                        value={externalTestsData.physiology_score}
+                        onChange={handleExternalTestChange}
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        placeholder="0-100"
+                        disabled={!canEdit}
+                      />
+                      <span className="score-suffix">%</span>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="eye_contact_score">קשר עין</label>
+                    <div className="score-input-wrapper">
+                      <input
+                        type="number"
+                        id="eye_contact_score"
+                        name="eye_contact_score"
+                        value={externalTestsData.eye_contact_score}
+                        onChange={handleExternalTestChange}
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        placeholder="0-100"
+                        disabled={!canEdit}
+                      />
+                      <span className="score-suffix">%</span>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="equipment_score">ציוד</label>
+                    <div className="score-input-wrapper">
+                      <input
+                        type="number"
+                        id="equipment_score"
+                        name="equipment_score"
+                        value={externalTestsData.equipment_score}
+                        onChange={handleExternalTestChange}
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        placeholder="0-100"
+                        disabled={!canEdit}
+                      />
+                      <span className="score-suffix">%</span>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="decompression_score">דקומפרסיה</label>
+                    <div className="score-input-wrapper">
+                      <input
+                        type="number"
+                        id="decompression_score"
+                        name="decompression_score"
+                        value={externalTestsData.decompression_score}
+                        onChange={handleExternalTestChange}
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        placeholder="0-100"
+                        disabled={!canEdit}
+                      />
+                      <span className="score-suffix">%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="external-tests-average">
+                  <span className="average-label">ממוצע:</span>
+                  <span className="average-value">
+                    {calculateAverageScore() !== null ? `${calculateAverageScore()}%` : '-'}
+                  </span>
+                </div>
+
+                <div className="skills-section">
+                  <h4>מיומנויות</h4>
+                  <div className="skills-grid">
+                    <label className="skill-checkbox">
+                      <input
+                        type="checkbox"
+                        name="meters_30"
+                        checked={skillsData.meters_30}
+                        onChange={handleSkillChange}
+                        disabled={!canEdit}
+                      />
+                      <span className="skill-label">30 מטר</span>
+                    </label>
+
+                    <label className="skill-checkbox">
+                      <input
+                        type="checkbox"
+                        name="meters_40"
+                        checked={skillsData.meters_40}
+                        onChange={handleSkillChange}
+                        disabled={!canEdit}
+                      />
+                      <span className="skill-label">40 מטר</span>
+                    </label>
+
+                    <label className="skill-checkbox">
+                      <input
+                        type="checkbox"
+                        name="guidance"
+                        checked={skillsData.guidance}
+                        onChange={handleSkillChange}
+                        disabled={!canEdit}
+                      />
+                      <span className="skill-label">הובלה</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="form-actions">
+                  <button type="button" className="btn btn-secondary" onClick={closeExternalTestsModal}>
+                    {canEdit ? 'ביטול' : 'סגור'}
+                  </button>
+                  {canEdit && (
+                    <button type="submit" className="btn btn-primary" disabled={externalTestsSaving}>
+                      {externalTestsSaving ? 'שומר...' : 'שמור'}
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

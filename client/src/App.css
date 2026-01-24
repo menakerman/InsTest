@@ -2946,3 +2946,166 @@ body {
     font-size: 0.9rem;
   }
 }
+
+/* External Tests Modal */
+.external-tests-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.external-tests-grid .form-group {
+  margin-bottom: 0;
+}
+
+.external-tests-grid label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.score-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.score-input-wrapper input {
+  width: 100%;
+  padding: 0.75rem;
+  padding-left: 2.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.score-input-wrapper input:focus {
+  outline: none;
+  border-color: #0077b6;
+  box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.1);
+}
+
+.score-input-wrapper input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.score-input-wrapper .score-suffix {
+  position: absolute;
+  left: 0.75rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.external-tests-average {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.external-tests-average .average-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.external-tests-average .average-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0077b6;
+}
+
+/* Skills Section */
+.skills-section {
+  margin-bottom: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.skills-section h4 {
+  margin-bottom: 1rem;
+  color: #495057;
+  font-size: 1.1rem;
+}
+
+.skills-grid {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.skill-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s;
+}
+
+.skill-checkbox:hover {
+  background: #e9ecef;
+}
+
+.skill-checkbox input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+  accent-color: #0077b6;
+}
+
+.skill-checkbox input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+}
+
+.skill-checkbox .skill-label {
+  font-weight: 500;
+  color: #333;
+}
+
+.skill-checkbox:has(input:checked) {
+  background: #d4edda;
+  border-color: #28a745;
+}
+
+.skill-checkbox:has(input:checked) .skill-label {
+  color: #155724;
+}
+
+/* Responsive External Tests */
+@media screen and (max-width: 768px) {
+  .external-tests-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .skills-grid {
+    gap: 1rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .external-tests-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .skills-grid {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .skill-checkbox {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

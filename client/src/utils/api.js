@@ -147,6 +147,25 @@ export const deleteCourse = (id) => fetchAPI(`/courses/${id}`, {
   method: 'DELETE'
 });
 
+// Student Skills
+export const getStudentSkills = (studentId) => fetchAPI(`/student-skills/${studentId}`);
+export const getAllStudentSkills = () => fetchAPI('/student-skills');
+export const saveStudentSkills = (studentId, data) => fetchAPI(`/student-skills/${studentId}`, {
+  method: 'PUT',
+  body: JSON.stringify(data)
+});
+
+// External Tests
+export const getExternalTests = (studentId) => fetchAPI(`/external-tests/${studentId}`);
+export const getAllExternalTests = () => fetchAPI('/external-tests');
+export const saveExternalTests = (studentId, data) => fetchAPI(`/external-tests/${studentId}`, {
+  method: 'PUT',
+  body: JSON.stringify(data)
+});
+export const deleteExternalTests = (studentId) => fetchAPI(`/external-tests/${studentId}`, {
+  method: 'DELETE'
+});
+
 // Export
 export const exportFinalReport = async (courseId = null) => {
   const token = localStorage.getItem('token');
@@ -233,6 +252,15 @@ export default {
   createCourse,
   updateCourse,
   deleteCourse,
+  // Student Skills
+  getStudentSkills,
+  getAllStudentSkills,
+  saveStudentSkills,
+  // External Tests
+  getExternalTests,
+  getAllExternalTests,
+  saveExternalTests,
+  deleteExternalTests,
   // Export
   exportFinalReport
 };

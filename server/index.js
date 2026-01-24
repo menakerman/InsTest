@@ -703,6 +703,199 @@ app.delete('/api/evaluations/:id', authenticateToken, requireRole('admin', 'inst
   }
 });
 
+// ==================== EXTERNAL TESTS ====================
+// Roles: admin/instructor = CRUD, tester = view only
+
+// Get external tests for a student
+app.get('/api/external-tests/:studentId', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM external_tests WHERE student_id = $1',
+      [studentId]
+    );
+
+    if (result.rows.length === 0) {
+      // Return empty object if no tests exist yet
+      return res.json({
+        student_id: parseInt(studentId),
+        physics_score: null,
+        physiology_score: null,
+        eye_contact_score: null,
+        equipment_score: null,
+        decompression_score: null,
+        average_score: null
+      });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching external tests:', error);
+    res.status(500).json({ error: 'Failed to fetch external tests' });
+  }
+});
+
+// Get all external tests (for reporting)
+app.get('/api/external-tests', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT et.*, s.first_name, s.last_name
+      FROM external_tests et
+      JOIN students s ON et.student_id = s.id
+      ORDER BY s.last_name, s.first_name
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching all external tests:', error);
+    res.status(500).json({ error: 'Failed to fetch external tests' });
+  }
+});
+
+// Create or update external tests for a student
+app.put('/api/external-tests/:studentId', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const {
+      physics_score,
+      physiology_score,
+      eye_contact_score,
+      equipment_score,
+      decompression_score
+    } = req.body;
+
+    // Validate scores are between 0-100 or null
+    const scores = { physics_score, physiology_score, eye_contact_score, equipment_score, decompression_score };
+    for (const [key, value] of Object.entries(scores)) {
+      if (value !== null && value !== undefined && value !== '') {
+        const numValue = parseFloat(value);
+        if (isNaN(numValue) || numValue < 0 || numValue > 100) {
+          return res.status(400).json({ error: `${key} must be between 0 and 100` });
+        }
+      }
+    }
+
+    // Upsert - insert or update
+    const result = await pool.query(`
+      INSERT INTO external_tests (student_id, physics_score, physiology_score, eye_contact_score, equipment_score, decompression_score)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (student_id) DO UPDATE SET
+        physics_score = EXCLUDED.physics_score,
+        physiology_score = EXCLUDED.physiology_score,
+        eye_contact_score = EXCLUDED.eye_contact_score,
+        equipment_score = EXCLUDED.equipment_score,
+        decompression_score = EXCLUDED.decompression_score
+      RETURNING *
+    `, [
+      studentId,
+      physics_score || null,
+      physiology_score || null,
+      eye_contact_score || null,
+      equipment_score || null,
+      decompression_score || null
+    ]);
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error saving external tests:', error);
+    if (error.code === '23503') {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    res.status(500).json({ error: 'Failed to save external tests' });
+  }
+});
+
+// Delete external tests for a student
+app.delete('/api/external-tests/:studentId', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const result = await pool.query(
+      'DELETE FROM external_tests WHERE student_id = $1 RETURNING *',
+      [studentId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'External tests not found for this student' });
+    }
+    res.json({ message: 'External tests deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting external tests:', error);
+    res.status(500).json({ error: 'Failed to delete external tests' });
+  }
+});
+
+// ==================== STUDENT SKILLS ====================
+// Roles: admin/instructor = CRUD, tester = view only
+
+// Get skills for a student
+app.get('/api/student-skills/:studentId', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM student_skills WHERE student_id = $1',
+      [studentId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        student_id: parseInt(studentId),
+        meters_30: false,
+        meters_40: false,
+        guidance: false
+      });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching student skills:', error);
+    res.status(500).json({ error: 'Failed to fetch student skills' });
+  }
+});
+
+// Get all student skills (for reporting)
+app.get('/api/student-skills', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT ss.*, s.first_name, s.last_name
+      FROM student_skills ss
+      JOIN students s ON ss.student_id = s.id
+      ORDER BY s.last_name, s.first_name
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching all student skills:', error);
+    res.status(500).json({ error: 'Failed to fetch student skills' });
+  }
+});
+
+// Create or update skills for a student
+app.put('/api/student-skills/:studentId', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { meters_30, meters_40, guidance } = req.body;
+
+    const result = await pool.query(`
+      INSERT INTO student_skills (student_id, meters_30, meters_40, guidance)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (student_id) DO UPDATE SET
+        meters_30 = EXCLUDED.meters_30,
+        meters_40 = EXCLUDED.meters_40,
+        guidance = EXCLUDED.guidance
+      RETURNING *
+    `, [
+      studentId,
+      meters_30 || false,
+      meters_40 || false,
+      guidance || false
+    ]);
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error saving student skills:', error);
+    if (error.code === '23503') {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    res.status(500).json({ error: 'Failed to save student skills' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.js';
 import usersRoutes from './routes/users.js';
 import absencesRoutes from './routes/absences.js';
 import exportRoutes from './routes/export.js';
+import coursesRoutes from './routes/courses.js';
 import { authenticateToken } from './middleware/auth.js';
 import { requireRole } from './middleware/roles.js';
 
@@ -35,14 +36,29 @@ app.use('/api/absences', absencesRoutes);
 // Export routes
 app.use('/api/export', exportRoutes);
 
+// Courses routes (admin/instructor = CRUD, tester = view only)
+app.use('/api/courses', coursesRoutes);
+
 // ==================== STUDENTS ====================
 // Roles: admin/instructor = CRUD, tester = view only, student = no access
 
-// Get all students
+// Get all students with their courses
 app.get('/api/students', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM students ORDER BY created_at DESC'
+      `SELECT s.*,
+        COALESCE(
+          json_agg(
+            json_build_object('id', c.id, 'name', c.name)
+            ORDER BY c.name
+          ) FILTER (WHERE c.id IS NOT NULL),
+          '[]'
+        ) as courses
+       FROM students s
+       LEFT JOIN course_students cs ON s.id = cs.student_id
+       LEFT JOIN courses c ON cs.course_id = c.id
+       GROUP BY s.id
+       ORDER BY s.created_at DESC`
     );
     res.json(result.rows);
   } catch (error) {
@@ -144,11 +160,19 @@ app.delete('/api/students/:id', authenticateToken, requireRole('admin', 'instruc
 // ==================== INSTRUCTORS ====================
 // Roles: admin = CRUD, instructor/tester = view only, student = no access
 
-// Get all instructors
+// Get all instructors with their courses (based on evaluations they performed)
 app.get('/api/instructors', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM instructors ORDER BY created_at DESC'
+      `SELECT i.*,
+        COALESCE(
+          (SELECT json_agg(DISTINCT jsonb_build_object('name', se.course_name))
+           FROM student_evaluations se
+           WHERE se.instructor_id = i.id AND se.course_name IS NOT NULL AND se.course_name != ''),
+          '[]'
+        ) as courses
+       FROM instructors i
+       ORDER BY i.created_at DESC`
     );
     res.json(result.rows);
   } catch (error) {

@@ -125,6 +125,28 @@ export const deleteAbsence = (id) => fetchAPI(`/absences/${id}`, {
   method: 'DELETE'
 });
 
+// Courses
+export const getCourses = (filters = {}) => {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) params.append(key, value);
+  });
+  const queryString = params.toString();
+  return fetchAPI(`/courses${queryString ? `?${queryString}` : ''}`);
+};
+export const getCourse = (id) => fetchAPI(`/courses/${id}`);
+export const createCourse = (data) => fetchAPI('/courses', {
+  method: 'POST',
+  body: JSON.stringify(data)
+});
+export const updateCourse = (id, data) => fetchAPI(`/courses/${id}`, {
+  method: 'PUT',
+  body: JSON.stringify(data)
+});
+export const deleteCourse = (id) => fetchAPI(`/courses/${id}`, {
+  method: 'DELETE'
+});
+
 // Export
 export const exportFinalReport = async () => {
   const token = localStorage.getItem('token');
@@ -202,6 +224,12 @@ export default {
   createAbsence,
   updateAbsence,
   deleteAbsence,
+  // Courses
+  getCourses,
+  getCourse,
+  createCourse,
+  updateCourse,
+  deleteCourse,
   // Export
   exportFinalReport
 };

@@ -182,6 +182,7 @@ function ManageInstructors() {
                 <th>שם</th>
                 <th>אימייל</th>
                 <th>טלפון</th>
+                <th>קורסים</th>
                 {canEdit && <th>פעולות</th>}
               </tr>
             </thead>
@@ -195,6 +196,17 @@ function ManageInstructors() {
                   <td data-label="שם">{instructor.first_name} {instructor.last_name}</td>
                   <td data-label="אימייל">{instructor.email || '-'}</td>
                   <td data-label="טלפון">{instructor.phone || '-'}</td>
+                  <td data-label="קורסים">
+                    {instructor.courses && instructor.courses.length > 0 ? (
+                      <div className="course-tags">
+                        {instructor.courses.map((course, idx) => (
+                          <span key={idx} className="course-tag">{course.name}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="no-courses">-</span>
+                    )}
+                  </td>
                   {canEdit && (
                     <td className="actions" onClick={(e) => e.stopPropagation()}>
                       <button

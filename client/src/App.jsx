@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import UserMenu from './components/UserMenu';
 import ManageStudents from './pages/ManageStudents';
 import ManageInstructors from './pages/ManageInstructors';
+import ManageCourses from './pages/ManageCourses';
 import ManageAbsences from './pages/ManageAbsences';
 import GradeStudents from './pages/GradeStudents';
 import EvaluationForm from './pages/EvaluationForm';
@@ -41,6 +42,9 @@ function AppContent() {
               </NavLink>
               <NavLink to="/instructors" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 ניהול מדריכים
+              </NavLink>
+              <NavLink to="/courses" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                ניהול קורסים
               </NavLink>
               <NavLink to="/grade" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 הערכות
@@ -100,6 +104,11 @@ function AppContent() {
           <Route path="/instructors" element={
             <ProtectedRoute allowedRoles={['admin', 'instructor', 'tester']}>
               <ManageInstructors />
+            </ProtectedRoute>
+          } />
+          <Route path="/courses" element={
+            <ProtectedRoute allowedRoles={['admin', 'instructor', 'tester']}>
+              <ManageCourses />
             </ProtectedRoute>
           } />
           <Route path="/grade" element={

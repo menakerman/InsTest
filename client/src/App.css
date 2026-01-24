@@ -581,6 +581,78 @@ body {
   line-height: 1.5;
 }
 
+/* Course Detail Modal */
+.course-detail-modal h3 {
+  margin-bottom: 1.5rem;
+  color: #0077b6;
+}
+
+.course-detail-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.course-detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.course-detail-students {
+  margin-top: 1.5rem;
+}
+
+.course-detail-students h4 {
+  color: #0077b6;
+  margin-bottom: 1rem;
+}
+
+.students-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.student-item {
+  padding: 0.5rem 0.75rem;
+  background-color: white;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.student-name {
+  color: #212529;
+  font-size: 0.9rem;
+}
+
+/* Course Tags */
+.course-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.course-tag {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background-color: #e3f2fd;
+  color: #0077b6;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.no-courses {
+  color: #adb5bd;
+}
+
 /* Loading and Error States */
 .loading {
   text-align: center;
@@ -2575,5 +2647,302 @@ body {
 
   .filter-group {
     min-width: 120px;
+  }
+}
+
+/* ==================== COURSES PAGE STYLES ==================== */
+
+.courses-page h2 {
+  color: #0077b6;
+}
+
+.courses-table {
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.courses-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.courses-table th,
+.courses-table td {
+  padding: 1rem;
+  text-align: right;
+  border-bottom: 1px solid #eee;
+}
+
+.courses-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+}
+
+.courses-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.courses-table .actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Course Type Badges */
+.course-type-badge {
+  display: inline-block;
+  padding: 0.3rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.course-type-badge.assistant {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.course-type-badge.instructor {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.course-type-badge.combined {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+/* Student Count Badge */
+.student-count-badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* ==================== STUDENT MULTI-SELECT STYLES ==================== */
+
+.student-multi-select {
+  position: relative;
+}
+
+.multi-select-display {
+  padding: 0.6rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  min-height: 44px;
+}
+
+.multi-select-display.open {
+  border-color: #0077b6;
+  box-shadow: 0 0 0 2px rgba(0, 119, 182, 0.2);
+}
+
+.multi-select-display .placeholder {
+  color: #6c757d;
+}
+
+.multi-select-arrow {
+  color: #6c757d;
+  font-size: 0.8rem;
+}
+
+.selected-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  flex: 1;
+}
+
+.student-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border-radius: 12px;
+  font-size: 0.85rem;
+}
+
+.chip-remove {
+  background: none;
+  border: none;
+  color: #1565c0;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.chip-remove:hover {
+  opacity: 1;
+}
+
+.more-chip {
+  padding: 0.2rem 0.5rem;
+  background-color: #f5f5f5;
+  color: #6c757d;
+  border-radius: 12px;
+  font-size: 0.85rem;
+}
+
+.multi-select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  margin-top: 4px;
+}
+
+.multi-select-search {
+  width: 100%;
+  padding: 0.6rem;
+  border: none;
+  border-bottom: 1px solid #eee;
+  font-size: 1rem;
+}
+
+.multi-select-search:focus {
+  outline: none;
+}
+
+.multi-select-options {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.multi-select-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.multi-select-option:hover {
+  background-color: #f8f9fa;
+}
+
+.multi-select-option.selected {
+  background-color: #e3f2fd;
+}
+
+.multi-select-option input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.option-name {
+  flex: 1;
+  font-weight: 500;
+  color: #333;
+}
+
+.option-email {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.multi-select-loading,
+.multi-select-empty {
+  padding: 1rem;
+  text-align: center;
+  color: #6c757d;
+}
+
+.multi-select-footer {
+  padding: 0.5rem 0.75rem;
+  background-color: #f8f9fa;
+  border-top: 1px solid #eee;
+  font-size: 0.85rem;
+  color: #6c757d;
+  text-align: center;
+}
+
+/* Mobile Responsive for Courses */
+@media screen and (max-width: 480px) {
+  .courses-table table,
+  .courses-table thead,
+  .courses-table tbody,
+  .courses-table th,
+  .courses-table td,
+  .courses-table tr {
+    display: block;
+  }
+
+  .courses-table thead {
+    display: none;
+  }
+
+  .courses-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 0.5rem;
+  }
+
+  .courses-table td {
+    padding: 0.5rem 1rem;
+    border-bottom: none;
+    position: relative;
+    padding-right: 40%;
+  }
+
+  .courses-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    right: 1rem;
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .courses-table .actions {
+    justify-content: center;
+    padding-right: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+    margin-top: 0.5rem;
+  }
+
+  .courses-table .actions button {
+    flex: 1;
+    padding: 0.6rem;
+  }
+}
+
+@media screen and (min-width: 481px) and (max-width: 768px) {
+  .courses-table {
+    overflow-x: auto;
+  }
+
+  .courses-table table {
+    min-width: 800px;
+  }
+
+  .courses-table th,
+  .courses-table td {
+    padding: 0.75rem;
+    font-size: 0.9rem;
   }
 }

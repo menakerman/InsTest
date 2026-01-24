@@ -136,6 +136,39 @@ const createTablesQuery = `
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
 
+  -- Course type enum
+  DO $$
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'course_type') THEN
+      CREATE TYPE course_type AS ENUM ('מדריך_עוזר', 'מדריך', 'מדריך_עוזר_משולב_עם_מדריך');
+    END IF;
+  END $$;
+
+  -- Courses table
+  CREATE TABLE IF NOT EXISTS courses (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    course_type course_type NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT end_date_after_start CHECK (end_date >= start_date)
+  );
+
+  -- Course-students junction table (many-to-many)
+  CREATE TABLE IF NOT EXISTS course_students (
+    id SERIAL PRIMARY KEY,
+    course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+    student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
+    enrolled_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(course_id, student_id)
+  );
+
   -- Create or replace update_updated_at_column function
   CREATE OR REPLACE FUNCTION update_updated_at_column()
   RETURNS TRIGGER AS $$
@@ -191,6 +224,18 @@ const createTablesQuery = `
   DROP TRIGGER IF EXISTS update_student_absences_updated_at ON student_absences;
   CREATE TRIGGER update_student_absences_updated_at
     BEFORE UPDATE ON student_absences
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+  DROP TRIGGER IF EXISTS update_courses_updated_at ON courses;
+  CREATE TRIGGER update_courses_updated_at
+    BEFORE UPDATE ON courses
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+  DROP TRIGGER IF EXISTS update_course_students_updated_at ON course_students;
+  CREATE TRIGGER update_course_students_updated_at
+    BEFORE UPDATE ON course_students
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 `;

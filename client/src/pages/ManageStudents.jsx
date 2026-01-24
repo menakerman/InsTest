@@ -139,6 +139,7 @@ function ManageStudents() {
                 <th>אימייל</th>
                 <th>טלפון</th>
                 <th>מספר יחידה</th>
+                <th>קורסים</th>
                 {canEdit && <th>פעולות</th>}
               </tr>
             </thead>
@@ -149,6 +150,17 @@ function ManageStudents() {
                   <td data-label="אימייל">{student.email}</td>
                   <td data-label="טלפון">{student.phone || '-'}</td>
                   <td data-label="מספר יחידה">{student.unit_id || '-'}</td>
+                  <td data-label="קורסים">
+                    {student.courses && student.courses.length > 0 ? (
+                      <div className="course-tags">
+                        {student.courses.map((course, idx) => (
+                          <span key={idx} className="course-tag">{course.name}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="no-courses">-</span>
+                    )}
+                  </td>
                   {canEdit && (
                     <td className="actions">
                       <button

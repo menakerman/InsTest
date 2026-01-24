@@ -11,12 +11,16 @@ node_modules/
 dist/
 build/
 
+# Coverage
+coverage/
+
 # Playwright
 /test-results/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+.playwright-mcp/
 
 # Logs
 logs

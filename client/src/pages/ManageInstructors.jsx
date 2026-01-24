@@ -1,36 +1,35 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts';
-import { getStudents, createStudent, updateStudent, deleteStudent } from '../utils/api';
+import { getInstructors, createInstructor, updateInstructor, deleteInstructor } from '../utils/api';
 
-function ManageStudents() {
+function ManageInstructors() {
   const { user } = useAuth();
-  const [students, setStudents] = useState([]);
+  const [instructors, setInstructors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [editingStudent, setEditingStudent] = useState(null);
-  const [deletingStudent, setDeletingStudent] = useState(null);
+  const [editingInstructor, setEditingInstructor] = useState(null);
+  const [deletingInstructor, setDeletingInstructor] = useState(null);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
     email: '',
-    phone: '',
-    unit_id: ''
+    phone: ''
   });
 
-  // Check if user can edit (admin or instructor)
-  const canEdit = user && (user.role === 'admin' || user.role === 'instructor');
+  // Only admin can edit instructors
+  const canEdit = user && user.role === 'admin';
 
   useEffect(() => {
-    fetchStudents();
+    fetchInstructors();
   }, []);
 
-  const fetchStudents = async () => {
+  const fetchInstructors = async () => {
     try {
       setLoading(true);
-      const data = await getStudents();
-      setStudents(data);
+      const data = await getInstructors();
+      setInstructors(data);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -45,54 +44,52 @@ function ManageStudents() {
   };
 
   const openCreateModal = () => {
-    setEditingStudent(null);
+    setEditingInstructor(null);
     setFormData({
       first_name: '',
       last_name: '',
       email: '',
-      phone: '',
-      unit_id: ''
+      phone: ''
     });
     setShowModal(true);
   };
 
-  const openEditModal = (student) => {
-    setEditingStudent(student);
+  const openEditModal = (instructor) => {
+    setEditingInstructor(instructor);
     setFormData({
-      first_name: student.first_name,
-      last_name: student.last_name,
-      email: student.email,
-      phone: student.phone || '',
-      unit_id: student.unit_id || ''
+      first_name: instructor.first_name,
+      last_name: instructor.last_name,
+      email: instructor.email || '',
+      phone: instructor.phone || ''
     });
     setShowModal(true);
   };
 
-  const openDeleteModal = (student) => {
-    setDeletingStudent(student);
+  const openDeleteModal = (instructor) => {
+    setDeletingInstructor(instructor);
     setShowDeleteModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
-    setEditingStudent(null);
+    setEditingInstructor(null);
     setError(null);
   };
 
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
-    setDeletingStudent(null);
+    setDeletingInstructor(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (editingStudent) {
-        await updateStudent(editingStudent.id, formData);
+      if (editingInstructor) {
+        await updateInstructor(editingInstructor.id, formData);
       } else {
-        await createStudent(formData);
+        await createInstructor(formData);
       }
-      await fetchStudents();
+      await fetchInstructors();
       closeModal();
     } catch (err) {
       setError(err.message);
@@ -101,8 +98,8 @@ function ManageStudents() {
 
   const handleDelete = async () => {
     try {
-      await deleteStudent(deletingStudent.id);
-      await fetchStudents();
+      await deleteInstructor(deletingInstructor.id);
+      await fetchInstructors();
       closeDeleteModal();
     } catch (err) {
       setError(err.message);
@@ -110,25 +107,25 @@ function ManageStudents() {
   };
 
   if (loading) {
-    return <div className="loading">טוען תלמידים...</div>;
+    return <div className="loading">טוען מדריכים...</div>;
   }
 
   return (
-    <div className="students-page">
+    <div className="instructors-page">
       <div className="students-header">
-        <h2>ניהול תלמידים</h2>
+        <h2>ניהול מדריכים</h2>
         {canEdit && (
           <button className="btn btn-primary" onClick={openCreateModal}>
-            + הוסף תלמיד
+            + הוסף מדריך
           </button>
         )}
       </div>
 
       {error && <div className="error">{error}</div>}
 
-      {students.length === 0 ? (
+      {instructors.length === 0 ? (
         <div className="empty-state">
-          <p>אין תלמידים עדיין.{canEdit && ' לחץ על "הוסף תלמיד" כדי להוסיף.'}</p>
+          <p>אין מדריכים עדיין.{canEdit && ' לחץ על "הוסף מדריך" כדי להוסיף.'}</p>
         </div>
       ) : (
         <div className="students-table">
@@ -138,28 +135,26 @@ function ManageStudents() {
                 <th>שם</th>
                 <th>אימייל</th>
                 <th>טלפון</th>
-                <th>מספר יחידה</th>
                 {canEdit && <th>פעולות</th>}
               </tr>
             </thead>
             <tbody>
-              {students.map(student => (
-                <tr key={student.id}>
-                  <td data-label="שם">{student.first_name} {student.last_name}</td>
-                  <td data-label="אימייל">{student.email}</td>
-                  <td data-label="טלפון">{student.phone || '-'}</td>
-                  <td data-label="מספר יחידה">{student.unit_id || '-'}</td>
+              {instructors.map(instructor => (
+                <tr key={instructor.id}>
+                  <td data-label="שם">{instructor.first_name} {instructor.last_name}</td>
+                  <td data-label="אימייל">{instructor.email || '-'}</td>
+                  <td data-label="טלפון">{instructor.phone || '-'}</td>
                   {canEdit && (
                     <td className="actions">
                       <button
                         className="btn btn-secondary btn-sm"
-                        onClick={() => openEditModal(student)}
+                        onClick={() => openEditModal(instructor)}
                       >
                         עריכה
                       </button>
                       <button
                         className="btn btn-danger btn-sm"
-                        onClick={() => openDeleteModal(student)}
+                        onClick={() => openDeleteModal(instructor)}
                       >
                         מחיקה
                       </button>
@@ -175,7 +170,7 @@ function ManageStudents() {
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3>{editingStudent ? 'עריכת תלמיד' : 'הוספת תלמיד'}</h3>
+            <h3>{editingInstructor ? 'עריכת מדריך' : 'הוספת מדריך'}</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label htmlFor="first_name">שם פרטי *</label>
@@ -200,14 +195,13 @@ function ManageStudents() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="email">אימייל *</label>
+                <label htmlFor="email">אימייל</label>
                 <input
                   type="email"
                   id="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  required
                 />
               </div>
               <div className="form-group">
@@ -220,22 +214,12 @@ function ManageStudents() {
                   onChange={handleInputChange}
                 />
               </div>
-              <div className="form-group">
-                <label htmlFor="unit_id">מספר יחידה</label>
-                <input
-                  type="text"
-                  id="unit_id"
-                  name="unit_id"
-                  value={formData.unit_id}
-                  onChange={handleInputChange}
-                />
-              </div>
               <div className="form-actions">
                 <button type="button" className="btn btn-secondary" onClick={closeModal}>
                   ביטול
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  {editingStudent ? 'שמור שינויים' : 'הוסף תלמיד'}
+                  {editingInstructor ? 'שמור שינויים' : 'הוסף מדריך'}
                 </button>
               </div>
             </form>
@@ -247,10 +231,10 @@ function ManageStudents() {
         <div className="modal-overlay" onClick={closeDeleteModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="delete-confirm">
-              <h3>מחיקת תלמיד</h3>
+              <h3>מחיקת מדריך</h3>
               <p>
                 האם אתה בטוח שברצונך למחוק את{' '}
-                <strong>{deletingStudent.first_name} {deletingStudent.last_name}</strong>?
+                <strong>{deletingInstructor.first_name} {deletingInstructor.last_name}</strong>?
                 לא ניתן לבטל פעולה זו.
               </p>
               <div className="form-actions">
@@ -269,4 +253,4 @@ function ManageStudents() {
   );
 }
 
-export default ManageStudents;
+export default ManageInstructors;

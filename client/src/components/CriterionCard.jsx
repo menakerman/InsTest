@@ -1,7 +1,7 @@
 import ScoreButton from './ScoreButton';
 import { SCORE_VALUES } from '../utils/scoreCalculations';
 
-function CriterionCard({ criterion, score, onScoreChange }) {
+function CriterionCard({ criterion, score, onScoreChange, scoreDescriptions = {} }) {
   return (
     <div className={`criterion-card ${criterion.is_critical ? 'critical' : ''}`}>
       <div className="criterion-header">
@@ -21,6 +21,7 @@ function CriterionCard({ criterion, score, onScoreChange }) {
             value={value}
             selectedValue={score}
             onChange={(newScore) => onScoreChange(criterion.id, newScore)}
+            description={scoreDescriptions[value] || ''}
           />
         ))}
       </div>

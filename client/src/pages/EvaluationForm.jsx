@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getEvaluationSubject, getEvaluation, createEvaluation, updateEvaluation } from '../utils/api';
-import { calculateEvaluationScores } from '../utils/scoreCalculations';
+import { calculateEvaluationScores, getScoreDescriptions, SCORE_VALUES } from '../utils/scoreCalculations';
 import { getLessonNamesForSubject, subjectHasLessonNames } from '../data/lessonNames';
 import StudentSelector from '../components/StudentSelector';
 import InstructorSelector from '../components/InstructorSelector';
@@ -252,6 +252,26 @@ function EvaluationForm() {
                 <span className="critical-indicator">*</span> = פריט קריטי (ציון 1 = כישלון אוטומטי)
               </p>
 
+              {/* Score Legend */}
+              <div className="score-legend">
+                <h4>מפתח ציונים:</h4>
+                <div className="score-legend-items">
+                  {SCORE_VALUES.map(({ value, label, color }) => (
+                    <div key={value} className="score-legend-item">
+                      <span className="score-legend-badge" style={{ backgroundColor: color }}>
+                        {value}
+                      </span>
+                      <div className="score-legend-text">
+                        <span className="score-legend-label">{label}</span>
+                        <span className="score-legend-description">
+                          {getScoreDescriptions(subject.code)[value]}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="criteria-list">
                 {subject.criteria?.map(criterion => (
                   <CriterionCard
@@ -259,6 +279,7 @@ function EvaluationForm() {
                     criterion={criterion}
                     score={scores[criterion.id]}
                     onScoreChange={handleScoreChange}
+                    scoreDescriptions={getScoreDescriptions(subject.code)}
                   />
                 ))}
               </div>

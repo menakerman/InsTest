@@ -6,6 +6,40 @@ export const SCORE_VALUES = [
   { value: 10, label: 'מצוין', color: '#198754' }
 ];
 
+// Detailed score descriptions based on evaluation type (from דפי הערכה PDF)
+export const SCORE_DESCRIPTIONS = {
+  // Water lesson (העברת שיעור מים) - page 5 of PDF
+  water_lesson: {
+    1: 'לא ביצע את הפעולה / ביצוע שגוי / לא עמד בדרישות',
+    4: 'ביצוע חלקי / בסיסי בלבד / חסרים מרכיבים חשובים',
+    7: 'ביצוע נכון וטוב / עמד ברוב הדרישות',
+    10: 'ביצוע ברמה גבוהה / מילא את כל הדרישות בצורה מלאה ומקצועית'
+  },
+  // Class/Lecture lesson (העברת הרצאה) - page 4 of PDF
+  lecture_delivery: {
+    1: 'לא העביר / העברה שגויה / לא עמד בדרישות',
+    4: 'העברה חלקית / בסיסית / חסרים מרכיבים חשובים',
+    7: 'העברה נכונה וטובה / עמד ברוב הדרישות',
+    10: 'העברה ברמה גבוהה / מילא את כל הדרישות בצורה מלאה ומקצועית'
+  },
+  // Default/generic descriptions
+  default: {
+    1: 'לא ביצע / כישלון / לא עמד בדרישות',
+    4: 'ביצוע חלקי / בסיסי בלבד',
+    7: 'ביצוע נכון וטוב / עמד ברוב הדרישות',
+    10: 'ביצוע ברמה גבוהה / מילא את כל הדרישות בצורה מלאה'
+  }
+};
+
+/**
+ * Get score descriptions for a specific subject type
+ * @param {string} subjectCode - The subject code (e.g., 'water_lesson', 'lecture_delivery')
+ * @returns {Object} Object with score values as keys and descriptions as values
+ */
+export function getScoreDescriptions(subjectCode) {
+  return SCORE_DESCRIPTIONS[subjectCode] || SCORE_DESCRIPTIONS.default;
+}
+
 /**
  * Calculate raw score from item scores
  * @param {Object} scores - Object with criterion_id as key and score as value
@@ -128,6 +162,7 @@ export function getStatusText(passing, criticalFail) {
 
 export default {
   SCORE_VALUES,
+  SCORE_DESCRIPTIONS,
   calculateRawScore,
   calculatePercentage,
   hasCriticalFail,
@@ -135,6 +170,7 @@ export default {
   calculateEvaluationScores,
   getScoreColor,
   getScoreLabel,
+  getScoreDescriptions,
   formatPercentage,
   getStatusColor,
   getStatusText

@@ -1,6 +1,6 @@
 import { SCORE_VALUES } from '../utils/scoreCalculations';
 
-function ScoreButton({ value, selectedValue, onChange, disabled = false }) {
+function ScoreButton({ value, selectedValue, onChange, disabled = false, description = '' }) {
   const scoreInfo = SCORE_VALUES.find(s => s.value === value);
   const isSelected = selectedValue === value;
 
@@ -16,6 +16,7 @@ function ScoreButton({ value, selectedValue, onChange, disabled = false }) {
       }}
       onClick={() => onChange(value)}
       disabled={disabled}
+      title={description}
     >
       <span className="score-value">{value}</span>
       <span className="score-label">{scoreInfo.label}</span>

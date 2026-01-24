@@ -123,15 +123,15 @@ function ManageStudents() {
   };
 
   if (loading) {
-    return <div className="loading">Loading students...</div>;
+    return <div className="loading">טוען תלמידים...</div>;
   }
 
   return (
     <div className="students-page">
       <div className="students-header">
-        <h2>Manage Students</h2>
+        <h2>ניהול תלמידים</h2>
         <button className="btn btn-primary" onClick={openCreateModal}>
-          + Add Student
+          + הוסף תלמיד
         </button>
       </div>
 
@@ -139,39 +139,39 @@ function ManageStudents() {
 
       {students.length === 0 ? (
         <div className="empty-state">
-          <p>No students yet. Click "Add Student" to create one.</p>
+          <p>אין תלמידים עדיין. לחץ על "הוסף תלמיד" כדי להוסיף.</p>
         </div>
       ) : (
         <div className="students-table">
           <table>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Unit ID</th>
-                <th>Actions</th>
+                <th>שם</th>
+                <th>אימייל</th>
+                <th>טלפון</th>
+                <th>מספר יחידה</th>
+                <th>פעולות</th>
               </tr>
             </thead>
             <tbody>
               {students.map(student => (
                 <tr key={student.id}>
-                  <td>{student.first_name} {student.last_name}</td>
-                  <td>{student.email}</td>
-                  <td>{student.phone || '-'}</td>
-                  <td>{student.unit_id || '-'}</td>
+                  <td data-label="שם">{student.first_name} {student.last_name}</td>
+                  <td data-label="אימייל">{student.email}</td>
+                  <td data-label="טלפון">{student.phone || '-'}</td>
+                  <td data-label="מספר יחידה">{student.unit_id || '-'}</td>
                   <td className="actions">
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => openEditModal(student)}
                     >
-                      Edit
+                      עריכה
                     </button>
                     <button
                       className="btn btn-danger btn-sm"
                       onClick={() => openDeleteModal(student)}
                     >
-                      Delete
+                      מחיקה
                     </button>
                   </td>
                 </tr>
@@ -184,10 +184,10 @@ function ManageStudents() {
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3>{editingStudent ? 'Edit Student' : 'Add Student'}</h3>
+            <h3>{editingStudent ? 'עריכת תלמיד' : 'הוספת תלמיד'}</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label htmlFor="first_name">First Name *</label>
+                <label htmlFor="first_name">שם פרטי *</label>
                 <input
                   type="text"
                   id="first_name"
@@ -198,7 +198,7 @@ function ManageStudents() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="last_name">Last Name *</label>
+                <label htmlFor="last_name">שם משפחה *</label>
                 <input
                   type="text"
                   id="last_name"
@@ -209,7 +209,7 @@ function ManageStudents() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="email">Email *</label>
+                <label htmlFor="email">אימייל *</label>
                 <input
                   type="email"
                   id="email"
@@ -220,7 +220,7 @@ function ManageStudents() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="phone">Phone</label>
+                <label htmlFor="phone">טלפון</label>
                 <input
                   type="tel"
                   id="phone"
@@ -230,7 +230,7 @@ function ManageStudents() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="unit_id">Unit ID</label>
+                <label htmlFor="unit_id">מספר יחידה</label>
                 <input
                   type="text"
                   id="unit_id"
@@ -241,10 +241,10 @@ function ManageStudents() {
               </div>
               <div className="form-actions">
                 <button type="button" className="btn btn-secondary" onClick={closeModal}>
-                  Cancel
+                  ביטול
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  {editingStudent ? 'Save Changes' : 'Add Student'}
+                  {editingStudent ? 'שמור שינויים' : 'הוסף תלמיד'}
                 </button>
               </div>
             </form>
@@ -256,18 +256,18 @@ function ManageStudents() {
         <div className="modal-overlay" onClick={closeDeleteModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="delete-confirm">
-              <h3>Delete Student</h3>
+              <h3>מחיקת תלמיד</h3>
               <p>
-                Are you sure you want to delete{' '}
+                האם אתה בטוח שברצונך למחוק את{' '}
                 <strong>{deletingStudent.first_name} {deletingStudent.last_name}</strong>?
-                This action cannot be undone.
+                לא ניתן לבטל פעולה זו.
               </p>
               <div className="form-actions">
                 <button className="btn btn-secondary" onClick={closeDeleteModal}>
-                  Cancel
+                  ביטול
                 </button>
                 <button className="btn btn-danger" onClick={handleDelete}>
-                  Delete
+                  מחיקה
                 </button>
               </div>
             </div>

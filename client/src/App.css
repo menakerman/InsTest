@@ -8,6 +8,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   background-color: #f5f7fa;
   color: #333;
+  direction: rtl;
 }
 
 .app {
@@ -136,7 +137,7 @@ body {
 .students-table th,
 .students-table td {
   padding: 1rem;
-  text-align: left;
+  text-align: right;
   border-bottom: 1px solid #eee;
 }
 
@@ -200,6 +201,7 @@ body {
   border: 1px solid #ced4da;
   border-radius: 4px;
   font-size: 1rem;
+  text-align: right;
 }
 
 .form-group input:focus {
@@ -210,7 +212,7 @@ body {
 
 .form-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 0.5rem;
   margin-top: 1.5rem;
 }
@@ -248,4 +250,279 @@ body {
 
 .delete-confirm .form-actions {
   justify-content: center;
+}
+
+/* Mobile Responsive Styles */
+
+/* Portrait phones */
+@media screen and (max-width: 480px) {
+  .header {
+    padding: 1rem;
+  }
+
+  .header h1 {
+    font-size: 1.3rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .nav {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .nav-link {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .main {
+    padding: 1rem;
+  }
+
+  .students-page h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
+
+  .students-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .students-header .btn {
+    width: 100%;
+    padding: 0.8rem;
+    font-size: 1rem;
+  }
+
+  /* Card layout for table on mobile */
+  .students-table table,
+  .students-table thead,
+  .students-table tbody,
+  .students-table th,
+  .students-table td,
+  .students-table tr {
+    display: block;
+  }
+
+  .students-table thead {
+    display: none;
+  }
+
+  .students-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 0.5rem;
+  }
+
+  .students-table td {
+    padding: 0.5rem 1rem;
+    border-bottom: none;
+    position: relative;
+    padding-right: 40%;
+  }
+
+  .students-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    right: 1rem;
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .students-table .actions {
+    justify-content: center;
+    padding-right: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+    margin-top: 0.5rem;
+  }
+
+  .students-table .actions button {
+    flex: 1;
+    padding: 0.6rem;
+  }
+
+  /* Modal adjustments */
+  .modal-overlay {
+    padding: 1rem;
+    align-items: flex-start;
+    padding-top: 2rem;
+  }
+
+  .modal {
+    padding: 1.5rem;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal h3 {
+    font-size: 1.2rem;
+  }
+
+  .form-group input {
+    padding: 0.8rem;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+    padding: 0.8rem;
+  }
+
+  .btn-sm {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .empty-state {
+    padding: 2rem 1rem;
+  }
+}
+
+/* Landscape phones and small tablets */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+  .header {
+    padding: 1rem 1.5rem;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .nav {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .main {
+    padding: 1.5rem;
+  }
+
+  .students-table {
+    overflow-x: auto;
+  }
+
+  .students-table table {
+    min-width: 600px;
+  }
+
+  .students-table th,
+  .students-table td {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .modal {
+    max-width: 90%;
+  }
+
+  .form-group input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Mobile landscape mode - limited height */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  .modal-overlay {
+    padding: 0.5rem;
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
+  .modal {
+    padding: 1rem;
+    max-height: none;
+    margin: 0.5rem auto;
+  }
+
+  .modal h3 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .form-group {
+    margin-bottom: 0.5rem;
+  }
+
+  .form-group label {
+    margin-bottom: 0.2rem;
+    font-size: 0.85rem;
+  }
+
+  .form-group input {
+    padding: 0.4rem 0.6rem;
+    font-size: 16px;
+  }
+
+  .form-actions {
+    margin-top: 0.75rem;
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .form-actions .btn {
+    padding: 0.5rem 1rem;
+    min-height: 36px;
+  }
+
+  /* Two-column form layout for landscape */
+  .modal form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 1rem;
+  }
+
+  .modal form .form-group:nth-child(5),
+  .modal form .form-actions {
+    grid-column: 1 / -1;
+  }
+
+  .delete-confirm {
+    display: block;
+  }
+
+  .delete-confirm p {
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .delete-confirm .form-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+/* Tablets */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  .main {
+    padding: 1.5rem;
+  }
+
+  .students-table th,
+  .students-table td {
+    padding: 0.85rem;
+  }
+}
+
+/* Touch-friendly improvements for all mobile */
+@media screen and (max-width: 768px) {
+  .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
 }

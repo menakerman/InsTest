@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts';
-import { getInstructors, createInstructor, updateInstructor, deleteInstructor } from '../utils/api';
+import { getInstructors, createInstructor, updateInstructor, deleteInstructor, getEvaluations } from '../utils/api';
 
 function ManageInstructors() {
   const { user } = useAuth();
@@ -10,6 +10,10 @@ function ManageInstructors() {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedInstructor, setSelectedInstructor] = useState(null);
+  const [instructorEvaluations, setInstructorEvaluations] = useState([]);
+  const [loadingProfile, setLoadingProfile] = useState(false);
   const [createdInstructorInfo, setCreatedInstructorInfo] = useState(null);
   const [editingInstructor, setEditingInstructor] = useState(null);
   const [deletingInstructor, setDeletingInstructor] = useState(null);
@@ -83,6 +87,36 @@ function ManageInstructors() {
     setDeletingInstructor(null);
   };
 
+  const openProfileModal = async (instructor) => {
+    setSelectedInstructor(instructor);
+    setShowProfileModal(true);
+    setLoadingProfile(true);
+    try {
+      const allEvaluations = await getEvaluations();
+      const instructorEvals = allEvaluations.filter(e => e.instructor_id === instructor.id);
+      setInstructorEvaluations(instructorEvals);
+    } catch (err) {
+      console.error('Failed to load instructor evaluations:', err);
+      setInstructorEvaluations([]);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const closeProfileModal = () => {
+    setShowProfileModal(false);
+    setSelectedInstructor(null);
+    setInstructorEvaluations([]);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('he-IL', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -153,12 +187,16 @@ function ManageInstructors() {
             </thead>
             <tbody>
               {instructors.map(instructor => (
-                <tr key={instructor.id}>
+                <tr
+                  key={instructor.id}
+                  onClick={() => openProfileModal(instructor)}
+                  className="clickable-row"
+                >
                   <td data-label="שם">{instructor.first_name} {instructor.last_name}</td>
                   <td data-label="אימייל">{instructor.email || '-'}</td>
                   <td data-label="טלפון">{instructor.phone || '-'}</td>
                   {canEdit && (
-                    <td className="actions">
+                    <td className="actions" onClick={(e) => e.stopPropagation()}>
                       <button
                         className="btn btn-secondary btn-sm"
                         onClick={() => openEditModal(instructor)}
@@ -299,6 +337,75 @@ function ManageInstructors() {
                   onClick={() => setShowPasswordModal(false)}
                 >
                   הבנתי
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showProfileModal && selectedInstructor && (
+        <div className="modal-overlay" onClick={closeProfileModal}>
+          <div className="modal modal-large" onClick={e => e.stopPropagation()}>
+            <div className="profile-modal">
+              <h3>פרופיל מדריך</h3>
+              <div className="profile-details">
+                <div className="profile-field">
+                  <span className="profile-label">שם:</span>
+                  <span className="profile-value">{selectedInstructor.first_name} {selectedInstructor.last_name}</span>
+                </div>
+                <div className="profile-field">
+                  <span className="profile-label">אימייל:</span>
+                  <span className="profile-value">{selectedInstructor.email || '-'}</span>
+                </div>
+                <div className="profile-field">
+                  <span className="profile-label">טלפון:</span>
+                  <span className="profile-value">{selectedInstructor.phone || '-'}</span>
+                </div>
+              </div>
+
+              <div className="profile-evaluations">
+                <h4>הערכות שבוצעו ({instructorEvaluations.length})</h4>
+                {loadingProfile ? (
+                  <div className="loading-small">טוען...</div>
+                ) : instructorEvaluations.length === 0 ? (
+                  <p className="empty-text">אין הערכות</p>
+                ) : (
+                  <div className="evaluations-list">
+                    {instructorEvaluations.slice(0, 10).map(evaluation => (
+                      <div key={evaluation.id} className="evaluation-list-item">
+                        <div className="evaluation-list-info">
+                          <span className="evaluation-student">
+                            {evaluation.student_first_name} {evaluation.student_last_name}
+                          </span>
+                          <span className="evaluation-subject">{evaluation.subject_name}</span>
+                          {evaluation.lesson_name && (
+                            <span className="evaluation-lesson">{evaluation.lesson_name}</span>
+                          )}
+                        </div>
+                        <div className="evaluation-list-meta">
+                          <span className="evaluation-date">{formatDate(evaluation.evaluation_date)}</span>
+                          <span
+                            className="evaluation-score"
+                            style={{
+                              color: evaluation.is_passing && !evaluation.has_critical_fail ? '#28a745' : '#dc3545'
+                            }}
+                          >
+                            {Math.round(evaluation.percentage_score)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {instructorEvaluations.length > 10 && (
+                      <p className="more-text">ועוד {instructorEvaluations.length - 10} הערכות...</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="form-actions">
+                <button className="btn btn-primary" onClick={closeProfileModal}>
+                  סגור
                 </button>
               </div>
             </div>

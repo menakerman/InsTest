@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { getEvaluations } from '../utils/api';
-import { formatPercentage, getStatusColor, getStatusText } from '../utils/scoreCalculations';
+import { getEvaluations, getEvaluation } from '../utils/api';
+import { formatPercentage, getStatusColor, getStatusText, SCORE_VALUES } from '../utils/scoreCalculations';
 
 function StudentStats() {
   const [evaluations, setEvaluations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedStudent, setExpandedStudent] = useState(null);
+  const [selectedEvaluation, setSelectedEvaluation] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
     fetchEvaluations();
@@ -59,6 +62,34 @@ function StudentStats() {
     setExpandedStudent(expandedStudent === studentId ? null : studentId);
   };
 
+  const openDetailModal = async (evaluationId) => {
+    setShowDetailModal(true);
+    setLoadingDetail(true);
+    try {
+      const data = await getEvaluation(evaluationId);
+      setSelectedEvaluation(data);
+    } catch (err) {
+      console.error('Failed to load evaluation details:', err);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const closeDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedEvaluation(null);
+  };
+
+  const getScoreColor = (score) => {
+    const scoreValue = SCORE_VALUES.find(s => s.value === score);
+    return scoreValue ? scoreValue.color : '#6c757d';
+  };
+
+  const getScoreLabel = (score) => {
+    const scoreValue = SCORE_VALUES.find(s => s.value === score);
+    return scoreValue ? scoreValue.label : '';
+  };
+
   const studentsWithEvaluations = getStudentsWithEvaluations();
 
   if (loading) {
@@ -95,7 +126,11 @@ function StudentStats() {
               <tbody>
                 {studentsWithEvaluations.map(student => (
                   student.evaluations.map((evaluation, evalIndex) => (
-                    <tr key={evaluation.id} className="student-row">
+                    <tr
+                      key={evaluation.id}
+                      className="student-row clickable-row"
+                      onClick={() => openDetailModal(evaluation.id)}
+                    >
                       {evalIndex === 0 ? (
                         <td rowSpan={student.evaluations.length} className="student-name-cell">
                           {student.firstName} {student.lastName}
@@ -153,7 +188,11 @@ function StudentStats() {
                 {expandedStudent === student.id && (
                   <div className="student-card-evaluations">
                     {student.evaluations.map(evaluation => (
-                      <div key={evaluation.id} className="evaluation-item">
+                      <div
+                        key={evaluation.id}
+                        className="evaluation-item clickable-row"
+                        onClick={() => openDetailModal(evaluation.id)}
+                      >
                         <div className="evaluation-item-header">
                           <span className="evaluation-item-subject">{evaluation.subject_name}</span>
                           <span
@@ -187,6 +226,124 @@ function StudentStats() {
             ))}
           </div>
         </>
+      )}
+
+      {showDetailModal && (
+        <div className="modal-overlay" onClick={closeDetailModal}>
+          <div className="modal modal-large" onClick={e => e.stopPropagation()}>
+            {loadingDetail ? (
+              <div className="loading-small">טוען פרטים...</div>
+            ) : selectedEvaluation ? (
+              <div className="evaluation-detail-modal">
+                <h3>פירוט הערכה</h3>
+
+                <div className="evaluation-detail-header">
+                  <div className="evaluation-detail-info">
+                    <div className="detail-field">
+                      <span className="detail-label">תלמיד:</span>
+                      <span className="detail-value">
+                        {selectedEvaluation.student_first_name} {selectedEvaluation.student_last_name}
+                      </span>
+                    </div>
+                    <div className="detail-field">
+                      <span className="detail-label">נושא:</span>
+                      <span className="detail-value">{selectedEvaluation.subject_name}</span>
+                    </div>
+                    {selectedEvaluation.lesson_name && (
+                      <div className="detail-field">
+                        <span className="detail-label">שיעור:</span>
+                        <span className="detail-value">{selectedEvaluation.lesson_name}</span>
+                      </div>
+                    )}
+                    <div className="detail-field">
+                      <span className="detail-label">תאריך:</span>
+                      <span className="detail-value">{formatDate(selectedEvaluation.evaluation_date)}</span>
+                    </div>
+                    {selectedEvaluation.instructor_first_name && (
+                      <div className="detail-field">
+                        <span className="detail-label">מעריך:</span>
+                        <span className="detail-value">
+                          {selectedEvaluation.instructor_first_name} {selectedEvaluation.instructor_last_name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="evaluation-detail-score">
+                    <div
+                      className="score-circle-large"
+                      style={{
+                        backgroundColor: getStatusColor(
+                          selectedEvaluation.is_passing,
+                          selectedEvaluation.has_critical_fail
+                        )
+                      }}
+                    >
+                      {Math.round(selectedEvaluation.percentage_score)}%
+                    </div>
+                    <span
+                      className="detail-status"
+                      style={{
+                        color: getStatusColor(
+                          selectedEvaluation.is_passing,
+                          selectedEvaluation.has_critical_fail
+                        )
+                      }}
+                    >
+                      {getStatusText(selectedEvaluation.is_passing, selectedEvaluation.has_critical_fail)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="evaluation-detail-scores">
+                  <h4>ציוני קריטריונים</h4>
+                  <div className="scores-list">
+                    {selectedEvaluation.item_scores?.map((item, index) => (
+                      <div
+                        key={index}
+                        className={`score-item ${item.is_critical ? 'critical' : ''}`}
+                      >
+                        <div className="score-item-info">
+                          <span className="score-item-name">
+                            {item.criterion_name}
+                            {item.is_critical && <span className="critical-badge">*</span>}
+                          </span>
+                        </div>
+                        <div className="score-item-value">
+                          <span
+                            className="score-badge"
+                            style={{ backgroundColor: getScoreColor(item.score) }}
+                          >
+                            {item.score}
+                          </span>
+                          <span className="score-label">{getScoreLabel(item.score)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="scores-legend">
+                    <span className="critical-indicator">*</span> = פריט קריטי
+                  </div>
+                </div>
+
+                {selectedEvaluation.notes && (
+                  <div className="evaluation-detail-notes">
+                    <h4>הערות</h4>
+                    <p>{selectedEvaluation.notes}</p>
+                  </div>
+                )}
+
+                <div className="form-actions">
+                  <button className="btn btn-primary" onClick={closeDetailModal}>
+                    סגור
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="error">שגיאה בטעינת הנתונים</div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -20,23 +20,54 @@ const courseTypeLabels = {
   'מדריך_עוזר_משולב_עם_מדריך': 'מדריך עוזר משולב עם מדריך'
 };
 
-// Get all courses with student count
+// Get all courses with student count (filtered by instructor if role is instructor)
 router.get('/', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
   try {
     const { is_active } = req.query;
+    const user = req.user;
 
     let query = `
       SELECT
         c.*,
-        COUNT(cs.student_id) as student_count
+        COUNT(DISTINCT cs.student_id) as student_count,
+        COALESCE(
+          (SELECT json_agg(json_build_object('id', i.id, 'first_name', i.first_name, 'last_name', i.last_name))
+           FROM course_instructors ci
+           JOIN instructors i ON ci.instructor_id = i.id
+           WHERE ci.course_id = c.id),
+          '[]'
+        ) as instructors
       FROM courses c
       LEFT JOIN course_students cs ON c.id = cs.course_id
     `;
 
     const params = [];
+    const conditions = [];
+
+    // If user is instructor, only show courses they're assigned to
+    if (user.role === 'instructor') {
+      // Find instructor_id by email
+      const instructorResult = await pool.query(
+        'SELECT id FROM instructors WHERE email = $1',
+        [user.email]
+      );
+
+      if (instructorResult.rows.length === 0) {
+        return res.json([]); // Instructor not found, return empty
+      }
+
+      const instructorId = instructorResult.rows[0].id;
+      conditions.push(`c.id IN (SELECT course_id FROM course_instructors WHERE instructor_id = $${params.length + 1})`);
+      params.push(instructorId);
+    }
+
     if (is_active !== undefined) {
-      query += ' WHERE c.is_active = $1';
+      conditions.push(`c.is_active = $${params.length + 1}`);
       params.push(is_active === 'true');
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
     }
 
     query += ' GROUP BY c.id ORDER BY c.start_date DESC';
@@ -56,10 +87,33 @@ router.get('/', authenticateToken, requireRole('admin', 'instructor', 'tester'),
   }
 });
 
-// Get single course with enrolled students
+// Get single course with enrolled students and instructors
 router.get('/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
   try {
     const { id } = req.params;
+    const user = req.user;
+
+    // If instructor, verify they have access to this course
+    if (user.role === 'instructor') {
+      const instructorResult = await pool.query(
+        'SELECT id FROM instructors WHERE email = $1',
+        [user.email]
+      );
+
+      if (instructorResult.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const instructorId = instructorResult.rows[0].id;
+      const accessCheck = await pool.query(
+        'SELECT 1 FROM course_instructors WHERE course_id = $1 AND instructor_id = $2',
+        [id, instructorId]
+      );
+
+      if (accessCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied - not assigned to this course' });
+      }
+    }
 
     const courseResult = await pool.query(
       'SELECT * FROM courses WHERE id = $1',
@@ -82,10 +136,21 @@ router.get('/:id', authenticateToken, requireRole('admin', 'instructor', 'tester
       [id]
     );
 
+    // Get assigned instructors
+    const instructorsResult = await pool.query(
+      `SELECT i.id, i.first_name, i.last_name, i.email, ci.assigned_at
+       FROM instructors i
+       JOIN course_instructors ci ON i.id = ci.instructor_id
+       WHERE ci.course_id = $1
+       ORDER BY i.first_name, i.last_name`,
+      [id]
+    );
+
     res.json({
       ...course,
       course_type_label: courseTypeLabels[course.course_type] || course.course_type,
-      students: studentsResult.rows
+      students: studentsResult.rows,
+      instructors: instructorsResult.rows
     });
   } catch (error) {
     console.error('Error fetching course:', error);
@@ -93,12 +158,12 @@ router.get('/:id', authenticateToken, requireRole('admin', 'instructor', 'tester
   }
 });
 
-// Create course with students
-router.post('/', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+// Create course with students and instructors (admin only for creating courses)
+router.post('/', authenticateToken, requireRole('admin'), async (req, res) => {
   const client = await pool.connect();
 
   try {
-    const { name, course_type, start_date, end_date, description, student_ids } = req.body;
+    const { name, course_type, start_date, end_date, description, student_ids, instructor_ids } = req.body;
 
     if (!name || !course_type || !start_date || !end_date) {
       return res.status(400).json({ error: 'Name, course type, start date, and end date are required' });
@@ -133,11 +198,22 @@ router.post('/', authenticateToken, requireRole('admin', 'instructor'), async (r
       }
     }
 
+    // Add instructors to course
+    if (instructor_ids && instructor_ids.length > 0) {
+      for (const instructorId of instructor_ids) {
+        await client.query(
+          `INSERT INTO course_instructors (course_id, instructor_id)
+           VALUES ($1, $2)`,
+          [courseId, instructorId]
+        );
+      }
+    }
+
     await client.query('COMMIT');
 
-    // Fetch complete course with students
+    // Fetch complete course with students and instructors
     const completeResult = await pool.query(
-      `SELECT c.*, COUNT(cs.student_id) as student_count
+      `SELECT c.*, COUNT(DISTINCT cs.student_id) as student_count
        FROM courses c
        LEFT JOIN course_students cs ON c.id = cs.course_id
        WHERE c.id = $1
@@ -158,13 +234,13 @@ router.post('/', authenticateToken, requireRole('admin', 'instructor'), async (r
   }
 });
 
-// Update course and students
-router.put('/:id', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+// Update course, students and instructors (admin only)
+router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => {
   const client = await pool.connect();
 
   try {
     const { id } = req.params;
-    const { name, course_type, start_date, end_date, description, is_active, student_ids } = req.body;
+    const { name, course_type, start_date, end_date, description, is_active, student_ids, instructor_ids } = req.body;
 
     if (!name || !course_type || !start_date || !end_date) {
       return res.status(400).json({ error: 'Name, course type, start date, and end date are required' });
@@ -206,11 +282,24 @@ router.put('/:id', authenticateToken, requireRole('admin', 'instructor'), async 
       }
     }
 
+    // Update instructors - remove all and re-add
+    await client.query('DELETE FROM course_instructors WHERE course_id = $1', [id]);
+
+    if (instructor_ids && instructor_ids.length > 0) {
+      for (const instructorId of instructor_ids) {
+        await client.query(
+          `INSERT INTO course_instructors (course_id, instructor_id)
+           VALUES ($1, $2)`,
+          [id, instructorId]
+        );
+      }
+    }
+
     await client.query('COMMIT');
 
     // Fetch updated course with student count
     const completeResult = await pool.query(
-      `SELECT c.*, COUNT(cs.student_id) as student_count
+      `SELECT c.*, COUNT(DISTINCT cs.student_id) as student_count
        FROM courses c
        LEFT JOIN course_students cs ON c.id = cs.course_id
        WHERE c.id = $1

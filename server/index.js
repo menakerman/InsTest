@@ -42,24 +42,66 @@ app.use('/api/courses', coursesRoutes);
 // ==================== STUDENTS ====================
 // Roles: admin/instructor = CRUD, tester = view only, student = no access
 
-// Get all students with their courses
+// Get all students with their courses (filtered by instructor's courses if role is instructor)
 app.get('/api/students', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT s.*,
-        COALESCE(
-          json_agg(
-            json_build_object('id', c.id, 'name', c.name)
-            ORDER BY c.name
-          ) FILTER (WHERE c.id IS NOT NULL),
-          '[]'
-        ) as courses
-       FROM students s
-       LEFT JOIN course_students cs ON s.id = cs.student_id
-       LEFT JOIN courses c ON cs.course_id = c.id
-       GROUP BY s.id
-       ORDER BY s.created_at DESC`
-    );
+    const user = req.user;
+    let query;
+    let params = [];
+
+    // If user is instructor, only show students from courses they're assigned to
+    if (user.role === 'instructor') {
+      // Find instructor_id by email
+      const instructorResult = await pool.query(
+        'SELECT id FROM instructors WHERE email = $1',
+        [user.email]
+      );
+
+      if (instructorResult.rows.length === 0) {
+        return res.json([]); // Instructor not found, return empty
+      }
+
+      const instructorId = instructorResult.rows[0].id;
+
+      query = `
+        SELECT DISTINCT ON (s.id) s.*,
+          COALESCE(
+            (SELECT json_agg(
+              json_build_object('id', c2.id, 'name', c2.name)
+              ORDER BY c2.name
+            )
+            FROM course_students cs2
+            JOIN courses c2 ON cs2.course_id = c2.id
+            WHERE cs2.student_id = s.id),
+            '[]'
+          ) as courses
+        FROM students s
+        JOIN course_students cs ON s.id = cs.student_id
+        JOIN course_instructors ci ON cs.course_id = ci.course_id
+        WHERE ci.instructor_id = $1
+        ORDER BY s.id, s.created_at DESC
+      `;
+      params = [instructorId];
+    } else {
+      // Admin/tester see all students
+      query = `
+        SELECT s.*,
+          COALESCE(
+            json_agg(
+              json_build_object('id', c.id, 'name', c.name)
+              ORDER BY c.name
+            ) FILTER (WHERE c.id IS NOT NULL),
+            '[]'
+          ) as courses
+        FROM students s
+        LEFT JOIN course_students cs ON s.id = cs.student_id
+        LEFT JOIN courses c ON cs.course_id = c.id
+        GROUP BY s.id
+        ORDER BY s.created_at DESC
+      `;
+    }
+
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching students:', error);
@@ -67,10 +109,37 @@ app.get('/api/students', authenticateToken, requireRole('admin', 'instructor', '
   }
 });
 
-// Get single student
+// Get single student (with instructor access check)
 app.get('/api/students/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
   try {
     const { id } = req.params;
+    const user = req.user;
+
+    // If instructor, verify they have access to this student
+    if (user.role === 'instructor') {
+      const instructorResult = await pool.query(
+        'SELECT id FROM instructors WHERE email = $1',
+        [user.email]
+      );
+
+      if (instructorResult.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const instructorId = instructorResult.rows[0].id;
+      const accessCheck = await pool.query(
+        `SELECT 1 FROM students s
+         JOIN course_students cs ON s.id = cs.student_id
+         JOIN course_instructors ci ON cs.course_id = ci.course_id
+         WHERE s.id = $1 AND ci.instructor_id = $2`,
+        [id, instructorId]
+      );
+
+      if (accessCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied - student not in your courses' });
+      }
+    }
+
     const result = await pool.query('SELECT * FROM students WHERE id = $1', [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Student not found' });
@@ -82,42 +151,80 @@ app.get('/api/students/:id', authenticateToken, requireRole('admin', 'instructor
   }
 });
 
-// Create student
-app.post('/api/students', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+// Create student (admin only)
+app.post('/api/students', authenticateToken, requireRole('admin'), async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { first_name, last_name, email, phone, unit_id } = req.body;
+    const { first_name, last_name, email, phone, unit_id, course_ids } = req.body;
 
     if (!first_name || !last_name || !email) {
       return res.status(400).json({ error: 'First name, last name, and email are required' });
     }
 
-    const result = await pool.query(
+    await client.query('BEGIN');
+
+    const result = await client.query(
       `INSERT INTO students (first_name, last_name, email, phone, unit_id)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
       [first_name, last_name, email, phone || null, unit_id || null]
     );
-    res.status(201).json(result.rows[0]);
+
+    const studentId = result.rows[0].id;
+
+    // Associate student with courses
+    if (course_ids && course_ids.length > 0) {
+      for (const courseId of course_ids) {
+        await client.query(
+          `INSERT INTO course_students (course_id, student_id) VALUES ($1, $2)`,
+          [courseId, studentId]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+
+    // Fetch student with courses
+    const studentResult = await pool.query(
+      `SELECT s.*,
+        COALESCE(
+          (SELECT json_agg(json_build_object('id', c.id, 'name', c.name) ORDER BY c.name)
+           FROM course_students cs
+           JOIN courses c ON cs.course_id = c.id
+           WHERE cs.student_id = s.id),
+          '[]'
+        ) as courses
+       FROM students s WHERE s.id = $1`,
+      [studentId]
+    );
+
+    res.status(201).json(studentResult.rows[0]);
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error creating student:', error);
     if (error.code === '23505') {
       return res.status(400).json({ error: 'A student with this email already exists' });
     }
     res.status(500).json({ error: 'Failed to create student' });
+  } finally {
+    client.release();
   }
 });
 
-// Update student
-app.put('/api/students/:id', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+// Update student (admin only)
+app.put('/api/students/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+  const client = await pool.connect();
   try {
     const { id } = req.params;
-    const { first_name, last_name, email, phone, unit_id } = req.body;
+    const { first_name, last_name, email, phone, unit_id, course_ids } = req.body;
 
     if (!first_name || !last_name || !email) {
       return res.status(400).json({ error: 'First name, last name, and email are required' });
     }
 
-    const result = await pool.query(
+    await client.query('BEGIN');
+
+    const result = await client.query(
       `UPDATE students
        SET first_name = $1, last_name = $2, email = $3, phone = $4, unit_id = $5
        WHERE id = $6
@@ -126,20 +233,55 @@ app.put('/api/students/:id', authenticateToken, requireRole('admin', 'instructor
     );
 
     if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Student not found' });
     }
-    res.json(result.rows[0]);
+
+    // Update course associations - remove all and re-add
+    if (course_ids !== undefined) {
+      await client.query('DELETE FROM course_students WHERE student_id = $1', [id]);
+
+      if (course_ids && course_ids.length > 0) {
+        for (const courseId of course_ids) {
+          await client.query(
+            `INSERT INTO course_students (course_id, student_id) VALUES ($1, $2)`,
+            [courseId, id]
+          );
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+
+    // Fetch updated student with courses
+    const studentResult = await pool.query(
+      `SELECT s.*,
+        COALESCE(
+          (SELECT json_agg(json_build_object('id', c.id, 'name', c.name) ORDER BY c.name)
+           FROM course_students cs
+           JOIN courses c ON cs.course_id = c.id
+           WHERE cs.student_id = s.id),
+          '[]'
+        ) as courses
+       FROM students s WHERE s.id = $1`,
+      [id]
+    );
+
+    res.json(studentResult.rows[0]);
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error updating student:', error);
     if (error.code === '23505') {
       return res.status(400).json({ error: 'A student with this email already exists' });
     }
     res.status(500).json({ error: 'Failed to update student' });
+  } finally {
+    client.release();
   }
 });
 
-// Delete student
-app.delete('/api/students/:id', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+// Delete student (admin only)
+app.delete('/api/students/:id', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
@@ -415,10 +557,11 @@ app.get('/api/evaluation-subjects/:code', authenticateToken, requireRole('admin'
 // ==================== EVALUATIONS ====================
 // Roles: admin/instructor/tester = full access, student = no access
 
-// Get all evaluations with filters
+// Get all evaluations with filters (filtered by instructor's courses if role is instructor)
 app.get('/api/evaluations', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
   try {
     const { student_id, subject_id, instructor_id, from_date, to_date } = req.query;
+    const user = req.user;
 
     let query = `
       SELECT
@@ -437,6 +580,27 @@ app.get('/api/evaluations', authenticateToken, requireRole('admin', 'instructor'
     `;
     const params = [];
     let paramIndex = 1;
+
+    // If instructor, only show evaluations for students in their courses
+    if (user.role === 'instructor') {
+      const instructorResult = await pool.query(
+        'SELECT id FROM instructors WHERE email = $1',
+        [user.email]
+      );
+
+      if (instructorResult.rows.length === 0) {
+        return res.json([]); // Instructor not found, return empty
+      }
+
+      const loggedInInstructorId = instructorResult.rows[0].id;
+      query += ` AND se.student_id IN (
+        SELECT DISTINCT cs.student_id
+        FROM course_students cs
+        JOIN course_instructors ci ON cs.course_id = ci.course_id
+        WHERE ci.instructor_id = $${paramIndex++}
+      )`;
+      params.push(loggedInInstructorId);
+    }
 
     if (student_id) {
       query += ` AND se.student_id = $${paramIndex++}`;

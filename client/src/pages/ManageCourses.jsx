@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts';
-import { getCourses, getCourse, createCourse, updateCourse, deleteCourse, getStudents, exportFinalReport } from '../utils/api';
+import { getCourses, getCourse, createCourse, updateCourse, deleteCourse, getStudents, getInstructors, exportFinalReport } from '../utils/api';
 import StudentMultiSelect from '../components/StudentMultiSelect';
+import InstructorMultiSelect from '../components/InstructorMultiSelect';
 
 const courseTypeOptions = [
   { value: 'מדריך_עוזר', label: 'מדריך עוזר' },
@@ -13,8 +14,10 @@ function ManageCourses() {
   const { user } = useAuth();
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
+  const [instructors, setInstructors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [studentsLoading, setStudentsLoading] = useState(true);
+  const [instructorsLoading, setInstructorsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -30,17 +33,22 @@ function ManageCourses() {
     start_date: '',
     end_date: '',
     description: '',
-    student_ids: []
+    student_ids: [],
+    instructor_ids: []
   });
 
-  // Check permissions
-  const canEdit = user && (user.role === 'admin' || user.role === 'instructor');
-  const canDelete = user && user.role === 'admin';
+  // Check permissions - only admin can create/edit courses
+  const isAdmin = user && user.role === 'admin';
+  const canEdit = isAdmin;
+  const canDelete = isAdmin;
 
   useEffect(() => {
     fetchCourses();
-    fetchStudents();
-  }, []);
+    if (isAdmin) {
+      fetchStudents();
+      fetchInstructors();
+    }
+  }, [isAdmin]);
 
   const fetchCourses = async () => {
     try {
@@ -67,6 +75,18 @@ function ManageCourses() {
     }
   };
 
+  const fetchInstructors = async () => {
+    try {
+      setInstructorsLoading(true);
+      const data = await getInstructors();
+      setInstructors(data);
+    } catch (err) {
+      console.error('Error fetching instructors:', err);
+    } finally {
+      setInstructorsLoading(false);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -74,6 +94,10 @@ function ManageCourses() {
 
   const handleStudentIdsChange = (newIds) => {
     setFormData(prev => ({ ...prev, student_ids: newIds }));
+  };
+
+  const handleInstructorIdsChange = (newIds) => {
+    setFormData(prev => ({ ...prev, instructor_ids: newIds }));
   };
 
   const openCreateModal = () => {
@@ -84,14 +108,15 @@ function ManageCourses() {
       start_date: '',
       end_date: '',
       description: '',
-      student_ids: []
+      student_ids: [],
+      instructor_ids: []
     });
     setShowModal(true);
   };
 
   const openEditModal = async (course) => {
     try {
-      // Fetch full course data with students
+      // Fetch full course data with students and instructors
       const fullCourse = await getCourse(course.id);
       setEditingCourse(fullCourse);
       setFormData({
@@ -100,7 +125,8 @@ function ManageCourses() {
         start_date: fullCourse.start_date.split('T')[0],
         end_date: fullCourse.end_date.split('T')[0],
         description: fullCourse.description || '',
-        student_ids: fullCourse.students.map(s => s.id)
+        student_ids: fullCourse.students ? fullCourse.students.map(s => s.id) : [],
+        instructor_ids: fullCourse.instructors ? fullCourse.instructors.map(i => i.id) : []
       });
       setShowModal(true);
     } catch (err) {
@@ -349,6 +375,16 @@ function ManageCourses() {
               </div>
 
               <div className="form-group">
+                <label>מדריכים</label>
+                <InstructorMultiSelect
+                  instructors={instructors}
+                  selectedIds={formData.instructor_ids}
+                  onChange={handleInstructorIdsChange}
+                  loading={instructorsLoading}
+                />
+              </div>
+
+              <div className="form-group">
                 <label htmlFor="description">תיאור</label>
                 <textarea
                   id="description"
@@ -456,6 +492,21 @@ function ManageCourses() {
                     )}
                   </div>
                 </div>
+
+                {selectedCourse.instructors && selectedCourse.instructors.length > 0 && (
+                  <div className="course-detail-students">
+                    <h4>מדריכים ({selectedCourse.instructors.length})</h4>
+                    <div className="students-list">
+                      {selectedCourse.instructors.map(instructor => (
+                        <div key={instructor.id} className="student-item">
+                          <span className="student-name">
+                            {instructor.first_name} {instructor.last_name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {selectedCourse.students && selectedCourse.students.length > 0 && (
                   <div className="course-detail-students">

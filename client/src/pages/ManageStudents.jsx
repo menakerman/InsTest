@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts';
-import { getStudents, createStudent, updateStudent, deleteStudent, getExternalTests, saveExternalTests, getStudentSkills, saveStudentSkills } from '../utils/api';
+import { getStudents, createStudent, updateStudent, deleteStudent, getExternalTests, saveExternalTests, getStudentSkills, saveStudentSkills, getCourses } from '../utils/api';
+import CourseMultiSelect from '../components/CourseMultiSelect';
 
 function ManageStudents() {
   const { user } = useAuth();
@@ -32,11 +33,14 @@ function ManageStudents() {
     last_name: '',
     email: '',
     phone: '',
-    unit_id: ''
+    unit_id: '',
+    course_ids: []
   });
+  const [courses, setCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
 
-  // Check if user can edit (admin or instructor)
-  const canEdit = user && (user.role === 'admin' || user.role === 'instructor');
+  // Check if user can edit (admin only)
+  const canEdit = user && user.role === 'admin';
 
   useEffect(() => {
     fetchStudents();
@@ -60,6 +64,22 @@ function ManageStudents() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleCourseIdsChange = (newIds) => {
+    setFormData(prev => ({ ...prev, course_ids: newIds }));
+  };
+
+  const fetchCourses = async () => {
+    try {
+      setCoursesLoading(true);
+      const data = await getCourses();
+      setCourses(data);
+    } catch (err) {
+      console.error('Error fetching courses:', err);
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
+
   const openCreateModal = () => {
     setEditingStudent(null);
     setFormData({
@@ -67,8 +87,10 @@ function ManageStudents() {
       last_name: '',
       email: '',
       phone: '',
-      unit_id: ''
+      unit_id: '',
+      course_ids: []
     });
+    fetchCourses();
     setShowModal(true);
   };
 
@@ -79,8 +101,10 @@ function ManageStudents() {
       last_name: student.last_name,
       email: student.email,
       phone: student.phone || '',
-      unit_id: student.unit_id || ''
+      unit_id: student.unit_id || '',
+      course_ids: student.courses ? student.courses.map(c => c.id) : []
     });
+    fetchCourses();
     setShowModal(true);
   };
 
@@ -352,6 +376,15 @@ function ManageStudents() {
                   name="unit_id"
                   value={formData.unit_id}
                   onChange={handleInputChange}
+                />
+              </div>
+              <div className="form-group">
+                <label>קורסים</label>
+                <CourseMultiSelect
+                  courses={courses}
+                  selectedIds={formData.course_ids}
+                  onChange={handleCourseIdsChange}
+                  loading={coursesLoading}
                 />
               </div>
               <div className="form-actions">

@@ -8,6 +8,7 @@ import usersRoutes from './routes/users.js';
 import absencesRoutes from './routes/absences.js';
 import exportRoutes from './routes/export.js';
 import coursesRoutes from './routes/courses.js';
+import lessonsRoutes from './routes/lessons.js';
 import { authenticateToken } from './middleware/auth.js';
 import { requireRole } from './middleware/roles.js';
 
@@ -38,6 +39,9 @@ app.use('/api/export', exportRoutes);
 
 // Courses routes (admin/instructor = CRUD, tester = view only)
 app.use('/api/courses', coursesRoutes);
+
+// Lessons routes (admin = CRUD, instructor/tester = view only)
+app.use('/api/lessons', lessonsRoutes);
 
 // ==================== STUDENTS ====================
 // Roles: admin/instructor = CRUD, tester = view only, student = no access

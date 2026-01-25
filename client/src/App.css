@@ -3207,3 +3207,117 @@ body {
     justify-content: flex-start;
   }
 }
+
+/* ==================== LESSONS PAGE STYLES ==================== */
+
+.lessons-page h2 {
+  color: #0077b6;
+}
+
+.lessons-grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.lessons-group {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.lessons-group-title {
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+  color: white;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.lessons-table {
+  width: 100%;
+}
+
+.lessons-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.lessons-table th,
+.lessons-table td {
+  padding: 1rem;
+  text-align: right;
+  border-bottom: 1px solid #eee;
+}
+
+.lessons-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+}
+
+.lessons-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.lessons-table .actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Mobile Responsive for Lessons */
+@media screen and (max-width: 480px) {
+  .lessons-table table,
+  .lessons-table thead,
+  .lessons-table tbody,
+  .lessons-table th,
+  .lessons-table td,
+  .lessons-table tr {
+    display: block;
+  }
+
+  .lessons-table thead {
+    display: none;
+  }
+
+  .lessons-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 0.5rem;
+  }
+
+  .lessons-table td {
+    padding: 0.5rem 1rem;
+    border-bottom: none;
+    position: relative;
+    padding-right: 40%;
+  }
+
+  .lessons-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    right: 1rem;
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .lessons-table .actions {
+    justify-content: center;
+    padding-right: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+    margin-top: 0.5rem;
+  }
+
+  .lessons-table .actions button {
+    flex: 1;
+    padding: 0.6rem;
+  }
+
+  .lessons-group-title {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
+}

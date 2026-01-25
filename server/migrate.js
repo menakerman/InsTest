@@ -169,6 +169,18 @@ const createTablesQuery = `
     UNIQUE(course_id, student_id)
   );
 
+  -- Lessons table (lesson names associated with evaluation subjects)
+  CREATE TABLE IF NOT EXISTS lessons (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    subject_id INTEGER REFERENCES evaluation_subjects(id) ON DELETE CASCADE,
+    description TEXT,
+    display_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  );
+
   -- Create or replace update_updated_at_column function
   CREATE OR REPLACE FUNCTION update_updated_at_column()
   RETURNS TRIGGER AS $$
@@ -236,6 +248,12 @@ const createTablesQuery = `
   DROP TRIGGER IF EXISTS update_course_students_updated_at ON course_students;
   CREATE TRIGGER update_course_students_updated_at
     BEFORE UPDATE ON course_students
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+  DROP TRIGGER IF EXISTS update_lessons_updated_at ON lessons;
+  CREATE TRIGGER update_lessons_updated_at
+    BEFORE UPDATE ON lessons
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 `;

@@ -147,6 +147,28 @@ export const deleteCourse = (id) => fetchAPI(`/courses/${id}`, {
   method: 'DELETE'
 });
 
+// Lessons (admin only for CRUD)
+export const getLessons = (filters = {}) => {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) params.append(key, value);
+  });
+  const queryString = params.toString();
+  return fetchAPI(`/lessons${queryString ? `?${queryString}` : ''}`);
+};
+export const getLesson = (id) => fetchAPI(`/lessons/${id}`);
+export const createLesson = (data) => fetchAPI('/lessons', {
+  method: 'POST',
+  body: JSON.stringify(data)
+});
+export const updateLesson = (id, data) => fetchAPI(`/lessons/${id}`, {
+  method: 'PUT',
+  body: JSON.stringify(data)
+});
+export const deleteLesson = (id) => fetchAPI(`/lessons/${id}`, {
+  method: 'DELETE'
+});
+
 // Student Skills
 export const getStudentSkills = (studentId) => fetchAPI(`/student-skills/${studentId}`);
 export const getAllStudentSkills = () => fetchAPI('/student-skills');
@@ -252,6 +274,12 @@ export default {
   createCourse,
   updateCourse,
   deleteCourse,
+  // Lessons
+  getLessons,
+  getLesson,
+  createLesson,
+  updateLesson,
+  deleteLesson,
   // Student Skills
   getStudentSkills,
   getAllStudentSkills,

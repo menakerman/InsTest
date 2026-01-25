@@ -11,6 +11,7 @@ import EvaluationForm from './pages/EvaluationForm';
 import EvaluationHistory from './pages/EvaluationHistory';
 import StudentStats from './pages/StudentStats';
 import ManageUsers from './pages/ManageUsers';
+import ManageLessons from './pages/ManageLessons';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -56,9 +57,14 @@ function AppContent() {
                 סטטיסטיקות
               </NavLink>
               {user?.role === 'admin' && (
-                <NavLink to="/users" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                  ניהול משתמשים
-                </NavLink>
+                <>
+                  <NavLink to="/lessons" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                    ניהול שיעורים
+                  </NavLink>
+                  <NavLink to="/users" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                    ניהול משתמשים
+                  </NavLink>
+                </>
               )}
             </nav>
           </div>
@@ -143,6 +149,11 @@ function AppContent() {
           } />
 
           {/* Admin only routes */}
+          <Route path="/lessons" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <ManageLessons />
+            </ProtectedRoute>
+          } />
           <Route path="/users" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <ManageUsers />

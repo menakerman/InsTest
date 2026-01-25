@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getEvaluationSubject, getEvaluation, createEvaluation, updateEvaluation } from '../utils/api';
+import { getEvaluationSubject, getEvaluation, createEvaluation, updateEvaluation, getLessons } from '../utils/api';
 import { calculateEvaluationScores } from '../utils/scoreCalculations';
-import { getLessonNamesForSubject, subjectHasLessonNames } from '../data/lessonNames';
 import StudentSelector from '../components/StudentSelector';
 import InstructorSelector from '../components/InstructorSelector';
 import CriterionCard from '../components/CriterionCard';
@@ -14,6 +13,7 @@ function EvaluationForm() {
   const isEditMode = !!evaluationId;
 
   const [subject, setSubject] = useState(null);
+  const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -38,13 +38,17 @@ function EvaluationForm() {
         setStudentId(evalData.student_id);
         setInstructorId(evalData.instructor_id);
 
+        // Fetch lessons for this subject
+        const subjectLessons = await getLessons({ subject_id: subjectData.id, is_active: true });
+        setLessons(subjectLessons);
+
         // Handle lesson name for edit mode
         const savedLessonName = evalData.lesson_name || '';
         setLessonName(savedLessonName);
-        const predefinedNames = getLessonNamesForSubject(subjectData.code);
-        if (predefinedNames && predefinedNames.includes(savedLessonName)) {
+        const lessonNames = subjectLessons.map(l => l.name);
+        if (lessonNames.includes(savedLessonName)) {
           setLessonNameSelection(savedLessonName);
-        } else if (savedLessonName && subjectHasLessonNames(subjectData.code)) {
+        } else if (savedLessonName && subjectLessons.length > 0) {
           setLessonNameSelection('__other__');
           setCustomLessonName(savedLessonName);
         } else {
@@ -61,6 +65,10 @@ function EvaluationForm() {
       } else {
         const data = await getEvaluationSubject(subjectCode);
         setSubject(data);
+
+        // Fetch lessons for this subject
+        const subjectLessons = await getLessons({ subject_id: data.id, is_active: true });
+        setLessons(subjectLessons);
       }
 
       setError(null);
@@ -105,7 +113,7 @@ function EvaluationForm() {
       return;
     }
 
-    if (subject && subjectHasLessonNames(subject.code) && !lessonName) {
+    if (lessons.length > 0 && !lessonName) {
       setError('נא לבחור שם שיעור');
       return;
     }
@@ -195,9 +203,9 @@ function EvaluationForm() {
               <div className="form-group">
                 <label>
                   שם השיעור / נושא
-                  {subject && subjectHasLessonNames(subject.code) && ' *'}
+                  {lessons.length > 0 && ' *'}
                 </label>
-                {subject && subjectHasLessonNames(subject.code) ? (
+                {lessons.length > 0 ? (
                   <>
                     <select
                       value={lessonNameSelection}
@@ -215,8 +223,8 @@ function EvaluationForm() {
                       className="lesson-name-select"
                     >
                       <option value="">-- בחר שיעור --</option>
-                      {getLessonNamesForSubject(subject.code)?.map((name, index) => (
-                        <option key={index} value={name}>{name}</option>
+                      {lessons.map((lesson) => (
+                        <option key={lesson.id} value={lesson.name}>{lesson.name}</option>
                       ))}
                       <option value="__other__">אחר (הזן ידנית)</option>
                     </select>
@@ -290,7 +298,7 @@ function EvaluationForm() {
             <button
               type="submit"
               className="btn btn-primary btn-submit"
-              disabled={saving || !allAnswered || !studentId || (subject && subjectHasLessonNames(subject.code) && !lessonName)}
+              disabled={saving || !allAnswered || !studentId || (lessons.length > 0 && !lessonName)}
             >
               {saving ? 'שומר...' : (isEditMode ? 'עדכון הערכה' : 'שמור הערכה')}
             </button>

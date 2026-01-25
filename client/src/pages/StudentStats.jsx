@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getEvaluations, getEvaluation, getStudents, getCourses } from '../utils/api';
+import { getEvaluations, getEvaluation, getStudents, getCourses, exportFinalReport } from '../utils/api';
 import { formatPercentage, getStatusColor, getStatusText, SCORE_VALUES } from '../utils/scoreCalculations';
 
 function StudentStats() {
@@ -13,6 +13,7 @@ function StudentStats() {
   const [selectedEvaluation, setSelectedEvaluation] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [exportingCourseId, setExportingCourseId] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -121,6 +122,18 @@ function StudentStats() {
     setExpandedStudent(expandedStudent === studentId ? null : studentId);
   };
 
+  const handleExportCourse = async (e, courseId) => {
+    e.stopPropagation();
+    try {
+      setExportingCourseId(courseId);
+      await exportFinalReport(courseId);
+    } catch (err) {
+      console.error('Failed to export report:', err);
+    } finally {
+      setExportingCourseId(null);
+    }
+  };
+
   const openDetailModal = async (evaluationId) => {
     setShowDetailModal(true);
     setLoadingDetail(true);
@@ -179,9 +192,20 @@ function StudentStats() {
                   <h3>{course.name}</h3>
                   <span className="student-count">{course.students.length} תלמידים</span>
                 </div>
-                <span className={`expand-icon ${expandedCourse === course.id ? 'expanded' : ''}`}>
-                  ▼
-                </span>
+                <div className="course-group-actions">
+                  {course.id !== 0 && (
+                    <button
+                      className="btn btn-export-header"
+                      onClick={(e) => handleExportCourse(e, course.id)}
+                      disabled={exportingCourseId === course.id}
+                    >
+                      {exportingCourseId === course.id ? 'מייצא...' : 'יצוא דוח Excel'}
+                    </button>
+                  )}
+                  <span className={`expand-icon ${expandedCourse === course.id ? 'expanded' : ''}`}>
+                    ▼
+                  </span>
+                </div>
               </div>
 
               {expandedCourse === course.id && (

@@ -1,10 +1,4 @@
 import ExcelJS from 'exceljs';
-import {
-  classLessonNames,
-  waterLessonNames,
-  classLessonCriteria,
-  waterLessonCriteria
-} from '../data/lessonNames.js';
 
 // Hebrew month names for formatting
 const hebrewMonths = [
@@ -351,14 +345,17 @@ function getColumnLetter(colNum) {
 /**
  * Create a lesson scores table (class or water) on a sheet
  * Returns the row number after the table
+ * @param {Object} sheet - The Excel sheet
+ * @param {number} startRow - Starting row for the table
+ * @param {Array} evaluations - Student's evaluations for this subject
+ * @param {Array} itemScores - All item scores for these evaluations
+ * @param {Array} criteria - Criteria for this subject from database
+ * @param {string} tableTitle - Title for the table
  */
-function createLessonTable(sheet, startRow, lessonNames, criteriaItems, evaluations, itemScores, subjectCode, tableTitle) {
-  // Filter evaluations for this subject type
-  const subjectEvals = evaluations.filter(e => e.subject_code === subjectCode);
-
-  // Group evaluations by lesson_name
+function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, tableTitle) {
+  // Group evaluations by lesson_name and sort by date
   const evalsByLesson = {};
-  subjectEvals.forEach(evaluation => {
+  evaluations.forEach(evaluation => {
     const lessonName = evaluation.lesson_name;
     if (lessonName) {
       if (!evalsByLesson[lessonName]) {
@@ -368,10 +365,14 @@ function createLessonTable(sheet, startRow, lessonNames, criteriaItems, evaluati
     }
   });
 
-  // Get unique lesson names that have evaluations (preserving order from predefined list)
-  const usedLessonNames = lessonNames.filter(name => evalsByLesson[name]);
+  // Get unique lesson names sorted by earliest evaluation date
+  const lessonOrder = Object.keys(evalsByLesson).sort((a, b) => {
+    const dateA = Math.min(...evalsByLesson[a].map(e => new Date(e.evaluation_date).getTime()));
+    const dateB = Math.min(...evalsByLesson[b].map(e => new Date(e.evaluation_date).getTime()));
+    return dateA - dateB;
+  });
 
-  if (usedLessonNames.length === 0) {
+  if (lessonOrder.length === 0 || criteria.length === 0) {
     sheet.getCell(`A${startRow}`).value = tableTitle;
     sheet.getCell(`A${startRow}`).font = { bold: true, size: 12 };
     sheet.getCell(`A${startRow + 1}`).value = 'אין נתונים';
@@ -381,24 +382,28 @@ function createLessonTable(sheet, startRow, lessonNames, criteriaItems, evaluati
   // Table header
   sheet.getCell(`A${startRow}`).value = tableTitle;
   sheet.getCell(`A${startRow}`).font = { bold: true, size: 12 };
-  sheet.mergeCells(`A${startRow}:${getColumnLetter(usedLessonNames.length + 3)}${startRow}`);
+  sheet.mergeCells(`A${startRow}:${getColumnLetter(lessonOrder.length + 3)}${startRow}`);
 
   const headerRow = startRow + 1;
 
-  // Column headers: Criterion | Lesson1 | Lesson2 | ... | Average | Trend
-  sheet.getCell(`A${headerRow}`).value = 'קריטריון';
+  // Column headers: Criterion (A) | Lessons | Average | Trend
+  // RTL layout: Criterion on the right (A), lessons in middle, Average & Trend on the left
 
-  usedLessonNames.forEach((lessonName, index) => {
+  sheet.getCell(`A${headerRow}`).value = 'קריטריון';
+  sheet.getColumn('A').width = 25;
+
+  lessonOrder.forEach((lessonName, index) => {
     const col = getColumnLetter(index + 2); // B, C, D...
     sheet.getCell(`${col}${headerRow}`).value = lessonName;
-    sheet.getColumn(col).width = 10;
+    sheet.getColumn(col).width = 12;
   });
 
-  const avgCol = getColumnLetter(usedLessonNames.length + 2);
-  const trendCol = getColumnLetter(usedLessonNames.length + 3);
-
+  const avgCol = getColumnLetter(lessonOrder.length + 2);
+  const trendCol = getColumnLetter(lessonOrder.length + 3);
   sheet.getCell(`${avgCol}${headerRow}`).value = 'ממוצע';
   sheet.getCell(`${trendCol}${headerRow}`).value = 'מגמה';
+  sheet.getColumn(avgCol).width = 8;
+  sheet.getColumn(trendCol).width = 8;
 
   // Style header row
   const headerRowObj = sheet.getRow(headerRow);
@@ -406,126 +411,166 @@ function createLessonTable(sheet, startRow, lessonNames, criteriaItems, evaluati
   headerRowObj.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FFE0E0E0' }
+    fgColor: { argb: 'FF4472C4' }
   };
+  headerRowObj.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.alignment = { horizontal: 'center' };
+  });
 
   // Data rows - one per criterion
   let currentRow = headerRow + 1;
 
-  criteriaItems.forEach((criterion, criterionIndex) => {
-    sheet.getCell(`A${currentRow}`).value = criterion.name;
+  criteria.forEach((criterion) => {
+    // Criterion name in column A
+    sheet.getCell(`A${currentRow}`).value = criterion.name_he;
+    sheet.getCell(`A${currentRow}`).alignment = { horizontal: 'right' };
 
-    const scoreCells = [];
+    let hasScores = false;
 
-    usedLessonNames.forEach((lessonName, lessonIndex) => {
-      const col = getColumnLetter(lessonIndex + 2);
+    lessonOrder.forEach((lessonName, lessonIndex) => {
+      const col = getColumnLetter(lessonIndex + 2); // B, C, D...
       const cellRef = `${col}${currentRow}`;
 
-      // Find the evaluation for this lesson
+      // Find the evaluation for this lesson (most recent if multiple)
       const evals = evalsByLesson[lessonName] || [];
-      // Take the most recent evaluation if multiple exist
       const latestEval = evals.sort((a, b) =>
         new Date(b.evaluation_date) - new Date(a.evaluation_date)
       )[0];
 
       if (latestEval) {
-        // Find the item score for this criterion
+        // Find the item score for this criterion by criterion_id
         const evalItemScores = itemScores.filter(is => is.evaluation_id === latestEval.id);
-        // Match by criterion display_order (since criteria IDs may differ)
         const criterionItemScore = evalItemScores.find(is =>
-          is.criterion_display_order === criterionIndex + 1
+          is.criterion_id === criterion.id
         );
 
         if (criterionItemScore) {
-          sheet.getCell(cellRef).value = criterionItemScore.score;
-          scoreCells.push(cellRef);
+          const cell = sheet.getCell(cellRef);
+          cell.value = criterionItemScore.score;
+          cell.alignment = { horizontal: 'center' };
+          hasScores = true;
+
+          // Color coding based on score
+          if (criterionItemScore.score >= 7) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+          } else if (criterionItemScore.score >= 4) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEB9C' } };
+          } else {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+          }
         } else {
           sheet.getCell(cellRef).value = '-';
+          sheet.getCell(cellRef).alignment = { horizontal: 'center' };
         }
       } else {
         sheet.getCell(cellRef).value = '-';
+        sheet.getCell(cellRef).alignment = { horizontal: 'center' };
       }
     });
 
     // Average formula
-    if (scoreCells.length > 0) {
-      const startCol = getColumnLetter(2);
-      const endCol = getColumnLetter(usedLessonNames.length + 1);
+    if (hasScores) {
+      const startCol = getColumnLetter(2); // B
+      const endCol = getColumnLetter(lessonOrder.length + 1);
       sheet.getCell(`${avgCol}${currentRow}`).value = {
         formula: `IFERROR(AVERAGE(${startCol}${currentRow}:${endCol}${currentRow}),"-")`
       };
       sheet.getCell(`${avgCol}${currentRow}`).numFmt = '0.0';
+      sheet.getCell(`${avgCol}${currentRow}`).alignment = { horizontal: 'center' };
     } else {
       sheet.getCell(`${avgCol}${currentRow}`).value = '-';
+      sheet.getCell(`${avgCol}${currentRow}`).alignment = { horizontal: 'center' };
     }
 
-    // SLOPE formula for trend
-    if (usedLessonNames.length >= 2 && scoreCells.length >= 2) {
-      const startCol = getColumnLetter(2);
-      const endCol = getColumnLetter(usedLessonNames.length + 1);
-      // SLOPE(y_values, x_values) - x_values are column numbers (1,2,3...)
+    // SLOPE formula for trend (using row 5 sequential numbers)
+    if (lessonOrder.length >= 2 && hasScores) {
+      const startCol = getColumnLetter(2); // B
+      const endCol = getColumnLetter(lessonOrder.length + 1);
       sheet.getCell(`${trendCol}${currentRow}`).value = {
-        formula: `IFERROR(SLOPE(${startCol}${currentRow}:${endCol}${currentRow},COLUMN(${startCol}1:${endCol}1)),"-")`
+        formula: `IFERROR(SLOPE(${startCol}${currentRow}:${endCol}${currentRow},$${startCol}$5:$${endCol}$5),"-")`
       };
       sheet.getCell(`${trendCol}${currentRow}`).numFmt = '0.00';
+      sheet.getCell(`${trendCol}${currentRow}`).alignment = { horizontal: 'center' };
     } else {
       sheet.getCell(`${trendCol}${currentRow}`).value = '-';
+      sheet.getCell(`${trendCol}${currentRow}`).alignment = { horizontal: 'center' };
     }
 
     currentRow++;
   });
 
-  // Total row
-  const totalRow = currentRow;
-  sheet.getCell(`A${totalRow}`).value = 'סה"כ';
-  sheet.getCell(`A${totalRow}`).font = { bold: true };
+  // Percentage row (ציון %)
+  const percentRow = currentRow;
+  sheet.getCell(`A${percentRow}`).value = 'ציון %';
+  sheet.getCell(`A${percentRow}`).font = { bold: true };
+  sheet.getCell(`A${percentRow}`).alignment = { horizontal: 'right' };
 
-  usedLessonNames.forEach((lessonName, lessonIndex) => {
-    const col = getColumnLetter(lessonIndex + 2);
-    const startDataRow = headerRow + 1;
-    const endDataRow = totalRow - 1;
-    sheet.getCell(`${col}${totalRow}`).value = {
-      formula: `IFERROR(SUM(${col}${startDataRow}:${col}${endDataRow}),"-")`
-    };
-    sheet.getCell(`${col}${totalRow}`).font = { bold: true };
+  lessonOrder.forEach((lessonName, lessonIndex) => {
+    const col = getColumnLetter(lessonIndex + 2); // B, C, D...
+
+    // Find the evaluation for this lesson
+    const evals = evalsByLesson[lessonName] || [];
+    const latestEval = evals.sort((a, b) =>
+      new Date(b.evaluation_date) - new Date(a.evaluation_date)
+    )[0];
+
+    if (latestEval) {
+      const cell = sheet.getCell(`${col}${percentRow}`);
+      cell.value = Math.round(latestEval.percentage_score);
+      cell.font = { bold: true };
+      cell.alignment = { horizontal: 'center' };
+
+      // Color coding based on pass/fail
+      if (latestEval.is_passing && !latestEval.has_critical_fail) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+      } else {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+      }
+    } else {
+      sheet.getCell(`${col}${percentRow}`).value = '-';
+      sheet.getCell(`${col}${percentRow}`).alignment = { horizontal: 'center' };
+    }
   });
 
-  // Total average
-  const startCol = getColumnLetter(2);
-  const endCol = getColumnLetter(usedLessonNames.length + 1);
-  sheet.getCell(`${avgCol}${totalRow}`).value = {
-    formula: `IFERROR(AVERAGE(${startCol}${totalRow}:${endCol}${totalRow}),"-")`
+  // Average of percentages
+  const startColPercent = getColumnLetter(2); // B
+  const endColPercent = getColumnLetter(lessonOrder.length + 1);
+  sheet.getCell(`${avgCol}${percentRow}`).value = {
+    formula: `IFERROR(AVERAGE(${startColPercent}${percentRow}:${endColPercent}${percentRow}),"-")`
   };
-  sheet.getCell(`${avgCol}${totalRow}`).numFmt = '0.0';
-  sheet.getCell(`${avgCol}${totalRow}`).font = { bold: true };
+  sheet.getCell(`${avgCol}${percentRow}`).numFmt = '0.0';
+  sheet.getCell(`${avgCol}${percentRow}`).font = { bold: true };
+  sheet.getCell(`${avgCol}${percentRow}`).alignment = { horizontal: 'center' };
 
-  // Total trend
-  if (usedLessonNames.length >= 2) {
-    sheet.getCell(`${trendCol}${totalRow}`).value = {
-      formula: `IFERROR(SLOPE(${startCol}${totalRow}:${endCol}${totalRow},COLUMN(${startCol}1:${endCol}1)),"-")`
+  // Trend of percentages (using row 5 sequential numbers)
+  if (lessonOrder.length >= 2) {
+    sheet.getCell(`${trendCol}${percentRow}`).value = {
+      formula: `IFERROR(SLOPE(${startColPercent}${percentRow}:${endColPercent}${percentRow},$${startColPercent}$5:$${endColPercent}$5),"-")`
     };
-    sheet.getCell(`${trendCol}${totalRow}`).numFmt = '0.00';
-    sheet.getCell(`${trendCol}${totalRow}`).font = { bold: true };
+    sheet.getCell(`${trendCol}${percentRow}`).numFmt = '0.00';
+    sheet.getCell(`${trendCol}${percentRow}`).font = { bold: true };
+    sheet.getCell(`${trendCol}${percentRow}`).alignment = { horizontal: 'center' };
   } else {
-    sheet.getCell(`${trendCol}${totalRow}`).value = '-';
-    sheet.getCell(`${trendCol}${totalRow}`).font = { bold: true };
+    sheet.getCell(`${trendCol}${percentRow}`).value = '-';
+    sheet.getCell(`${trendCol}${percentRow}`).alignment = { horizontal: 'center' };
   }
 
-  // Style total row
-  const totalRowObj = sheet.getRow(totalRow);
-  totalRowObj.fill = {
+  // Style percentage row
+  const percentRowObj = sheet.getRow(percentRow);
+  percentRowObj.fill = {
     type: 'pattern',
     pattern: 'solid',
     fgColor: { argb: 'FFD9EAD3' }
   };
 
-  return totalRow + 2;
+  return percentRow + 2;
 }
 
 /**
  * Create individual student sheet with progress data and chart
  */
-function createStudentSheet(workbook, student, evaluations, subjects, absences, itemScores, externalTests, studentSkills) {
+function createStudentSheet(workbook, student, evaluations, subjects, absences, itemScores, externalTests, studentSkills, criteriaBySubject) {
   const sheetName = `${student.first_name} ${student.last_name}`.substring(0, 31);
   const sheet = workbook.addWorksheet(sheetName, {
     views: [{ rightToLeft: true }]
@@ -537,203 +582,58 @@ function createStudentSheet(workbook, student, evaluations, subjects, absences, 
   sheet.mergeCells('A1:F1');
 
   // Student info
-  sheet.getCell('A2').value = 'אימייל:';
-  sheet.getCell('B2').value = student.email;
-  sheet.getCell('A3').value = 'טלפון:';
-  sheet.getCell('B3').value = student.phone || '-';
-  sheet.getCell('A4').value = 'יחידה:';
-  sheet.getCell('B4').value = student.unit_id || '-';
-
-  // Row 6: Passing threshold line (for chart reference)
-  sheet.getCell('A6').value = 'ציון מעבר:';
-  sheet.getCell('A6').font = { bold: true };
-
-  // Fill passing threshold (60%) across columns for chart
-  for (let i = 0; i < 10; i++) {
-    const col = String.fromCharCode(66 + i); // B through K
-    sheet.getCell(`${col}6`).value = 60;
-  }
-
-  // Row 8: Section header for evaluations
-  sheet.getCell('A8').value = 'הערכות לפי נושא';
-  sheet.getCell('A8').font = { bold: true, size: 12 };
+  sheet.getCell('A3').value = 'אימייל:';
+  sheet.getCell('B3').value = student.email;
+  sheet.getCell('C3').value = 'טלפון:';
+  sheet.getCell('D3').value = student.phone || '-';
+  sheet.getCell('E3').value = 'יחידה:';
+  sheet.getCell('F3').value = student.unit_id || '-';
 
   // Get student evaluations
   const studentEvals = evaluations.filter(e => e.student_id === student.id);
 
-  // Headers for evaluations table
-  sheet.getCell('A10').value = 'נושא';
-  sheet.getCell('B10').value = 'תאריך';
-  sheet.getCell('C10').value = 'ציון גולמי';
-  sheet.getCell('D10').value = 'אחוז';
-  sheet.getCell('E10').value = 'סטטוס';
-  sheet.getCell('F10').value = 'מדריך';
-
-  const evalHeaderRow = sheet.getRow(10);
-  evalHeaderRow.font = { bold: true };
-  evalHeaderRow.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFE0E0E0' }
-  };
-
-  // Evaluation rows grouped by subject
-  let currentRow = 11;
-  subjects.forEach(subject => {
-    const subjectEvals = studentEvals
-      .filter(e => e.subject_id === subject.id)
-      .sort((a, b) => new Date(a.evaluation_date) - new Date(b.evaluation_date));
-
-    subjectEvals.forEach(evalItem => {
-      sheet.getCell(`A${currentRow}`).value = subject.name_he;
-      sheet.getCell(`B${currentRow}`).value = new Date(evalItem.evaluation_date)
-        .toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      sheet.getCell(`C${currentRow}`).value = evalItem.raw_score;
-      sheet.getCell(`D${currentRow}`).value = Math.round(evalItem.percentage_score) + '%';
-
-      const passed = evalItem.is_passing && !evalItem.has_critical_fail;
-      const statusCell = sheet.getCell(`E${currentRow}`);
-      statusCell.value = passed ? 'עבר' : 'נכשל';
-      statusCell.font = { color: { argb: passed ? 'FF008000' : 'FFFF0000' } };
-      statusCell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: passed ? 'FFC6EFCE' : 'FFFFC7CE' }
-      };
-
-      sheet.getCell(`F${currentRow}`).value = evalItem.instructor_first_name
-        ? `${evalItem.instructor_first_name} ${evalItem.instructor_last_name || ''}`
-        : '-';
-
-      currentRow++;
-    });
-  });
-
-  // Add absences section
-  const absenceStartRow = currentRow + 2;
-  sheet.getCell(`A${absenceStartRow}`).value = 'העדרויות';
-  sheet.getCell(`A${absenceStartRow}`).font = { bold: true, size: 12 };
-
-  const studentAbsences = absences.filter(a => a.student_id === student.id);
-  if (studentAbsences.length === 0) {
-    sheet.getCell(`A${absenceStartRow + 1}`).value = 'אין העדרויות רשומות';
-  } else {
-    sheet.getCell(`A${absenceStartRow + 2}`).value = 'תאריך';
-    sheet.getCell(`B${absenceStartRow + 2}`).value = 'סיבה';
-    sheet.getCell(`C${absenceStartRow + 2}`).value = 'סטטוס';
-    const absHeaderRow = sheet.getRow(absenceStartRow + 2);
-    absHeaderRow.font = { bold: true };
-
-    studentAbsences.forEach((absence, index) => {
-      const row = absenceStartRow + 3 + index;
-      sheet.getCell(`A${row}`).value = new Date(absence.absence_date)
-        .toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      sheet.getCell(`B${row}`).value = absence.reason || '-';
-      sheet.getCell(`C${row}`).value = absence.is_excused ? 'מאושר' : 'לא מאושר';
-    });
-  }
-
-  // Summary section
-  const summaryRow = absenceStartRow + Math.max(4, studentAbsences.length + 4);
-  sheet.getCell(`A${summaryRow}`).value = 'סיכום';
-  sheet.getCell(`A${summaryRow}`).font = { bold: true, size: 12 };
-
-  const passedSubjects = subjects.filter(subject => {
-    const subjectEvals = studentEvals.filter(e => e.subject_id === subject.id);
-    if (subjectEvals.length === 0) return false;
-    const latestEval = subjectEvals.sort((a, b) =>
-      new Date(b.evaluation_date) - new Date(a.evaluation_date)
-    )[0];
-    return latestEval.is_passing && !latestEval.has_critical_fail;
-  });
-
-  sheet.getCell(`A${summaryRow + 1}`).value = 'נושאים שעברו:';
-  sheet.getCell(`B${summaryRow + 1}`).value = `${passedSubjects.length} / ${subjects.length}`;
-  sheet.getCell(`A${summaryRow + 2}`).value = 'סה"כ העדרויות:';
-  sheet.getCell(`B${summaryRow + 2}`).value = studentAbsences.length;
-  sheet.getCell(`A${summaryRow + 3}`).value = 'סטטוס כללי:';
-
-  const overallPassed = passedSubjects.length === subjects.length;
-  const statusCell = sheet.getCell(`B${summaryRow + 3}`);
-  statusCell.value = overallPassed ? 'עבר את הקורס' : 'בתהליך';
-  statusCell.font = {
-    bold: true,
-    color: { argb: overallPassed ? 'FF008000' : 'FFFF6600' }
-  };
-
   // Column widths
-  sheet.getColumn('A').width = 20;
-  sheet.getColumn('B').width = 15;
+  sheet.getColumn('A').width = 25;
+  sheet.getColumn('B').width = 12;
   sheet.getColumn('C').width = 12;
-  sheet.getColumn('D').width = 10;
-  sheet.getColumn('E').width = 10;
-  sheet.getColumn('F').width = 20;
+  sheet.getColumn('D').width = 12;
+  sheet.getColumn('E').width = 12;
+  sheet.getColumn('F').width = 12;
 
-  // Add progress chart data for evaluation scores
-  // Prepare data for chart - scores over time per subject type
-  const chartDataRow = summaryRow + 6;
-  sheet.getCell(`A${chartDataRow}`).value = 'נתוני גרף התקדמות';
-  sheet.getCell(`A${chartDataRow}`).font = { bold: true };
-
-  // Class-based lessons (subjects 1-4)
-  const classSubjects = subjects.slice(0, 4);
-  const waterSubject = subjects[4]; // water_lesson
-
-  sheet.getCell(`A${chartDataRow + 1}`).value = 'ציוני כיתה';
-  sheet.getCell(`A${chartDataRow + 2}`).value = 'ציוני מים';
-  sheet.getCell(`A${chartDataRow + 3}`).value = 'ציון מעבר';
-
-  // Get class-based evaluation scores chronologically
-  const classEvals = studentEvals
-    .filter(e => classSubjects.some(s => s.id === e.subject_id))
-    .sort((a, b) => new Date(a.evaluation_date) - new Date(b.evaluation_date));
-
-  const waterEvals = studentEvals
-    .filter(e => waterSubject && e.subject_id === waterSubject.id)
-    .sort((a, b) => new Date(a.evaluation_date) - new Date(b.evaluation_date));
-
-  // Fill in score data
-  classEvals.forEach((evalItem, index) => {
-    const col = String.fromCharCode(66 + index); // B, C, D...
-    sheet.getCell(`${col}${chartDataRow + 1}`).value = Math.round(evalItem.percentage_score);
-  });
-
-  waterEvals.forEach((evalItem, index) => {
-    const col = String.fromCharCode(66 + index);
-    sheet.getCell(`${col}${chartDataRow + 2}`).value = Math.round(evalItem.percentage_score);
-  });
-
-  // Fill passing threshold line
-  const maxEvals = Math.max(classEvals.length, waterEvals.length, 5);
-  for (let i = 0; i < maxEvals; i++) {
-    const col = String.fromCharCode(66 + i);
-    sheet.getCell(`${col}${chartDataRow + 3}`).value = 60;
+  // Add sequential numbers in row 5 for SLOPE calculations (1, 2, 3, ...)
+  // Add enough numbers to cover all possible lessons (up to 15)
+  for (let i = 0; i < 15; i++) {
+    const col = getColumnLetter(i + 2); // B, C, D, ...
+    sheet.getCell(`${col}5`).value = i + 1;
   }
 
-  // Add lesson tables section
-  let lessonTablesRow = chartDataRow + 6;
+  // Start lesson tables from row 6
+  let lessonTablesRow = 6;
+
+  // Get student's item scores
+  const studentItemScores = itemScores.filter(is => studentEvals.some(e => e.id === is.evaluation_id));
 
   // Class lessons table (העברת הרצאה - lecture_delivery)
+  const lectureEvals = studentEvals.filter(e => e.subject_code === 'lecture_delivery');
+  const lectureCriteria = criteriaBySubject['lecture_delivery'] || [];
   lessonTablesRow = createLessonTable(
     sheet,
     lessonTablesRow,
-    classLessonNames,
-    classLessonCriteria,
-    studentEvals,
-    itemScores.filter(is => studentEvals.some(e => e.id === is.evaluation_id)),
-    'lecture_delivery',
+    lectureEvals,
+    studentItemScores,
+    lectureCriteria,
     'טבלת שיעורי כיתה (הרצאה)'
   );
 
   // Water lessons table (העברת שיעור מים - water_lesson)
+  const waterLessonEvals = studentEvals.filter(e => e.subject_code === 'water_lesson');
+  const waterCriteria = criteriaBySubject['water_lesson'] || [];
   lessonTablesRow = createLessonTable(
     sheet,
     lessonTablesRow,
-    waterLessonNames,
-    waterLessonCriteria,
-    studentEvals,
-    itemScores.filter(is => studentEvals.some(e => e.id === is.evaluation_id)),
-    'water_lesson',
+    waterLessonEvals,
+    studentItemScores,
+    waterCriteria,
     'טבלת שיעורי מים'
   );
 
@@ -879,7 +779,8 @@ export async function generateFinalReport(pool, courseId = null) {
     itemScoresResult,
     courseResult,
     externalTestsResult,
-    studentSkillsResult
+    studentSkillsResult,
+    criteriaResult
   ] = await Promise.all([
     pool.query(studentsQuery, studentsParams),
     pool.query('SELECT * FROM evaluation_subjects ORDER BY display_order'),
@@ -903,18 +804,21 @@ export async function generateFinalReport(pool, courseId = null) {
       SELECT
         eis.*,
         ec.display_order as criterion_display_order,
-        ec.name_he as criterion_name
+        ec.name_he as criterion_name,
+        ec.subject_id as criterion_subject_id
       FROM evaluation_item_scores eis
       LEFT JOIN evaluation_criteria ec ON eis.criterion_id = ec.id
       ORDER BY eis.evaluation_id, ec.display_order
     `),
     courseId ? pool.query('SELECT * FROM courses WHERE id = $1', [courseId]) : Promise.resolve({ rows: [] }),
     pool.query('SELECT * FROM external_tests'),
-    pool.query('SELECT * FROM student_skills')
+    pool.query('SELECT * FROM student_skills'),
+    pool.query('SELECT * FROM evaluation_criteria ORDER BY subject_id, display_order')
   ]);
 
   const students = studentsResult.rows;
   const subjects = subjectsResult.rows;
+  const criteria = criteriaResult.rows;
   const studentIds = students.map(s => s.id);
 
   // Filter evaluations and absences to only include students in the course
@@ -930,6 +834,12 @@ export async function generateFinalReport(pool, courseId = null) {
 
   // Filter student skills to only include students in the course
   const studentSkills = studentSkillsResult.rows.filter(ss => studentIds.includes(ss.student_id));
+
+  // Group criteria by subject code
+  const criteriaBySubject = {};
+  subjects.forEach(subject => {
+    criteriaBySubject[subject.code] = criteria.filter(c => c.subject_id === subject.id);
+  });
 
   // Derive course info - use actual course data if courseId provided
   let courseInfo;
@@ -953,7 +863,7 @@ export async function generateFinalReport(pool, courseId = null) {
   for (const student of students) {
     const studentExternalTests = externalTests.find(et => et.student_id === student.id);
     const studentSkillsData = studentSkills.find(ss => ss.student_id === student.id);
-    createStudentSheet(workbook, student, evaluations, subjects, absences, itemScores, studentExternalTests, studentSkillsData);
+    createStudentSheet(workbook, student, evaluations, subjects, absences, itemScores, studentExternalTests, studentSkillsData, criteriaBySubject);
   }
 
   return workbook;

@@ -1,17 +1,12 @@
 import { SCORE_VALUES } from '../utils/scoreCalculations';
 
-// Color mapping for different score values
-const getScoreColor = (value, maxScore) => {
-  if (maxScore === 5) {
-    // 5-point scale: 0, 2, 4, 5
-    if (value === 0) return '#dc3545';  // red
-    if (value === 2) return '#fd7e14';  // orange
-    if (value === 4) return '#0dcaf0';  // cyan
-    if (value === 5) return '#198754';  // green
-  }
-  // Default 10-point scale: 1, 4, 7, 10
-  const scoreInfo = SCORE_VALUES.find(s => s.value === value);
-  return scoreInfo ? scoreInfo.color : '#6c757d';
+// Color gradient for incremental scores (1 to max)
+const getIncrementalColor = (value, maxScore) => {
+  const ratio = value / maxScore;
+  if (ratio <= 0.25) return '#dc3545';  // red
+  if (ratio <= 0.5) return '#fd7e14';   // orange
+  if (ratio <= 0.75) return '#0dcaf0';  // cyan
+  return '#198754';                      // green
 };
 
 function CriterionCard({ criterion, score, onScoreChange, scoreDescriptions = {} }) {
@@ -24,30 +19,61 @@ function CriterionCard({ criterion, score, onScoreChange, scoreDescriptions = {}
     }
   };
 
-  // Get available score values from the scoreDescriptions keys
-  const availableScores = Object.keys(scoreDescriptions)
-    .map(k => parseInt(k))
-    .sort((a, b) => a - b);
-
-  // Determine max score from criterion or from available scores
-  const maxScore = criterion.max_score || Math.max(...availableScores, 10);
-
-  // Use available scores if they exist, otherwise fall back to default SCORE_VALUES
-  const scoreOptions = availableScores.length > 0
-    ? availableScores.map(value => ({ value, color: getScoreColor(value, maxScore) }))
-    : SCORE_VALUES;
-
-  // Check if this is a quality scoring section (has explicit max_score that differs from default 10)
+  // Check if this is a quality scoring section (has explicit max_score)
   const isQualitySection = criterion.max_score != null;
+  const maxScore = criterion.max_score || 10;
 
+  // For quality sections, generate incremental scores 1 to max
+  // For regular criteria, use the standard 1, 4, 7, 10 scale
+  if (isQualitySection) {
+    const incrementalScores = Array.from({ length: maxScore }, (_, i) => i + 1);
+    const qualityDescription = criterion.description_he || '';
+
+    return (
+      <div className="criterion-card-new quality-scale">
+        <div className="criterion-header-new">
+          <h4 className="criterion-title">
+            {criterion.name_he}
+            <span className="quality-tag">עד {maxScore} נקודות</span>
+          </h4>
+        </div>
+
+        {qualityDescription && (
+          <p className="quality-description">{qualityDescription}</p>
+        )}
+
+        <div className="quality-score-selector">
+          {incrementalScores.map(value => {
+            const isSelected = score === value;
+            const color = getIncrementalColor(value, maxScore);
+
+            return (
+              <button
+                key={value}
+                type="button"
+                className={`quality-score-btn ${isSelected ? 'selected' : ''}`}
+                onClick={() => handleScoreSelect(value)}
+                style={{
+                  borderColor: isSelected ? color : undefined,
+                  backgroundColor: isSelected ? color : undefined,
+                  color: isSelected ? 'white' : undefined
+                }}
+              >
+                {value}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Standard criteria with 1, 4, 7, 10 scale and descriptions
   return (
-    <div className={`criterion-card-new ${criterion.is_critical ? 'critical' : ''} ${isQualitySection ? 'quality-scale' : ''}`}>
+    <div className={`criterion-card-new ${criterion.is_critical ? 'critical' : ''}`}>
       <div className="criterion-header-new">
         <h4 className="criterion-title">
           {criterion.name_he}
-          {isQualitySection && (
-            <span className="quality-tag">עד {maxScore} נקודות</span>
-          )}
           {criterion.is_critical && (
             <span className="critical-tag">כישלון בציון 1</span>
           )}
@@ -55,7 +81,7 @@ function CriterionCard({ criterion, score, onScoreChange, scoreDescriptions = {}
       </div>
 
       <div className="score-options">
-        {scoreOptions.map(({ value, color }) => {
+        {SCORE_VALUES.map(({ value, color }) => {
           const description = scoreDescriptions[value] || '';
           const isSelected = score === value;
           const isCriticalFail = criterion.is_critical && value === 1;

@@ -174,16 +174,11 @@ export const evaluationCriteria = {
     },
     {
       name_he: 'איכות העברת המבוא',
-      description_he: 'איכות העברת סעיף המבוא, כולל שיתוף הכתה (עד 5 נקודות)',
+      description_he: 'איכות העברת סעיף המבוא, כולל שיתוף הכתה',
       display_order: 4,
       is_critical: false,
-      max_score: 5,
-      score_descriptions: {
-        0: 'לא שיתף את הכתה ולא העביר את סעיף המבוא באיכות מספקת.',
-        2: 'שיתף חלקית את הכתה בהעברת המבוא.',
-        4: 'שיתף את הכתה והעביר את סעיף המבוא באיכות טובה.',
-        5: 'שיתף את הכתה ברמה גבוהה והעביר את סעיף המבוא באיכות מצוינת.'
-      }
+      max_score: 5
+      // Incremental scoring 1-5, no score_descriptions needed
     },
     {
       name_he: 'דגשים ומסרים הכרחיים להעברה',
@@ -235,15 +230,11 @@ export const evaluationCriteria = {
     },
     {
       name_he: 'איכות גוף השיעור',
-      description_he: 'איכות העברת גוף השיעור, כולל שיוך המסרים למצבי צלילה אמיתיים, מתן דוגמאות מעולם הצלילה ושימוש בעזרים מקוריים (עד 10 נקודות)',
+      description_he: 'איכות העברת גוף השיעור, כולל שיוך המסרים למצבי צלילה אמיתיים, מתן דוגמאות מעולם הצלילה ושימוש בעזרים מקוריים שתרמו לשיעור',
       display_order: 9,
       is_critical: false,
-      score_descriptions: {
-        1: 'לא שייך מסרים לצלילה, לא נתן דוגמאות ולא השתמש בעזרים מקוריים.',
-        4: 'שייך חלק מהמסרים למצבי צלילה או נתן מעט דוגמאות מעולם הצלילה.',
-        7: 'שייך מסרים למצבי צלילה אמיתיים ונתן דוגמאות מעולם הצלילה.',
-        10: 'מילא אחר הסעיף הקודם תוך שימוש בעזרים מקוריים שתרמו לשיעור.'
-      }
+      max_score: 10
+      // Incremental scoring 1-10, no score_descriptions needed
     },
     {
       name_he: 'סיכום',
@@ -259,16 +250,11 @@ export const evaluationCriteria = {
     },
     {
       name_he: 'איכות הסיכום',
-      description_he: 'איכות העברת הסיכום, כולל הדגשת המסרים ההכרחיים (עד 5 נקודות)',
+      description_he: 'איכות העברת הסיכום, כולל הדגשת המסרים ההכרחיים',
       display_order: 11,
       is_critical: false,
-      max_score: 5,
-      score_descriptions: {
-        0: 'לא הדגיש את המסרים ההכרחיים בסיכום.',
-        2: 'הדגיש חלק מהמסרים ההכרחיים בסיכום.',
-        4: 'הדגיש את רוב המסרים ההכרחיים בסיכום.',
-        5: 'הדגיש את כל המסרים ההכרחיים בסיכום ברמה גבוהה.'
-      }
+      max_score: 5
+      // Incremental scoring 1-5, no score_descriptions needed
     }
   ],
 
@@ -400,16 +386,11 @@ export const evaluationCriteria = {
     },
     {
       name_he: 'איכות העברת המבוא',
-      description_he: 'איכות העברת סעיף המבוא, כולל שיתוף הכתה (עד 5 נקודות)',
+      description_he: 'איכות העברת סעיף המבוא, כולל שיתוף הכתה',
       display_order: 4,
       is_critical: false,
-      max_score: 5,
-      score_descriptions: {
-        0: 'לא שיתף את הכתה ולא העביר את סעיף המבוא באיכות מספקת.',
-        2: 'שיתף חלקית את הכתה בהעברת המבוא.',
-        4: 'שיתף את הכתה והעביר את סעיף המבוא באיכות טובה.',
-        5: 'שיתף את הכתה ברמה גבוהה והעביר את סעיף המבוא באיכות מצוינת.'
-      }
+      max_score: 5
+      // Incremental scoring 1-5, no score_descriptions needed
     },
     {
       name_he: 'דגשים ומסרים הכרחיים להעברה',
@@ -486,16 +467,11 @@ export const evaluationCriteria = {
     },
     {
       name_he: 'איכות הסיכום',
-      description_he: 'איכות העברת הסיכום, כולל הדגשת המסרים ההכרחיים (עד 5 נקודות)',
+      description_he: 'איכות העברת הסיכום, כולל הדגשת המסרים ההכרחיים',
       display_order: 11,
       is_critical: false,
-      max_score: 5,
-      score_descriptions: {
-        0: 'לא הדגיש את המסרים ההכרחיים בסיכום.',
-        2: 'הדגיש חלק מהמסרים ההכרחיים בסיכום.',
-        4: 'הדגיש את רוב המסרים ההכרחיים בסיכום.',
-        5: 'הדגיש את כל המסרים ההכרחיים בסיכום ברמה גבוהה.'
-      }
+      max_score: 5
+      // Incremental scoring 1-5, no score_descriptions needed
     }
   ],
 

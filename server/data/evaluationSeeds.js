@@ -14,9 +14,9 @@ export const evaluationSubjects = [
   {
     code: 'equipment_lesson',
     name_he: 'שיעור ציוד',
-    max_raw_score: 110,
-    passing_raw_score: 61, // 55% of 110
-    description_he: 'הערכת שיעור ציוד - 4 חלקים',
+    max_raw_score: 80,
+    passing_raw_score: 44, // 55% of 80 (8 criteria × 10 points max)
+    description_he: 'הערכת שיעור ציוד - 8 קריטריונים',
     display_order: 2
   },
   {
@@ -30,9 +30,9 @@ export const evaluationSubjects = [
   {
     code: 'lecture_delivery',
     name_he: 'העברת הרצאה',
-    max_raw_score: 110,
-    passing_raw_score: 72, // 65% of 110
-    description_he: 'הערכת העברת הרצאה - 4 חלקים',
+    max_raw_score: 80,
+    passing_raw_score: 52, // 65% of 80 (8 criteria × 10 points max)
+    description_he: 'הערכת העברת הרצאה - 8 קריטריונים',
     display_order: 4
   },
   {

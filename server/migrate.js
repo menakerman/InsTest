@@ -95,6 +95,16 @@ const createTablesQuery = `
     END IF;
   END $$;
 
+  -- Add max_score column if it doesn't exist (for quality scoring sections)
+  DO $$
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'evaluation_criteria'
+                   AND column_name = 'max_score') THEN
+      ALTER TABLE evaluation_criteria ADD COLUMN max_score INTEGER DEFAULT NULL;
+    END IF;
+  END $$;
+
   -- Student evaluations table (evaluation sessions)
   CREATE TABLE IF NOT EXISTS student_evaluations (
     id SERIAL PRIMARY KEY,
@@ -119,10 +129,19 @@ const createTablesQuery = `
     id SERIAL PRIMARY KEY,
     evaluation_id INTEGER REFERENCES student_evaluations(id) ON DELETE CASCADE,
     criterion_id INTEGER REFERENCES evaluation_criteria(id) ON DELETE RESTRICT,
-    score INTEGER NOT NULL CHECK (score IN (1, 4, 7, 10)),
+    score INTEGER NOT NULL CHECK (score >= 0 AND score <= 10),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
+
+  -- Update constraint to allow all valid scores (0-10) for quality sections
+  DO $$
+  BEGIN
+    ALTER TABLE evaluation_item_scores DROP CONSTRAINT IF EXISTS evaluation_item_scores_score_check;
+    ALTER TABLE evaluation_item_scores ADD CONSTRAINT evaluation_item_scores_score_check CHECK (score >= 0 AND score <= 10);
+  EXCEPTION
+    WHEN others THEN NULL;
+  END $$;
 
   -- Student absences table
   CREATE TABLE IF NOT EXISTS student_absences (
@@ -282,38 +301,71 @@ async function seedAdminUser() {
 async function seedEvaluationData() {
   console.log('Seeding evaluation subjects and criteria...');
 
-  // Insert evaluation subjects
+  // Insert or update evaluation subjects
   for (const subject of evaluationSubjects) {
     const existingSubject = await pool.query(
       'SELECT id FROM evaluation_subjects WHERE code = $1',
       [subject.code]
     );
 
+    let subjectId;
+    const criteria = evaluationCriteria[subject.code];
+
     if (existingSubject.rows.length === 0) {
+      // Insert new subject
       const result = await pool.query(
         `INSERT INTO evaluation_subjects (name_he, code, max_raw_score, passing_raw_score, description_he, display_order)
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING id`,
         [subject.name_he, subject.code, subject.max_raw_score, subject.passing_raw_score, subject.description_he, subject.display_order]
       );
-
-      const subjectId = result.rows[0].id;
+      subjectId = result.rows[0].id;
 
       // Insert criteria for this subject
-      const criteria = evaluationCriteria[subject.code];
       if (criteria) {
         for (const criterion of criteria) {
           await pool.query(
-            `INSERT INTO evaluation_criteria (subject_id, name_he, description_he, display_order, is_critical, score_descriptions)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-            [subjectId, criterion.name_he, criterion.description_he, criterion.display_order, criterion.is_critical, JSON.stringify(criterion.score_descriptions || null)]
+            `INSERT INTO evaluation_criteria (subject_id, name_he, description_he, display_order, is_critical, score_descriptions, max_score)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [subjectId, criterion.name_he, criterion.description_he, criterion.display_order, criterion.is_critical, JSON.stringify(criterion.score_descriptions || null), criterion.max_score || null]
           );
         }
       }
 
       console.log(`  - Added subject: ${subject.name_he} with ${criteria?.length || 0} criteria`);
     } else {
-      console.log(`  - Subject already exists: ${subject.name_he}`);
+      // Update existing subject
+      subjectId = existingSubject.rows[0].id;
+      await pool.query(
+        `UPDATE evaluation_subjects SET max_raw_score = $1, passing_raw_score = $2, description_he = $3 WHERE id = $4`,
+        [subject.max_raw_score, subject.passing_raw_score, subject.description_he, subjectId]
+      );
+
+      // Check if criteria count matches - if not, recreate criteria
+      const existingCriteria = await pool.query(
+        'SELECT COUNT(*) FROM evaluation_criteria WHERE subject_id = $1',
+        [subjectId]
+      );
+      const existingCount = parseInt(existingCriteria.rows[0].count);
+      const expectedCount = criteria?.length || 0;
+
+      if (existingCount !== expectedCount) {
+        // Delete old criteria and insert new ones
+        await pool.query('DELETE FROM evaluation_criteria WHERE subject_id = $1', [subjectId]);
+
+        if (criteria) {
+          for (const criterion of criteria) {
+            await pool.query(
+              `INSERT INTO evaluation_criteria (subject_id, name_he, description_he, display_order, is_critical, score_descriptions, max_score)
+               VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+              [subjectId, criterion.name_he, criterion.description_he, criterion.display_order, criterion.is_critical, JSON.stringify(criterion.score_descriptions || null), criterion.max_score || null]
+            );
+          }
+        }
+        console.log(`  - Updated subject: ${subject.name_he} - recreated ${expectedCount} criteria (was ${existingCount})`);
+      } else {
+        console.log(`  - Subject already exists: ${subject.name_he}`);
+      }
     }
   }
 }

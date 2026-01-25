@@ -14,9 +14,9 @@ export const evaluationSubjects = [
   {
     code: 'equipment_lesson',
     name_he: 'שיעור ציוד',
-    max_raw_score: 80,
-    passing_raw_score: 44, // 55% of 80 (8 criteria × 10 points max)
-    description_he: 'הערכת שיעור ציוד - 8 קריטריונים',
+    max_raw_score: 100,
+    passing_raw_score: 55, // 55% of 100 (8 criteria × 10 + 3 quality sections: 5+10+5)
+    description_he: 'הערכת שיעור ציוד - 11 קריטריונים',
     display_order: 2
   },
   {
@@ -30,9 +30,9 @@ export const evaluationSubjects = [
   {
     code: 'lecture_delivery',
     name_he: 'העברת הרצאה',
-    max_raw_score: 80,
-    passing_raw_score: 52, // 65% of 80 (8 criteria × 10 points max)
-    description_he: 'הערכת העברת הרצאה - 8 קריטריונים',
+    max_raw_score: 100,
+    passing_raw_score: 55, // 55% of 100 (8 criteria × 10 + 3 quality sections: 5+10+5)
+    description_he: 'הערכת העברת הרצאה - 11 קריטריונים',
     display_order: 4
   },
   {
@@ -173,9 +173,22 @@ export const evaluationCriteria = {
       }
     },
     {
+      name_he: 'איכות העברת המבוא',
+      description_he: 'איכות העברת סעיף המבוא, כולל שיתוף הכתה (עד 5 נקודות)',
+      display_order: 4,
+      is_critical: false,
+      max_score: 5,
+      score_descriptions: {
+        0: 'לא שיתף את הכתה ולא העביר את סעיף המבוא באיכות מספקת.',
+        2: 'שיתף חלקית את הכתה בהעברת המבוא.',
+        4: 'שיתף את הכתה והעביר את סעיף המבוא באיכות טובה.',
+        5: 'שיתף את הכתה ברמה גבוהה והעביר את סעיף המבוא באיכות מצוינת.'
+      }
+    },
+    {
       name_he: 'דגשים ומסרים הכרחיים להעברה',
       description_he: 'העברת כל המסרים ההכרחיים בצורה מדויקת',
-      display_order: 4,
+      display_order: 5,
       is_critical: true,
       score_descriptions: {
         1: 'העביר מסר לא בטוח, לא בטיחותי ולא מספיק על מנת להשיג את המטרה, אינו שולט בנושאי השיעור.',
@@ -187,7 +200,7 @@ export const evaluationCriteria = {
     {
       name_he: 'סדר והגיון בהעברת המידע - הצגת נושאי הלימוד',
       description_he: 'הצגת הנושאים בצורה מבולבלת וחסרת הגיון',
-      display_order: 5,
+      display_order: 6,
       is_critical: false,
       score_descriptions: {
         1: 'הציג את הנושאים בצורה מבולבלת וחסרת הגיון.',
@@ -197,9 +210,9 @@ export const evaluationCriteria = {
       }
     },
     {
-      name_he: 'הקנית מיומנויות, ושימוש בציוד ככלי לתועבר',
+      name_he: 'הקנית מיומנויות, ושימוש בציוד ככלי עזר להעברה',
       description_he: 'שימוש בעזרים ובציוד להעברת המסרים',
-      display_order: 6,
+      display_order: 7,
       is_critical: false,
       score_descriptions: {
         1: 'לא עשה שימוש נאות בעזרים, או עבר על המסרים ההכרחיים בקצרה, או יצר רושם שלילי.',
@@ -211,7 +224,7 @@ export const evaluationCriteria = {
     {
       name_he: 'הערכה ו"תיקון או חיזוק"',
       description_he: 'הערכת הבנת החומר המועבר והתאמת מהלך השיעור',
-      display_order: 7,
+      display_order: 8,
       is_critical: false,
       score_descriptions: {
         1: 'לא העריך כלל את הבנת החניכים את החומר המועבר.',
@@ -221,15 +234,40 @@ export const evaluationCriteria = {
       }
     },
     {
+      name_he: 'איכות גוף השיעור',
+      description_he: 'איכות העברת גוף השיעור, כולל שיוך המסרים למצבי צלילה אמיתיים, מתן דוגמאות מעולם הצלילה ושימוש בעזרים מקוריים (עד 10 נקודות)',
+      display_order: 9,
+      is_critical: false,
+      score_descriptions: {
+        1: 'לא שייך מסרים לצלילה, לא נתן דוגמאות ולא השתמש בעזרים מקוריים.',
+        4: 'שייך חלק מהמסרים למצבי צלילה או נתן מעט דוגמאות מעולם הצלילה.',
+        7: 'שייך מסרים למצבי צלילה אמיתיים ונתן דוגמאות מעולם הצלילה.',
+        10: 'מילא אחר הסעיף הקודם תוך שימוש בעזרים מקוריים שתרמו לשיעור.'
+      }
+    },
+    {
       name_he: 'סיכום',
       description_he: 'סיכום השיעור וחזרה על מטרות ומסרים הכרחיים',
-      display_order: 8,
+      display_order: 10,
       is_critical: false,
       score_descriptions: {
         1: 'לא היה סיכום.',
         4: 'הסיכום התייחס לנושא אחד בלבד מהנושאים הבאים: מסרים הכרחיים, מטרות השיעור, שיוך המידע.',
         7: 'חזר על מטרות השיעור ומסרים הכרחיים.',
         10: 'עבר בצורה עניינית על מסרים הכרחיים, מטרות השיעור, וכיצד לשייך את המידע לצלילה.'
+      }
+    },
+    {
+      name_he: 'איכות הסיכום',
+      description_he: 'איכות העברת הסיכום, כולל הדגשת המסרים ההכרחיים (עד 5 נקודות)',
+      display_order: 11,
+      is_critical: false,
+      max_score: 5,
+      score_descriptions: {
+        0: 'לא הדגיש את המסרים ההכרחיים בסיכום.',
+        2: 'הדגיש חלק מהמסרים ההכרחיים בסיכום.',
+        4: 'הדגיש את רוב המסרים ההכרחיים בסיכום.',
+        5: 'הדגיש את כל המסרים ההכרחיים בסיכום ברמה גבוהה.'
       }
     }
   ],
@@ -322,7 +360,7 @@ export const evaluationCriteria = {
     }
   ],
 
-  // ==================== Page 4: העברת הרצאה (Lecture Delivery) - 8 items ====================
+  // ==================== Page 4: העברת הרצאה (Lecture Delivery) - 11 items ====================
   lecture_delivery: [
     {
       name_he: 'מוכנות לשיעור',
@@ -361,9 +399,22 @@ export const evaluationCriteria = {
       }
     },
     {
+      name_he: 'איכות העברת המבוא',
+      description_he: 'איכות העברת סעיף המבוא, כולל שיתוף הכתה (עד 5 נקודות)',
+      display_order: 4,
+      is_critical: false,
+      max_score: 5,
+      score_descriptions: {
+        0: 'לא שיתף את הכתה ולא העביר את סעיף המבוא באיכות מספקת.',
+        2: 'שיתף חלקית את הכתה בהעברת המבוא.',
+        4: 'שיתף את הכתה והעביר את סעיף המבוא באיכות טובה.',
+        5: 'שיתף את הכתה ברמה גבוהה והעביר את סעיף המבוא באיכות מצוינת.'
+      }
+    },
+    {
       name_he: 'דגשים ומסרים הכרחיים להעברה',
       description_he: 'העברת כל המסרים ההכרחיים בצורה מדויקת',
-      display_order: 4,
+      display_order: 5,
       is_critical: true,
       score_descriptions: {
         1: 'העביר מסר לא בטוח, לא בטיחותי ולא מספיק על מנת להשיג את המטרה, אינו שולט בנושאי השיעור.',
@@ -375,7 +426,7 @@ export const evaluationCriteria = {
     {
       name_he: 'סדר והגיון בהעברת המידע - הצגת נושאי הלימוד',
       description_he: 'הצגת הנושאים בצורה מבולבלת וחסרת הגיון',
-      display_order: 5,
+      display_order: 6,
       is_critical: false,
       score_descriptions: {
         1: 'הציג את הנושאים בצורה מבולבלת וחסרת הגיון.',
@@ -387,7 +438,7 @@ export const evaluationCriteria = {
     {
       name_he: 'הקנית מיומנויות, ועזרי לימוד',
       description_he: 'שימוש בעזרים ובציוד להעברת המסרים',
-      display_order: 6,
+      display_order: 7,
       is_critical: false,
       score_descriptions: {
         1: 'לא עשה שימוש נאות בעזרים, או עבר על המסרים ההכרחיים בקצרה, או יצר רושם שלילי/ לא מקצועי.',
@@ -399,7 +450,7 @@ export const evaluationCriteria = {
     {
       name_he: 'הערכה ו"תיקון או חיזוק"',
       description_he: 'הערכת הבנת החומר המועבר והתאמת מהלך השיעור',
-      display_order: 7,
+      display_order: 8,
       is_critical: false,
       score_descriptions: {
         1: 'לא העריך כלל את הבנת החניכים את החומר המועבר.',
@@ -409,15 +460,41 @@ export const evaluationCriteria = {
       }
     },
     {
+      name_he: 'איכות גוף השיעור',
+      description_he: 'איכות העברת גוף השיעור, כולל שיוך המסרים למצבי צלילה אמיתיים, מתן דוגמאות מעולם הצלילה ושימוש בעזרים מקוריים (עד 10 נקודות)',
+      display_order: 9,
+      is_critical: false,
+      max_score: 10,
+      score_descriptions: {
+        1: 'לא שייך מסרים לצלילה, לא נתן דוגמאות ולא השתמש בעזרים מקוריים.',
+        4: 'שייך חלק מהמסרים למצבי צלילה או נתן מעט דוגמאות מעולם הצלילה.',
+        7: 'שייך מסרים למצבי צלילה אמיתיים ונתן דוגמאות מעולם הצלילה.',
+        10: 'מילא אחר הסעיף הקודם תוך שימוש בעזרים מקוריים שתרמו לשיעור.'
+      }
+    },
+    {
       name_he: 'סיכום',
       description_he: 'סיכום השיעור וחזרה על מטרות ומסרים הכרחיים',
-      display_order: 8,
+      display_order: 10,
       is_critical: false,
       score_descriptions: {
         1: 'לא היה סיכום.',
         4: 'הסיכום התייחס לנושא אחד בלבד מהנושאים הבאים: מסרים הכרחיים, מטרות השיעור, שיוך המידע.',
         7: 'חזר על מטרות השיעור ומסרים הכרחיים.',
         10: 'עבר בצורה עניינית על מסרים הכרחיים, מטרות השיעור, וכיצד לשייך את המידע לצלילה.'
+      }
+    },
+    {
+      name_he: 'איכות הסיכום',
+      description_he: 'איכות העברת הסיכום, כולל הדגשת המסרים ההכרחיים (עד 5 נקודות)',
+      display_order: 11,
+      is_critical: false,
+      max_score: 5,
+      score_descriptions: {
+        0: 'לא הדגיש את המסרים ההכרחיים בסיכום.',
+        2: 'הדגיש חלק מהמסרים ההכרחיים בסיכום.',
+        4: 'הדגיש את רוב המסרים ההכרחיים בסיכום.',
+        5: 'הדגיש את כל המסרים ההכרחיים בסיכום ברמה גבוהה.'
       }
     }
   ],

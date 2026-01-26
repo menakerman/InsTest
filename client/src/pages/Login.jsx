@@ -39,6 +39,7 @@ export default function Login() {
     <div className="login-page">
       <div className="login-container">
         <div className="login-header">
+          <img src="/tidf-logo.png" alt="TIDF Logo" className="login-logo" />
           <h1>קורס מדריכי צלילה</h1>
           <p>התחברות למערכת</p>
         </div>

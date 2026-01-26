@@ -36,7 +36,10 @@ function AppContent() {
       {isAuthenticated && user?.role !== 'student' && (
         <header className="header">
           <div className="header-content">
-            <h1>קורס מדריכי צלילה</h1>
+            <div className="header-brand">
+              <img src="/tidf-logo.png" alt="TIDF Logo" className="header-logo" />
+              <h1>קורס מדריכי צלילה</h1>
+            </div>
             <nav className="nav">
               <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 ניהול תלמידים
@@ -75,7 +78,10 @@ function AppContent() {
       {isAuthenticated && user?.role === 'student' && (
         <header className="header header-minimal">
           <div className="header-content">
-            <h1>קורס מדריכי צלילה</h1>
+            <div className="header-brand">
+              <img src="/tidf-logo.png" alt="TIDF Logo" className="header-logo" />
+              <h1>קורס מדריכי צלילה</h1>
+            </div>
           </div>
           <UserMenu />
         </header>

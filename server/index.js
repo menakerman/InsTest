@@ -71,7 +71,7 @@ app.get('/api/students', authenticateToken, requireRole('admin', 'instructor', '
         SELECT DISTINCT ON (s.id) s.*,
           COALESCE(
             (SELECT json_agg(
-              json_build_object('id', c2.id, 'name', c2.name)
+              json_build_object('id', c2.id, 'name', c2.name, 'course_type', c2.course_type)
               ORDER BY c2.name
             )
             FROM course_students cs2
@@ -92,7 +92,7 @@ app.get('/api/students', authenticateToken, requireRole('admin', 'instructor', '
         SELECT s.*,
           COALESCE(
             json_agg(
-              json_build_object('id', c.id, 'name', c.name)
+              json_build_object('id', c.id, 'name', c.name, 'course_type', c.course_type)
               ORDER BY c.name
             ) FILTER (WHERE c.id IS NOT NULL),
             '[]'
@@ -192,7 +192,7 @@ app.post('/api/students', authenticateToken, requireRole('admin'), async (req, r
     const studentResult = await pool.query(
       `SELECT s.*,
         COALESCE(
-          (SELECT json_agg(json_build_object('id', c.id, 'name', c.name) ORDER BY c.name)
+          (SELECT json_agg(json_build_object('id', c.id, 'name', c.name, 'course_type', c.course_type) ORDER BY c.name)
            FROM course_students cs
            JOIN courses c ON cs.course_id = c.id
            WHERE cs.student_id = s.id),
@@ -261,7 +261,7 @@ app.put('/api/students/:id', authenticateToken, requireRole('admin'), async (req
     const studentResult = await pool.query(
       `SELECT s.*,
         COALESCE(
-          (SELECT json_agg(json_build_object('id', c.id, 'name', c.name) ORDER BY c.name)
+          (SELECT json_agg(json_build_object('id', c.id, 'name', c.name, 'course_type', c.course_type) ORDER BY c.name)
            FROM course_students cs
            JOIN courses c ON cs.course_id = c.id
            WHERE cs.student_id = s.id),

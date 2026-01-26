@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts';
 import { getStudents, createStudent, updateStudent, deleteStudent, getExternalTests, saveExternalTests, getStudentSkills, saveStudentSkills, getCourses } from '../utils/api';
 import CourseMultiSelect from '../components/CourseMultiSelect';
+import {
+  EXTERNAL_TESTS_PASSING_THRESHOLD,
+  isInInstructorCourse,
+  getExternalTestsStatusColor,
+  getExternalTestsStatusText,
+  calculateRetakeRecommendations
+} from '../utils/externalTestsCalculations';
 
 function ManageStudents() {
   const { user } = useAuth();
@@ -534,6 +541,40 @@ function ManageStudents() {
                     {calculateAverageScore() !== null ? `${calculateAverageScore()}%` : '-'}
                   </span>
                 </div>
+
+                {/* External Tests Status Section - Only for Instructor Courses */}
+                {selectedStudent && isInInstructorCourse(selectedStudent.courses) && calculateAverageScore() !== null && (
+                  <div className="external-tests-status-section">
+                    <div className="status-row">
+                      <span className="status-label">סטטוס:</span>
+                      <span className={`status-badge external-tests-status ${getExternalTestsStatusColor(parseFloat(calculateAverageScore()))}`}>
+                        {getExternalTestsStatusText(parseFloat(calculateAverageScore()))}
+                      </span>
+                      <span className="threshold-indicator">סף מעבר: {EXTERNAL_TESTS_PASSING_THRESHOLD}%</span>
+                    </div>
+
+                    {parseFloat(calculateAverageScore()) < EXTERNAL_TESTS_PASSING_THRESHOLD && (
+                      <div className="retake-recommendations">
+                        <h5>המלצות לשיפור הממוצע:</h5>
+                        {calculateRetakeRecommendations(externalTestsData).map((rec, index) => (
+                          <div key={index} className="recommendation-item">
+                            <span className="recommendation-bullet">•</span>
+                            <span className="recommendation-text">
+                              {rec.testName}: שפר מ-{rec.currentScore} ל-{rec.targetScore} (+{rec.improvement} נקודות)
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Info message for non-instructor courses */}
+                {selectedStudent && !isInInstructorCourse(selectedStudent.courses) && calculateAverageScore() !== null && (
+                  <div className="external-tests-info-message">
+                    סטטוס מעבר/נכשל מוצג רק עבור קורסי מדריך
+                  </div>
+                )}
 
                 <div className="skills-section">
                   <h4>מיומנויות</h4>

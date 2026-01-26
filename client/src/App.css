@@ -3440,6 +3440,74 @@ body {
   }
 }
 
+/* ==================== EVALUATION SCORES SECTION STYLES ==================== */
+
+.evaluation-scores-section {
+  margin-bottom: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.evaluation-scores-section h4 {
+  margin-bottom: 1rem;
+  color: #495057;
+  font-size: 1.1rem;
+}
+
+.evaluation-scores-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.evaluation-score-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.evaluation-score-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.evaluation-score-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+}
+
+.evaluation-score-value.passing {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.evaluation-score-value.failing {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.evaluation-score-value.not-done {
+  background-color: #e9ecef;
+  color: #6c757d;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+/* Mobile Responsive for Evaluation Scores */
+@media screen and (max-width: 480px) {
+  .evaluation-score-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
 /* ==================== LESSONS PAGE STYLES ==================== */
 
 .lessons-page h2 {

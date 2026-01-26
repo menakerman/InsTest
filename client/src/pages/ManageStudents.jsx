@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts';
-import { getStudents, createStudent, updateStudent, deleteStudent, getExternalTests, saveExternalTests, getStudentSkills, saveStudentSkills, getCourses } from '../utils/api';
+import { getStudents, createStudent, updateStudent, deleteStudent, getExternalTests, saveExternalTests, getStudentSkills, saveStudentSkills, getCourses, getEvaluations } from '../utils/api';
 import CourseMultiSelect from '../components/CourseMultiSelect';
 import {
   EXTERNAL_TESTS_PASSING_THRESHOLD,
@@ -45,6 +45,11 @@ function ManageStudents() {
   });
   const [courses, setCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
+  const [evaluationScores, setEvaluationScores] = useState({
+    intro_dive: null,      // צלילת הכרות
+    pre_dive_briefing: null, // תדריך
+    equipment_lesson: null   // ציוד
+  });
 
   // Check if user can edit (admin only)
   const canEdit = user && user.role === 'admin';
@@ -161,9 +166,10 @@ function ManageStudents() {
     setShowExternalTestsModal(true);
     setExternalTestsLoading(true);
     try {
-      const [testsData, skillsResult] = await Promise.all([
+      const [testsData, skillsResult, evaluationsData] = await Promise.all([
         getExternalTests(student.id),
-        getStudentSkills(student.id)
+        getStudentSkills(student.id),
+        getEvaluations({ student_id: student.id })
       ]);
       setExternalTestsData({
         physics_score: testsData.physics_score ?? '',
@@ -177,6 +183,26 @@ function ManageStudents() {
         meters_40: skillsResult.meters_40 || false,
         guidance: skillsResult.guidance || false
       });
+
+      // Process evaluations to find highest score for each lesson type
+      const lessonTypes = ['intro_dive', 'pre_dive_briefing', 'equipment_lesson'];
+      const bestScores = {};
+      lessonTypes.forEach(type => {
+        const typeEvaluations = evaluationsData.filter(e => e.subject_code === type);
+        if (typeEvaluations.length > 0) {
+          const best = typeEvaluations.reduce((max, e) =>
+            e.percentage_score > max.percentage_score ? e : max
+          );
+          bestScores[type] = {
+            score: best.percentage_score,
+            is_passing: best.is_passing,
+            date: best.evaluation_date
+          };
+        } else {
+          bestScores[type] = null;
+        }
+      });
+      setEvaluationScores(bestScores);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -198,6 +224,11 @@ function ManageStudents() {
       meters_30: false,
       meters_40: false,
       guidance: false
+    });
+    setEvaluationScores({
+      intro_dive: null,
+      pre_dive_briefing: null,
+      equipment_lesson: null
     });
   };
 
@@ -611,6 +642,43 @@ function ManageStudents() {
                       />
                       <span className="skill-label">הובלה</span>
                     </label>
+                  </div>
+                </div>
+
+                {/* Evaluation Scores Section */}
+                <div className="evaluation-scores-section">
+                  <h4>הערכות שהושלמו</h4>
+                  <div className="evaluation-scores-grid">
+                    <div className="evaluation-score-item">
+                      <span className="evaluation-score-label">צלילת הכרות:</span>
+                      {evaluationScores.intro_dive ? (
+                        <span className={`evaluation-score-value ${evaluationScores.intro_dive.is_passing ? 'passing' : 'failing'}`}>
+                          {evaluationScores.intro_dive.score}%
+                        </span>
+                      ) : (
+                        <span className="evaluation-score-value not-done">לא בוצע</span>
+                      )}
+                    </div>
+                    <div className="evaluation-score-item">
+                      <span className="evaluation-score-label">תדריך:</span>
+                      {evaluationScores.pre_dive_briefing ? (
+                        <span className={`evaluation-score-value ${evaluationScores.pre_dive_briefing.is_passing ? 'passing' : 'failing'}`}>
+                          {evaluationScores.pre_dive_briefing.score}%
+                        </span>
+                      ) : (
+                        <span className="evaluation-score-value not-done">לא בוצע</span>
+                      )}
+                    </div>
+                    <div className="evaluation-score-item">
+                      <span className="evaluation-score-label">ציוד:</span>
+                      {evaluationScores.equipment_lesson ? (
+                        <span className={`evaluation-score-value ${evaluationScores.equipment_lesson.is_passing ? 'passing' : 'failing'}`}>
+                          {evaluationScores.equipment_lesson.score}%
+                        </span>
+                      ) : (
+                        <span className="evaluation-score-value not-done">לא בוצע</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

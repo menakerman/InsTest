@@ -3218,6 +3218,17 @@ body {
   font-weight: 500;
 }
 
+/* Failing score styling (below 65%) */
+.score-input-wrapper.score-failing input {
+  border-color: #dc3545;
+  background-color: #fff5f5;
+  color: #dc3545;
+}
+
+.score-input-wrapper.score-failing .score-suffix {
+  color: #dc3545;
+}
+
 .external-tests-average {
   display: flex;
   justify-content: center;

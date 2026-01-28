@@ -21,7 +21,8 @@ function ManageInstructors() {
     first_name: '',
     last_name: '',
     email: '',
-    phone: ''
+    phone: '',
+    id_number: ''
   });
 
   // Only admin can edit instructors
@@ -55,7 +56,8 @@ function ManageInstructors() {
       first_name: '',
       last_name: '',
       email: '',
-      phone: ''
+      phone: '',
+      id_number: ''
     });
     setShowModal(true);
   };
@@ -66,7 +68,8 @@ function ManageInstructors() {
       first_name: instructor.first_name,
       last_name: instructor.last_name,
       email: instructor.email || '',
-      phone: instructor.phone || ''
+      phone: instructor.phone || '',
+      id_number: instructor.id_number || ''
     });
     setShowModal(true);
   };
@@ -180,6 +183,7 @@ function ManageInstructors() {
             <thead>
               <tr>
                 <th>שם</th>
+                <th>ת.ז.</th>
                 <th>אימייל</th>
                 <th>טלפון</th>
                 <th>קורסים</th>
@@ -194,6 +198,7 @@ function ManageInstructors() {
                   className="clickable-row"
                 >
                   <td data-label="שם">{instructor.first_name} {instructor.last_name}</td>
+                  <td data-label="ת.ז.">{instructor.id_number || '-'}</td>
                   <td data-label="אימייל">{instructor.email || '-'}</td>
                   <td data-label="טלפון">{instructor.phone || '-'}</td>
                   <td data-label="קורסים">
@@ -270,6 +275,17 @@ function ManageInstructors() {
                 {!editingInstructor && (
                   <small className="form-hint">המדריך ישתמש באימייל זה כדי להתחבר למערכת</small>
                 )}
+              </div>
+              <div className="form-group">
+                <label htmlFor="id_number">מספר תעודת זהות *</label>
+                <input
+                  type="text"
+                  id="id_number"
+                  name="id_number"
+                  value={formData.id_number}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
               <div className="form-group">
                 <label htmlFor="phone">טלפון</label>
@@ -365,6 +381,10 @@ function ManageInstructors() {
                 <div className="profile-field">
                   <span className="profile-label">שם:</span>
                   <span className="profile-value">{selectedInstructor.first_name} {selectedInstructor.last_name}</span>
+                </div>
+                <div className="profile-field">
+                  <span className="profile-label">ת.ז.:</span>
+                  <span className="profile-value">{selectedInstructor.id_number || '-'}</span>
                 </div>
                 <div className="profile-field">
                   <span className="profile-label">אימייל:</span>

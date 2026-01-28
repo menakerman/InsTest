@@ -159,19 +159,19 @@ app.get('/api/students/:id', authenticateToken, requireRole('admin', 'instructor
 app.post('/api/students', authenticateToken, requireRole('admin'), async (req, res) => {
   const client = await pool.connect();
   try {
-    const { first_name, last_name, email, phone, unit_id, course_ids } = req.body;
+    const { first_name, last_name, email, phone, unit_id, id_number, course_ids } = req.body;
 
-    if (!first_name || !last_name || !email) {
-      return res.status(400).json({ error: 'First name, last name, and email are required' });
+    if (!first_name || !last_name || !email || !id_number) {
+      return res.status(400).json({ error: 'First name, last name, email, and ID number are required' });
     }
 
     await client.query('BEGIN');
 
     const result = await client.query(
-      `INSERT INTO students (first_name, last_name, email, phone, unit_id)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO students (first_name, last_name, email, phone, unit_id, id_number)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [first_name, last_name, email, phone || null, unit_id || null]
+      [first_name, last_name, email, phone || null, unit_id || null, id_number]
     );
 
     const studentId = result.rows[0].id;
@@ -220,20 +220,20 @@ app.put('/api/students/:id', authenticateToken, requireRole('admin'), async (req
   const client = await pool.connect();
   try {
     const { id } = req.params;
-    const { first_name, last_name, email, phone, unit_id, course_ids } = req.body;
+    const { first_name, last_name, email, phone, unit_id, id_number, course_ids } = req.body;
 
-    if (!first_name || !last_name || !email) {
-      return res.status(400).json({ error: 'First name, last name, and email are required' });
+    if (!first_name || !last_name || !email || !id_number) {
+      return res.status(400).json({ error: 'First name, last name, email, and ID number are required' });
     }
 
     await client.query('BEGIN');
 
     const result = await client.query(
       `UPDATE students
-       SET first_name = $1, last_name = $2, email = $3, phone = $4, unit_id = $5
-       WHERE id = $6
+       SET first_name = $1, last_name = $2, email = $3, phone = $4, unit_id = $5, id_number = $6
+       WHERE id = $7
        RETURNING *`,
-      [first_name, last_name, email, phone || null, unit_id || null, id]
+      [first_name, last_name, email, phone || null, unit_id || null, id_number, id]
     );
 
     if (result.rows.length === 0) {
@@ -346,7 +346,7 @@ app.get('/api/instructors/:id', authenticateToken, requireRole('admin', 'instruc
 app.post('/api/instructors', authenticateToken, requireRole('admin'), async (req, res) => {
   const client = await pool.connect();
   try {
-    const { first_name, last_name, email, phone } = req.body;
+    const { first_name, last_name, email, phone, id_number } = req.body;
 
     if (!first_name || !last_name) {
       return res.status(400).json({ error: 'First name and last name are required' });
@@ -356,14 +356,18 @@ app.post('/api/instructors', authenticateToken, requireRole('admin'), async (req
       return res.status(400).json({ error: 'Email is required for instructor login' });
     }
 
+    if (!id_number) {
+      return res.status(400).json({ error: 'ID number is required' });
+    }
+
     await client.query('BEGIN');
 
     // Create instructor record
     const instructorResult = await client.query(
-      `INSERT INTO instructors (first_name, last_name, email, phone)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO instructors (first_name, last_name, email, phone, id_number)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [first_name, last_name, email, phone || null]
+      [first_name, last_name, email, phone || null, id_number]
     );
 
     // Create user account with default password (instructor's email as initial password)
@@ -404,7 +408,7 @@ app.put('/api/instructors/:id', authenticateToken, requireRole('admin'), async (
   const client = await pool.connect();
   try {
     const { id } = req.params;
-    const { first_name, last_name, email, phone } = req.body;
+    const { first_name, last_name, email, phone, id_number } = req.body;
 
     if (!first_name || !last_name) {
       return res.status(400).json({ error: 'First name and last name are required' });
@@ -412,6 +416,10 @@ app.put('/api/instructors/:id', authenticateToken, requireRole('admin'), async (
 
     if (!email) {
       return res.status(400).json({ error: 'Email is required for instructor login' });
+    }
+
+    if (!id_number) {
+      return res.status(400).json({ error: 'ID number is required' });
     }
 
     await client.query('BEGIN');
@@ -432,10 +440,10 @@ app.put('/api/instructors/:id', authenticateToken, requireRole('admin'), async (
     // Update instructor record
     const result = await client.query(
       `UPDATE instructors
-       SET first_name = $1, last_name = $2, email = $3, phone = $4
-       WHERE id = $5
+       SET first_name = $1, last_name = $2, email = $3, phone = $4, id_number = $5
+       WHERE id = $6
        RETURNING *`,
-      [first_name, last_name, email, phone || null, id]
+      [first_name, last_name, email, phone || null, id_number, id]
     );
 
     // Update associated user account
@@ -705,6 +713,7 @@ app.post('/api/evaluations', authenticateToken, requireRole('admin', 'instructor
       final_score,
       is_passing,
       has_critical_fail,
+      is_final_test,
       notes,
       item_scores
     } = req.body;
@@ -717,8 +726,8 @@ app.post('/api/evaluations', authenticateToken, requireRole('admin', 'instructor
     const evalResult = await client.query(
       `INSERT INTO student_evaluations
         (student_id, subject_id, instructor_id, course_name, lesson_name, evaluation_date,
-         raw_score, percentage_score, final_score, is_passing, has_critical_fail, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         raw_score, percentage_score, final_score, is_passing, has_critical_fail, is_final_test, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING *`,
       [
         student_id,
@@ -732,6 +741,7 @@ app.post('/api/evaluations', authenticateToken, requireRole('admin', 'instructor
         final_score,
         is_passing,
         has_critical_fail || false,
+        is_final_test || false,
         notes || null
       ]
     );
@@ -793,6 +803,7 @@ app.put('/api/evaluations/:id', authenticateToken, requireRole('admin', 'instruc
       final_score,
       is_passing,
       has_critical_fail,
+      is_final_test,
       notes,
       item_scores
     } = req.body;
@@ -802,8 +813,8 @@ app.put('/api/evaluations/:id', authenticateToken, requireRole('admin', 'instruc
       `UPDATE student_evaluations
        SET student_id = $1, subject_id = $2, instructor_id = $3, course_name = $4,
            lesson_name = $5, evaluation_date = $6, raw_score = $7, percentage_score = $8,
-           final_score = $9, is_passing = $10, has_critical_fail = $11, notes = $12
-       WHERE id = $13
+           final_score = $9, is_passing = $10, has_critical_fail = $11, is_final_test = $12, notes = $13
+       WHERE id = $14
        RETURNING *`,
       [
         student_id,
@@ -817,6 +828,7 @@ app.put('/api/evaluations/:id', authenticateToken, requireRole('admin', 'instruc
         final_score,
         is_passing,
         has_critical_fail || false,
+        is_final_test || false,
         notes || null,
         id
       ]

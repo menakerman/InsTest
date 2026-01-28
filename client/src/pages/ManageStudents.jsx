@@ -41,6 +41,7 @@ function ManageStudents() {
     email: '',
     phone: '',
     unit_id: '',
+    id_number: '',
     course_ids: []
   });
   const [courses, setCourses] = useState([]);
@@ -100,6 +101,7 @@ function ManageStudents() {
       email: '',
       phone: '',
       unit_id: '',
+      id_number: '',
       course_ids: []
     });
     fetchCourses();
@@ -114,6 +116,7 @@ function ManageStudents() {
       email: student.email,
       phone: student.phone || '',
       unit_id: student.unit_id || '',
+      id_number: student.id_number || '',
       course_ids: student.courses ? student.courses.map(c => c.id) : []
     });
     fetchCourses();
@@ -284,13 +287,13 @@ function ManageStudents() {
   };
 
   if (loading) {
-    return <div className="loading">טוען תלמידים...</div>;
+    return <div className="loading">טוען חניכים...</div>;
   }
 
   return (
     <div className="students-page">
       <div className="students-header">
-        <h2>ניהול תלמידים</h2>
+        <h2>ניהול חניכים</h2>
         {canEdit && (
           <button className="btn btn-primary" onClick={openCreateModal}>
             + הוסף תלמיד
@@ -302,7 +305,7 @@ function ManageStudents() {
 
       {students.length === 0 ? (
         <div className="empty-state">
-          <p>אין תלמידים עדיין.{canEdit && ' לחץ על "הוסף תלמיד" כדי להוסיף.'}</p>
+          <p>אין חניכים עדיין.{canEdit && ' לחץ על "הוסף תלמיד" כדי להוסיף.'}</p>
         </div>
       ) : (
         <div className="students-table">
@@ -310,6 +313,7 @@ function ManageStudents() {
             <thead>
               <tr>
                 <th>שם</th>
+                <th>ת.ז.</th>
                 <th>אימייל</th>
                 <th>טלפון</th>
                 <th>מספר יחידה</th>
@@ -321,6 +325,7 @@ function ManageStudents() {
               {students.map(student => (
                 <tr key={student.id} className="clickable-row" onClick={() => openExternalTestsModal(student)}>
                   <td data-label="שם">{student.first_name} {student.last_name}</td>
+                  <td data-label="ת.ז.">{student.id_number || '-'}</td>
                   <td data-label="אימייל">{student.email}</td>
                   <td data-label="טלפון">{student.phone || '-'}</td>
                   <td data-label="מספר יחידה">{student.unit_id || '-'}</td>
@@ -392,6 +397,17 @@ function ManageStudents() {
                   id="email"
                   name="email"
                   value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="id_number">מספר תעודת זהות *</label>
+                <input
+                  type="text"
+                  id="id_number"
+                  name="id_number"
+                  value={formData.id_number}
                   onChange={handleInputChange}
                   required
                 />

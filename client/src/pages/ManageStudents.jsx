@@ -328,7 +328,7 @@ function ManageStudents() {
   const handlePhotoDelete = async () => {
     if (!selectedStudent?.photo_url) return;
 
-    if (!window.confirm('האם למחוק את תמונת התלמיד?')) return;
+    if (!window.confirm('האם למחוק את תמונת החניך?')) return;
 
     try {
       setPhotoUploading(true);
@@ -356,7 +356,7 @@ function ManageStudents() {
         <h2>ניהול חניכים</h2>
         {canEdit && (
           <button className="btn btn-primary" onClick={openCreateModal}>
-            + הוסף תלמיד
+            + הוסף חניך
           </button>
         )}
       </div>
@@ -365,7 +365,7 @@ function ManageStudents() {
 
       {students.length === 0 ? (
         <div className="empty-state">
-          <p>אין חניכים עדיין.{canEdit && ' לחץ על "הוסף תלמיד" כדי להוסיף.'}</p>
+          <p>אין חניכים עדיין.{canEdit && ' לחץ על "הוסף חניך" כדי להוסיף.'}</p>
         </div>
       ) : (
         <div className="students-table">
@@ -426,7 +426,7 @@ function ManageStudents() {
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3>{editingStudent ? 'עריכת תלמיד' : 'הוספת תלמיד'}</h3>
+            <h3>{editingStudent ? 'עריכת חניך' : 'הוספת חניך'}</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label htmlFor="first_name">שם פרטי *</label>
@@ -506,7 +506,7 @@ function ManageStudents() {
                   ביטול
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  {editingStudent ? 'שמור שינויים' : 'הוסף תלמיד'}
+                  {editingStudent ? 'שמור שינויים' : 'הוסף חניך'}
                 </button>
               </div>
             </form>
@@ -518,7 +518,7 @@ function ManageStudents() {
         <div className="modal-overlay" onClick={closeDeleteModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="delete-confirm">
-              <h3>מחיקת תלמיד</h3>
+              <h3>מחיקת חניך</h3>
               <p>
                 האם אתה בטוח שברצונך למחוק את{' '}
                 <strong>{deletingStudent.first_name} {deletingStudent.last_name}</strong>?

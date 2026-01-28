@@ -247,8 +247,8 @@ function createExamsSheet(workbook, students, evaluations, subjects, externalTes
         cell.value = `${parseFloat(score).toFixed(0)}%`;
         cell.alignment = { horizontal: 'center' };
 
-        // Color coding based on passing (65% required for each test)
-        if (score >= 65) {
+        // Color coding based on passing (60% required for each test)
+        if (score >= 60) {
           cell.font = { color: { argb: 'FF008000' } };
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
         } else {
@@ -261,14 +261,14 @@ function createExamsSheet(workbook, students, evaluations, subjects, externalTes
       }
     });
 
-    // Average column - student passes only if ALL individual tests >= 65%
+    // Average column - student passes only if ALL individual tests >= 60%
     const avgCell = sheet.getCell(`${avgCol}${row}`);
     const avgScore = studentTests?.average_score;
 
-    // Check if all individual tests passed (each must be >= 65%)
+    // Check if all individual tests passed (each must be >= 60%)
     const allTestsPassed = externalTestDefs.every(test => {
       const score = studentTests?.[test.key];
-      return score !== null && score !== undefined && score >= 65;
+      return score !== null && score !== undefined && score >= 60;
     });
 
     if (avgScore !== null && avgScore !== undefined) {
@@ -276,7 +276,7 @@ function createExamsSheet(workbook, students, evaluations, subjects, externalTes
       avgCell.alignment = { horizontal: 'center' };
       avgCell.font = { bold: true };
 
-      // Pass only if ALL individual tests are >= 65% (average alone is not enough)
+      // Pass only if ALL individual tests are >= 60% (average alone is not enough)
       if (allTestsPassed) {
         avgCell.font = { bold: true, color: { argb: 'FF008000' } };
         avgCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
@@ -298,13 +298,13 @@ function createExamsSheet(workbook, students, evaluations, subjects, externalTes
   sheet.getCell(`A${summaryRow}`).value = 'סה"כ עברו:';
   sheet.getCell(`A${summaryRow}`).font = { bold: true };
 
-  // Count students who passed each external test (score >= 65%)
+  // Count students who passed each external test (score >= 60%)
   externalTestDefs.forEach((test, testIndex) => {
     const col = String.fromCharCode(66 + testIndex);
     const passedCount = students.filter(student => {
       const studentTests = externalTests.find(et => et.student_id === student.id);
       const score = studentTests?.[test.key];
-      return score !== null && score !== undefined && score >= 65;
+      return score !== null && score !== undefined && score >= 60;
     }).length;
 
     const testedCount = students.filter(student => {
@@ -318,13 +318,13 @@ function createExamsSheet(workbook, students, evaluations, subjects, externalTes
     sheet.getCell(`${col}${summaryRow}`).alignment = { horizontal: 'center' };
   });
 
-  // Average summary - count students who passed ALL tests (each >= 65%)
+  // Average summary - count students who passed ALL tests (each >= 60%)
   const avgPassedCount = students.filter(student => {
     const studentTests = externalTests.find(et => et.student_id === student.id);
-    // All individual tests must be >= 65%
+    // All individual tests must be >= 60%
     return externalTestDefs.every(test => {
       const score = studentTests?.[test.key];
-      return score !== null && score !== undefined && score >= 65;
+      return score !== null && score !== undefined && score >= 60;
     });
   }).length;
 
@@ -563,13 +563,14 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
     if (latestEval) {
       const cell = sheet.getCell(`${col}${percentRow}`);
       cell.value = Math.round(latestEval.percentage_score);
-      cell.font = { bold: true };
       cell.alignment = { horizontal: 'center' };
 
-      // Color coding based on pass/fail
+      // Color coding based on pass/fail - both background and text color
       if (latestEval.is_passing && !latestEval.has_critical_fail) {
+        cell.font = { bold: true, color: { argb: 'FF008000' } }; // Green text
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
       } else {
+        cell.font = { bold: true, color: { argb: 'FFFF0000' } }; // Red text
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
       }
     } else {
@@ -717,10 +718,10 @@ function createStudentSheet(workbook, student, evaluations, subjects, absences, 
     const score = externalTests?.[test.key];
     sheet.getCell(`B${row}`).value = score !== null && score !== undefined ? `${score}%` : '-';
 
-    // Color coding for scores (65% required for each test)
+    // Color coding for scores (60% required for each test)
     if (score !== null && score !== undefined) {
       const cell = sheet.getCell(`B${row}`);
-      if (score >= 65) {
+      if (score >= 60) {
         cell.font = { color: { argb: 'FF008000' } };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
       } else {
@@ -730,7 +731,7 @@ function createStudentSheet(workbook, student, evaluations, subjects, absences, 
     }
   });
 
-  // Average row - student passes only if ALL tests >= 65%
+  // Average row - student passes only if ALL tests >= 60%
   const avgRow = externalTestsRow + 3 + testNames.length;
   sheet.getCell(`A${avgRow}`).value = 'ממוצע';
   sheet.getCell(`A${avgRow}`).font = { bold: true };
@@ -739,15 +740,15 @@ function createStudentSheet(workbook, student, evaluations, subjects, absences, 
   sheet.getCell(`B${avgRow}`).value = avgScore !== null && avgScore !== undefined ? `${parseFloat(avgScore).toFixed(1)}%` : '-';
   sheet.getCell(`B${avgRow}`).font = { bold: true };
 
-  // Check if all individual tests passed (each must be >= 65%)
+  // Check if all individual tests passed (each must be >= 60%)
   const allTestsPassed = testNames.every(test => {
     const score = externalTests?.[test.key];
-    return score !== null && score !== undefined && score >= 65;
+    return score !== null && score !== undefined && score >= 60;
   });
 
   if (avgScore !== null && avgScore !== undefined) {
     const avgCell = sheet.getCell(`B${avgRow}`);
-    // Pass only if ALL individual tests are >= 65%
+    // Pass only if ALL individual tests are >= 60%
     if (allTestsPassed) {
       avgCell.font = { bold: true, color: { argb: 'FF008000' } };
       avgCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };

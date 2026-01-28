@@ -1,6 +1,6 @@
 // External Tests Calculations Utility Functions
 
-export const EXTERNAL_TESTS_PASSING_THRESHOLD = 80;
+export const EXTERNAL_TESTS_PASSING_THRESHOLD = 60;
 
 export const INSTRUCTOR_COURSE_TYPES = ['מדריך', 'מדריך_עוזר_משולב_עם_מדריך'];
 

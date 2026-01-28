@@ -263,6 +263,13 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+.student-photo-placeholder-logo {
+  background-color: #f8f9fa;
+  padding: 10px;
+  object-fit: contain;
+  border: 3px solid #e9ecef;
+}
+
 .photo-actions {
   display: flex;
   gap: 0.5rem;
@@ -3385,7 +3392,7 @@ body {
   font-weight: 500;
 }
 
-/* Failing score styling (below 65%) */
+/* Failing score styling (below 60%) */
 .score-input-wrapper.score-failing input {
   border-color: #dc3545;
   background-color: #fff5f5;

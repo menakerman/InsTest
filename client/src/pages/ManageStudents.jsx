@@ -549,9 +549,11 @@ function ManageStudents() {
                     className="student-photo"
                   />
                 ) : (
-                  <div className="student-photo-placeholder">
-                    <span>{selectedStudent.first_name?.[0]}{selectedStudent.last_name?.[0]}</span>
-                  </div>
+                  <img
+                    src="/tidf-logo.png"
+                    alt="TIDF Logo"
+                    className="student-photo student-photo-placeholder-logo"
+                  />
                 )}
                 {canEdit && (
                   <div className="photo-actions">
@@ -596,7 +598,7 @@ function ManageStudents() {
                 <div className="external-tests-grid">
                   <div className="form-group">
                     <label htmlFor="physics_score">פיזיקה</label>
-                    <div className={`score-input-wrapper ${externalTestsData.physics_score !== '' && parseFloat(externalTestsData.physics_score) < 65 ? 'score-failing' : ''}`}>
+                    <div className={`score-input-wrapper ${externalTestsData.physics_score !== '' && parseFloat(externalTestsData.physics_score) < 60 ? 'score-failing' : ''}`}>
                       <input
                         type="number"
                         id="physics_score"
@@ -615,7 +617,7 @@ function ManageStudents() {
 
                   <div className="form-group">
                     <label htmlFor="physiology_score">פיזיולוגיה</label>
-                    <div className={`score-input-wrapper ${externalTestsData.physiology_score !== '' && parseFloat(externalTestsData.physiology_score) < 65 ? 'score-failing' : ''}`}>
+                    <div className={`score-input-wrapper ${externalTestsData.physiology_score !== '' && parseFloat(externalTestsData.physiology_score) < 60 ? 'score-failing' : ''}`}>
                       <input
                         type="number"
                         id="physiology_score"
@@ -634,7 +636,7 @@ function ManageStudents() {
 
                   <div className="form-group">
                     <label htmlFor="eye_contact_score">קשר עין</label>
-                    <div className={`score-input-wrapper ${externalTestsData.eye_contact_score !== '' && parseFloat(externalTestsData.eye_contact_score) < 65 ? 'score-failing' : ''}`}>
+                    <div className={`score-input-wrapper ${externalTestsData.eye_contact_score !== '' && parseFloat(externalTestsData.eye_contact_score) < 60 ? 'score-failing' : ''}`}>
                       <input
                         type="number"
                         id="eye_contact_score"
@@ -653,7 +655,7 @@ function ManageStudents() {
 
                   <div className="form-group">
                     <label htmlFor="equipment_score">ציוד</label>
-                    <div className={`score-input-wrapper ${externalTestsData.equipment_score !== '' && parseFloat(externalTestsData.equipment_score) < 65 ? 'score-failing' : ''}`}>
+                    <div className={`score-input-wrapper ${externalTestsData.equipment_score !== '' && parseFloat(externalTestsData.equipment_score) < 60 ? 'score-failing' : ''}`}>
                       <input
                         type="number"
                         id="equipment_score"
@@ -672,7 +674,7 @@ function ManageStudents() {
 
                   <div className="form-group">
                     <label htmlFor="decompression_score">דקומפרסיה</label>
-                    <div className={`score-input-wrapper ${externalTestsData.decompression_score !== '' && parseFloat(externalTestsData.decompression_score) < 65 ? 'score-failing' : ''}`}>
+                    <div className={`score-input-wrapper ${externalTestsData.decompression_score !== '' && parseFloat(externalTestsData.decompression_score) < 60 ? 'score-failing' : ''}`}>
                       <input
                         type="number"
                         id="decompression_score"

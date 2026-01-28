@@ -17,7 +17,8 @@ const pool = new Pool({
 const courseTypeLabels = {
   'מדריך_עוזר': 'מדריך עוזר',
   'מדריך': 'מדריך',
-  'מדריך_עוזר_משולב_עם_מדריך': 'מדריך עוזר משולב עם מדריך'
+  'מדריך_עוזר_משולב_עם_מדריך': 'מדריך עוזר משולב עם מדריך',
+  'קרוסאובר': 'קרוסאובר'
 };
 
 // Get all courses with student count (filtered by instructor if role is instructor)
@@ -170,7 +171,7 @@ router.post('/', authenticateToken, requireRole('admin'), async (req, res) => {
     }
 
     // Validate course type
-    const validTypes = ['מדריך_עוזר', 'מדריך', 'מדריך_עוזר_משולב_עם_מדריך'];
+    const validTypes = ['מדריך_עוזר', 'מדריך', 'מדריך_עוזר_משולב_עם_מדריך', 'קרוסאובר'];
     if (!validTypes.includes(course_type)) {
       return res.status(400).json({ error: 'Invalid course type' });
     }
@@ -247,7 +248,7 @@ router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => 
     }
 
     // Validate course type
-    const validTypes = ['מדריך_עוזר', 'מדריך', 'מדריך_עוזר_משולב_עם_מדריך'];
+    const validTypes = ['מדריך_עוזר', 'מדריך', 'מדריך_עוזר_משולב_עם_מדריך', 'קרוסאובר'];
     if (!validTypes.includes(course_type)) {
       return res.status(400).json({ error: 'Invalid course type' });
     }

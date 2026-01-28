@@ -105,7 +105,14 @@ function EvaluationHistory() {
                   <h4>
                     {evaluation.student_first_name} {evaluation.student_last_name}
                   </h4>
-                  <span className="evaluation-subject">{evaluation.subject_name}</span>
+                  <span className="evaluation-subject">
+                    {evaluation.subject_name}
+                    {evaluation.is_final_test !== undefined && evaluation.is_final_test !== null && (
+                      <span className={`evaluation-type-badge ${evaluation.is_final_test ? 'test' : 'training'}`}>
+                        {evaluation.is_final_test ? 'מבחן' : 'תרגול'}
+                      </span>
+                    )}
+                  </span>
                   {evaluation.lesson_name && (
                     <span className="evaluation-lesson">{evaluation.lesson_name}</span>
                   )}

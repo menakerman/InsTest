@@ -119,10 +119,21 @@ const createTablesQuery = `
     final_score DECIMAL(5,2) NOT NULL,
     is_passing BOOLEAN NOT NULL,
     has_critical_fail BOOLEAN DEFAULT FALSE,
+    is_final_test BOOLEAN DEFAULT FALSE,
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
+
+  -- Add is_final_test column if it doesn't exist (for existing databases)
+  DO $$
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'student_evaluations'
+                   AND column_name = 'is_final_test') THEN
+      ALTER TABLE student_evaluations ADD COLUMN is_final_test BOOLEAN DEFAULT FALSE;
+    END IF;
+  END $$;
 
   -- Evaluation item scores table (individual criterion scores)
   CREATE TABLE IF NOT EXISTS evaluation_item_scores (
@@ -159,8 +170,18 @@ const createTablesQuery = `
   DO $$
   BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'course_type') THEN
-      CREATE TYPE course_type AS ENUM ('מדריך_עוזר', 'מדריך', 'מדריך_עוזר_משולב_עם_מדריך');
+      CREATE TYPE course_type AS ENUM ('מדריך_עוזר', 'מדריך', 'מדריך_עוזר_משולב_עם_מדריך', 'קרוסאובר');
     END IF;
+  END $$;
+
+  -- Add קרוסאובר to existing enum if not present
+  DO $$
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'קרוסאובר' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'course_type')) THEN
+      ALTER TYPE course_type ADD VALUE 'קרוסאובר';
+    END IF;
+  EXCEPTION WHEN duplicate_object THEN
+    -- Value already exists, ignore
   END $$;
 
   -- Courses table

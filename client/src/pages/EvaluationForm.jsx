@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getEvaluationSubject, getEvaluation, createEvaluation, updateEvaluation, getLessons } from '../utils/api';
 import { calculateEvaluationScores } from '../utils/scoreCalculations';
@@ -6,6 +6,9 @@ import StudentSelector from '../components/StudentSelector';
 import InstructorSelector from '../components/InstructorSelector';
 import CriterionCard from '../components/CriterionCard';
 import ScoreSummary from '../components/ScoreSummary';
+
+// Subject codes that should show the stopwatch
+const STOPWATCH_SUBJECT_CODES = ['equipment_lesson', 'pre_dive_briefing', 'lecture_delivery'];
 
 function EvaluationForm() {
   const { subjectCode, evaluationId } = useParams();
@@ -23,8 +26,47 @@ function EvaluationForm() {
   const [lessonName, setLessonName] = useState('');
   const [lessonNameSelection, setLessonNameSelection] = useState('');
   const [customLessonName, setCustomLessonName] = useState('');
+  const [isFinalTest, setIsFinalTest] = useState(false);
   const [notes, setNotes] = useState('');
   const [scores, setScores] = useState({});
+
+  // Stopwatch state
+  const [stopwatchTime, setStopwatchTime] = useState(0);
+  const [stopwatchRunning, setStopwatchRunning] = useState(false);
+  const stopwatchInterval = useRef(null);
+
+  // Subjects that support test vs training selection
+  const subjectsWithTestOption = ['intro_dive', 'equipment_lesson', 'pre_dive_briefing', 'lecture_delivery', 'water_lesson'];
+
+  // Check if current subject should show stopwatch
+  const showStopwatch = subject && STOPWATCH_SUBJECT_CODES.includes(subject.code);
+
+  // Stopwatch effect
+  useEffect(() => {
+    if (stopwatchRunning) {
+      stopwatchInterval.current = setInterval(() => {
+        setStopwatchTime(prev => prev + 1);
+      }, 1000);
+    } else {
+      clearInterval(stopwatchInterval.current);
+    }
+    return () => clearInterval(stopwatchInterval.current);
+  }, [stopwatchRunning]);
+
+  // Format time as HH:MM:SS
+  const formatStopwatchTime = (totalSeconds) => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleStartStopwatch = () => setStopwatchRunning(true);
+  const handleStopStopwatch = () => setStopwatchRunning(false);
+  const handleResetStopwatch = () => {
+    setStopwatchRunning(false);
+    setStopwatchTime(0);
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -56,6 +98,7 @@ function EvaluationForm() {
         }
 
         setNotes(evalData.notes || '');
+        setIsFinalTest(evalData.is_final_test || false);
 
         const existingScores = {};
         evalData.item_scores?.forEach(item => {
@@ -142,6 +185,7 @@ function EvaluationForm() {
         final_score: calculatedScores.finalScore,
         is_passing: calculatedScores.isPassing,
         has_critical_fail: calculatedScores.hasCriticalFail,
+        is_final_test: subjectsWithTestOption.includes(subject.code) ? isFinalTest : false,
         item_scores: itemScores
       };
 
@@ -175,6 +219,31 @@ function EvaluationForm() {
           ביטול
         </button>
       </div>
+
+      {showStopwatch && (
+        <div className="stopwatch-container">
+          <div className="stopwatch-display">
+            <span className="stopwatch-label">זמן השיעור:</span>
+            <span className={`stopwatch-time ${stopwatchRunning ? 'running' : ''}`}>
+              {formatStopwatchTime(stopwatchTime)}
+            </span>
+          </div>
+          <div className="stopwatch-controls">
+            {!stopwatchRunning ? (
+              <button type="button" className="btn btn-stopwatch start" onClick={handleStartStopwatch}>
+                התחל
+              </button>
+            ) : (
+              <button type="button" className="btn btn-stopwatch stop" onClick={handleStopStopwatch}>
+                עצור
+              </button>
+            )}
+            <button type="button" className="btn btn-stopwatch reset" onClick={handleResetStopwatch}>
+              אפס
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && <div className="error">{error}</div>}
 
@@ -252,6 +321,28 @@ function EvaluationForm() {
                   />
                 )}
               </div>
+
+              {subject && subjectsWithTestOption.includes(subject.code) && (
+                <div className="form-group evaluation-type-toggle">
+                  <label>סוג הערכה</label>
+                  <div className="toggle-buttons">
+                    <button
+                      type="button"
+                      className={`toggle-btn ${!isFinalTest ? 'active training' : ''}`}
+                      onClick={() => setIsFinalTest(false)}
+                    >
+                      תרגול
+                    </button>
+                    <button
+                      type="button"
+                      className={`toggle-btn ${isFinalTest ? 'active test' : ''}`}
+                      onClick={() => setIsFinalTest(true)}
+                    >
+                      מבחן
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="criteria-section">

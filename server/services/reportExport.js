@@ -399,7 +399,37 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
   sheet.getCell(`A${startRow}`).font = { bold: true, size: 12 };
   sheet.mergeCells(`A${startRow}:${getColumnLetter(lessonOrder.length + 3)}${startRow}`);
 
-  const headerRow = startRow + 1;
+  // Add evaluation type row (מבחן/תרגול)
+  const typeRow = startRow + 1;
+  sheet.getCell(`A${typeRow}`).value = 'סוג';
+  sheet.getCell(`A${typeRow}`).font = { bold: true, size: 10 };
+
+  lessonOrder.forEach((lessonName, index) => {
+    const col = getColumnLetter(index + 2); // B, C, D...
+    const evals = evalsByLesson[lessonName] || [];
+    const latestEval = evals.sort((a, b) =>
+      new Date(b.evaluation_date) - new Date(a.evaluation_date)
+    )[0];
+
+    const cell = sheet.getCell(`${col}${typeRow}`);
+    if (latestEval && latestEval.is_final_test !== undefined && latestEval.is_final_test !== null) {
+      cell.value = latestEval.is_final_test ? 'מבחן' : 'תרגול';
+      cell.font = { bold: true, size: 10 };
+      cell.alignment = { horizontal: 'center' };
+      if (latestEval.is_final_test) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } }; // Light red for test
+        cell.font = { bold: true, size: 10, color: { argb: 'FF9C0006' } };
+      } else {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } }; // Light green for training
+        cell.font = { bold: true, size: 10, color: { argb: 'FF006100' } };
+      }
+    } else {
+      cell.value = '-';
+      cell.alignment = { horizontal: 'center' };
+    }
+  });
+
+  const headerRow = startRow + 2;
 
   // Column headers: Criterion (A) | Lessons | Average | Trend
   // RTL layout: Criterion on the right (A), lessons in middle, Average & Trend on the left
@@ -433,7 +463,7 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
     cell.alignment = { horizontal: 'center' };
   });
 
-  // Data rows - one per criterion
+  // Data rows - one per criterion (offset by 1 for the type row)
   let currentRow = headerRow + 1;
 
   criteria.forEach((criterion) => {

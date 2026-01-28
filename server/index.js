@@ -3,6 +3,10 @@ import cors from 'cors';
 import pg from 'pg';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import usersRoutes from './routes/users.js';
 import absencesRoutes from './routes/absences.js';
@@ -11,6 +15,9 @@ import coursesRoutes from './routes/courses.js';
 import lessonsRoutes from './routes/lessons.js';
 import { authenticateToken } from './middleware/auth.js';
 import { requireRole } from './middleware/roles.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -24,6 +31,40 @@ const pool = new Pool({
 
 app.use(cors());
 app.use(express.json());
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Configure multer for student photo uploads
+const studentPhotoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, 'uploads/students');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const studentId = req.params.id;
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `student_${studentId}${ext}`);
+  }
+});
+
+const photoUpload = multer({
+  storage: studentPhotoStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp)'));
+    }
+  }
+});
 
 // Auth routes (public)
 app.use('/api/auth', authRoutes);
@@ -288,6 +329,16 @@ app.put('/api/students/:id', authenticateToken, requireRole('admin'), async (req
 app.delete('/api/students/:id', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Get student photo_url to delete the file
+    const studentResult = await pool.query('SELECT photo_url FROM students WHERE id = $1', [id]);
+    if (studentResult.rows.length > 0 && studentResult.rows[0].photo_url) {
+      const photoPath = path.join(__dirname, studentResult.rows[0].photo_url);
+      if (fs.existsSync(photoPath)) {
+        fs.unlinkSync(photoPath);
+      }
+    }
+
     const result = await pool.query(
       'DELETE FROM students WHERE id = $1 RETURNING *',
       [id]
@@ -300,6 +351,73 @@ app.delete('/api/students/:id', authenticateToken, requireRole('admin'), async (
   } catch (error) {
     console.error('Error deleting student:', error);
     res.status(500).json({ error: 'Failed to delete student' });
+  }
+});
+
+// Upload student photo (admin only)
+app.post('/api/students/:id/photo', authenticateToken, requireRole('admin'), photoUpload.single('photo'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No photo file provided' });
+    }
+
+    // Check if student exists
+    const studentCheck = await pool.query('SELECT id, photo_url FROM students WHERE id = $1', [id]);
+    if (studentCheck.rows.length === 0) {
+      // Delete uploaded file
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Delete old photo if exists
+    const oldPhotoUrl = studentCheck.rows[0].photo_url;
+    if (oldPhotoUrl) {
+      const oldPhotoPath = path.join(__dirname, oldPhotoUrl);
+      if (fs.existsSync(oldPhotoPath)) {
+        fs.unlinkSync(oldPhotoPath);
+      }
+    }
+
+    // Update student with new photo URL
+    const photoUrl = `/uploads/students/${req.file.filename}`;
+    await pool.query('UPDATE students SET photo_url = $1 WHERE id = $2', [photoUrl, id]);
+
+    res.json({ photo_url: photoUrl });
+  } catch (error) {
+    console.error('Error uploading student photo:', error);
+    // Clean up uploaded file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: 'Failed to upload photo' });
+  }
+});
+
+// Delete student photo (admin only)
+app.delete('/api/students/:id/photo', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const studentResult = await pool.query('SELECT photo_url FROM students WHERE id = $1', [id]);
+    if (studentResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const photoUrl = studentResult.rows[0].photo_url;
+    if (photoUrl) {
+      const photoPath = path.join(__dirname, photoUrl);
+      if (fs.existsSync(photoPath)) {
+        fs.unlinkSync(photoPath);
+      }
+      await pool.query('UPDATE students SET photo_url = NULL WHERE id = $1', [id]);
+    }
+
+    res.json({ message: 'Photo deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting student photo:', error);
+    res.status(500).json({ error: 'Failed to delete photo' });
   }
 });
 

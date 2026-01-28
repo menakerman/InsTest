@@ -223,6 +223,82 @@ body {
   overflow-y: auto;
 }
 
+/* Student Details Header with Photo */
+.student-details-header {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.student-photo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.student-photo {
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 3px solid #0077b6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.student-photo-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0077b6 0%, #00a8e8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 2.5rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.photo-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.photo-actions .btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.student-details-info {
+  flex: 1;
+}
+
+.student-details-info h3 {
+  margin: 0 0 0.5rem 0;
+  color: #0077b6;
+  font-size: 1.5rem;
+}
+
+.student-id-number {
+  color: #6c757d;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.section-title {
+  color: #495057;
+  font-size: 1.1rem;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #0077b6;
+}
+
 .modal h3 {
   margin-bottom: 1.5rem;
   color: #0077b6;

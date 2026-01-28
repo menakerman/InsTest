@@ -44,9 +44,20 @@ const createTablesQuery = `
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(50),
     unit_id VARCHAR(100),
+    photo_url VARCHAR(500),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
+
+  -- Add photo_url column if it doesn't exist (for existing databases)
+  DO $$
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'students'
+                   AND column_name = 'photo_url') THEN
+      ALTER TABLE students ADD COLUMN photo_url VARCHAR(500);
+    END IF;
+  END $$;
 
   -- Instructors table
   CREATE TABLE IF NOT EXISTS instructors (

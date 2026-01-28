@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts';
-import { getStudents, createStudent, updateStudent, deleteStudent, getExternalTests, saveExternalTests, getStudentSkills, saveStudentSkills, getCourses, getEvaluations } from '../utils/api';
+import { getStudents, createStudent, updateStudent, deleteStudent, getExternalTests, saveExternalTests, getStudentSkills, saveStudentSkills, getCourses, getEvaluations, uploadStudentPhoto, deleteStudentPhoto } from '../utils/api';
 import CourseMultiSelect from '../components/CourseMultiSelect';
 import {
   EXTERNAL_TESTS_PASSING_THRESHOLD,
@@ -51,6 +51,8 @@ function ManageStudents() {
     pre_dive_briefing: null, // תדריך
     equipment_lesson: null   // ציוד
   });
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const photoInputRef = useRef(null);
 
   // Check if user can edit (admin only)
   const canEdit = user && user.role === 'admin';
@@ -286,6 +288,64 @@ function ManageStudents() {
     return avg.toFixed(1);
   };
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedStudent) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('ניתן להעלות קבצי תמונה בלבד (jpeg, png, gif, webp)');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('גודל הקובץ המקסימלי הוא 5MB');
+      return;
+    }
+
+    try {
+      setPhotoUploading(true);
+      const result = await uploadStudentPhoto(selectedStudent.id, file);
+      // Update selected student with new photo URL
+      setSelectedStudent(prev => ({ ...prev, photo_url: result.photo_url }));
+      // Update students list
+      setStudents(prev => prev.map(s =>
+        s.id === selectedStudent.id ? { ...s, photo_url: result.photo_url } : s
+      ));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPhotoUploading(false);
+      // Reset file input
+      if (photoInputRef.current) {
+        photoInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handlePhotoDelete = async () => {
+    if (!selectedStudent?.photo_url) return;
+
+    if (!window.confirm('האם למחוק את תמונת התלמיד?')) return;
+
+    try {
+      setPhotoUploading(true);
+      await deleteStudentPhoto(selectedStudent.id);
+      // Update selected student
+      setSelectedStudent(prev => ({ ...prev, photo_url: null }));
+      // Update students list
+      setStudents(prev => prev.map(s =>
+        s.id === selectedStudent.id ? { ...s, photo_url: null } : s
+      ));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
   if (loading) {
     return <div className="loading">טוען חניכים...</div>;
   }
@@ -480,11 +540,59 @@ function ManageStudents() {
       {showExternalTestsModal && selectedStudent && (
         <div className="modal-overlay" onClick={closeExternalTestsModal}>
           <div className="modal modal-large" onClick={e => e.stopPropagation()}>
-            <h3>מבחנים חיצוניים - {selectedStudent.first_name} {selectedStudent.last_name}</h3>
+            <div className="student-details-header">
+              <div className="student-photo-section">
+                {selectedStudent.photo_url ? (
+                  <img
+                    src={`http://localhost:3001${selectedStudent.photo_url}`}
+                    alt={`${selectedStudent.first_name} ${selectedStudent.last_name}`}
+                    className="student-photo"
+                  />
+                ) : (
+                  <div className="student-photo-placeholder">
+                    <span>{selectedStudent.first_name?.[0]}{selectedStudent.last_name?.[0]}</span>
+                  </div>
+                )}
+                {canEdit && (
+                  <div className="photo-actions">
+                    <input
+                      type="file"
+                      ref={photoInputRef}
+                      onChange={handlePhotoUpload}
+                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                      style={{ display: 'none' }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => photoInputRef.current?.click()}
+                      disabled={photoUploading}
+                    >
+                      {photoUploading ? 'מעלה...' : (selectedStudent.photo_url ? 'החלף תמונה' : 'העלה תמונה')}
+                    </button>
+                    {selectedStudent.photo_url && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-danger"
+                        onClick={handlePhotoDelete}
+                        disabled={photoUploading}
+                      >
+                        מחק
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="student-details-info">
+                <h3>{selectedStudent.first_name} {selectedStudent.last_name}</h3>
+                {selectedStudent.id_number && <p className="student-id-number">ת.ז.: {selectedStudent.id_number}</p>}
+              </div>
+            </div>
             {externalTestsLoading ? (
               <div className="loading-small">טוען נתונים...</div>
             ) : (
               <form onSubmit={handleSaveExternalTests}>
+                <h4 className="section-title">מבחנים חיצוניים</h4>
                 <div className="external-tests-grid">
                   <div className="form-group">
                     <label htmlFor="physics_score">פיזיקה</label>

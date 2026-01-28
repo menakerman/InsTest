@@ -47,6 +47,38 @@ export const deleteStudent = (id) => fetchAPI(`/students/${id}`, {
   method: 'DELETE'
 });
 
+// Student Photo Upload (uses FormData, not JSON)
+export const uploadStudentPhoto = async (studentId, photoFile) => {
+  const formData = new FormData();
+  formData.append('photo', photoFile);
+
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/students/${studentId}/photo`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
+    body: formData
+  });
+
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+    throw new Error('Session expired');
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Request failed with status ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export const deleteStudentPhoto = (studentId) => fetchAPI(`/students/${studentId}/photo`, {
+  method: 'DELETE'
+});
+
 // Instructors
 export const getInstructors = () => fetchAPI('/instructors');
 export const getInstructor = (id) => fetchAPI(`/instructors/${id}`);

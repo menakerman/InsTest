@@ -7,7 +7,8 @@ import InstructorMultiSelect from '../components/InstructorMultiSelect';
 const courseTypeOptions = [
   { value: 'מדריך_עוזר', label: 'מדריך עוזר' },
   { value: 'מדריך', label: 'מדריך' },
-  { value: 'מדריך_עוזר_משולב_עם_מדריך', label: 'מדריך עוזר משולב עם מדריך' }
+  { value: 'מדריך_עוזר_משולב_עם_מדריך', label: 'מדריך עוזר משולב עם מדריך' },
+  { value: 'קרוסאובר', label: 'קרוסאובר' }
 ];
 
 function ManageCourses() {
@@ -254,7 +255,7 @@ function ManageCourses() {
                 <th>סוג קורס</th>
                 <th>תאריך התחלה</th>
                 <th>תאריך סיום</th>
-                <th>מספר תלמידים</th>
+                <th>מספר חניכים</th>
                 <th>סטטוס</th>
                 {(canEdit || canDelete) && <th>פעולות</th>}
               </tr>
@@ -270,7 +271,7 @@ function ManageCourses() {
                   </td>
                   <td data-label="תאריך התחלה">{formatDate(course.start_date)}</td>
                   <td data-label="תאריך סיום">{formatDate(course.end_date)}</td>
-                  <td data-label="מספר תלמידים">
+                  <td data-label="מספר חניכים">
                     <span className="student-count-badge">{course.student_count}</span>
                   </td>
                   <td data-label="סטטוס">
@@ -365,7 +366,7 @@ function ManageCourses() {
               </div>
 
               <div className="form-group">
-                <label>תלמידים</label>
+                <label>חניכים</label>
                 <StudentMultiSelect
                   students={students}
                   selectedIds={formData.student_ids}
@@ -510,7 +511,7 @@ function ManageCourses() {
 
                 {selectedCourse.students && selectedCourse.students.length > 0 && (
                   <div className="course-detail-students">
-                    <h4>תלמידים ({selectedCourse.students.length})</h4>
+                    <h4>חניכים ({selectedCourse.students.length})</h4>
                     <div className="students-list">
                       {selectedCourse.students.map(student => (
                         <div key={student.id} className="student-item">

@@ -187,7 +187,7 @@ function ManageAbsences() {
               value={filters.student_id}
               onChange={handleFilterChange}
             >
-              <option value="">כל התלמידים</option>
+              <option value="">כל החניכים</option>
               {students.map(student => (
                 <option key={student.id} value={student.id}>
                   {student.first_name} {student.last_name}

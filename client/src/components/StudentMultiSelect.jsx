@@ -45,7 +45,7 @@ function StudentMultiSelect({ students, selectedIds, onChange, loading }) {
         onClick={() => setIsOpen(!isOpen)}
       >
         {selectedStudents.length === 0 ? (
-          <span className="placeholder">בחר תלמידים...</span>
+          <span className="placeholder">בחר חניכים...</span>
         ) : (
           <div className="selected-chips">
             {selectedStudents.slice(0, 3).map(student => (
@@ -81,9 +81,9 @@ function StudentMultiSelect({ students, selectedIds, onChange, loading }) {
 
           <div className="multi-select-options">
             {loading ? (
-              <div className="multi-select-loading">טוען תלמידים...</div>
+              <div className="multi-select-loading">טוען חניכים...</div>
             ) : filteredStudents.length === 0 ? (
-              <div className="multi-select-empty">לא נמצאו תלמידים</div>
+              <div className="multi-select-empty">לא נמצאו חניכים</div>
             ) : (
               filteredStudents.map(student => (
                 <label
@@ -106,7 +106,7 @@ function StudentMultiSelect({ students, selectedIds, onChange, loading }) {
 
           {selectedStudents.length > 0 && (
             <div className="multi-select-footer">
-              {selectedStudents.length} תלמידים נבחרו
+              {selectedStudents.length} חניכים נבחרו
             </div>
           )}
         </div>

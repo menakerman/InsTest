@@ -47,7 +47,7 @@ function StudentSelector({ value, onChange, required = false }) {
   };
 
   if (loading) {
-    return <div className="selector-loading">טוען תלמידים...</div>;
+    return <div className="selector-loading">טוען חניכים...</div>;
   }
 
   return (
@@ -75,7 +75,7 @@ function StudentSelector({ value, onChange, required = false }) {
           />
           <div className="selector-options">
             {filteredStudents.length === 0 ? (
-              <div className="selector-empty">לא נמצאו תלמידים</div>
+              <div className="selector-empty">לא נמצאו חניכים</div>
             ) : (
               filteredStudents.map(student => (
                 <div

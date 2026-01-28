@@ -26,7 +26,7 @@ describe('StudentSelector', () => {
     getStudents.mockImplementation(() => new Promise(() => {}));
     render(<StudentSelector value={null} onChange={mockOnChange} />);
 
-    expect(screen.getByText('טוען תלמידים...')).toBeInTheDocument();
+    expect(screen.getByText('טוען חניכים...')).toBeInTheDocument();
   });
 
   it('should show placeholder when no student selected', async () => {
@@ -86,7 +86,7 @@ describe('StudentSelector', () => {
     await user.click(screen.getByText('בחר תלמיד'));
     await user.type(screen.getByPlaceholderText('חיפוש...'), 'xyz');
 
-    expect(screen.getByText('לא נמצאו תלמידים')).toBeInTheDocument();
+    expect(screen.getByText('לא נמצאו חניכים')).toBeInTheDocument();
   });
 
   it('should call onChange when student is selected', async () => {

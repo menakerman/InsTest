@@ -171,7 +171,7 @@ function StudentStats() {
   return (
     <div className="student-stats-page">
       <div className="page-header">
-        <h2>סטטיסטיקות תלמידים</h2>
+        <h2>סטטיסטיקות חניכים</h2>
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -190,7 +190,7 @@ function StudentStats() {
               >
                 <div className="course-group-info">
                   <h3>{course.name}</h3>
-                  <span className="student-count">{course.students.length} תלמידים</span>
+                  <span className="student-count">{course.students.length} חניכים</span>
                 </div>
                 <div className="course-group-actions">
                   {course.id !== 0 && (

@@ -36,7 +36,7 @@ function GradeStudents() {
   return (
     <div className="grade-students-page">
       <div className="page-header">
-        <h2>הערכת תלמידים</h2>
+        <h2>הערכת חניכים</h2>
         <button
           className="btn btn-secondary"
           onClick={() => navigate('/evaluations/history')}

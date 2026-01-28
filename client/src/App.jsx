@@ -42,7 +42,7 @@ function AppContent() {
             </div>
             <nav className="nav">
               <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                ניהול תלמידים
+                ניהול חניכים
               </NavLink>
               <NavLink to="/instructors" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 ניהול מדריכים

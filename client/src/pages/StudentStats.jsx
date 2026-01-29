@@ -14,6 +14,7 @@ function StudentStats() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [exportingCourseId, setExportingCourseId] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ field: 'date', direction: 'desc' });
 
   useEffect(() => {
     fetchData();
@@ -122,6 +123,51 @@ function StudentStats() {
     setExpandedStudent(expandedStudent === studentId ? null : studentId);
   };
 
+  const handleSort = (field) => {
+    setSortConfig(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const sortEvaluations = (evaluations) => {
+    if (!evaluations || evaluations.length === 0) return evaluations;
+
+    return [...evaluations].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortConfig.field) {
+        case 'date':
+          comparison = new Date(a.evaluation_date) - new Date(b.evaluation_date);
+          break;
+        case 'lesson':
+          comparison = (a.lesson_name || '').localeCompare(b.lesson_name || '', 'he');
+          break;
+        case 'subject':
+          comparison = (a.subject_name || '').localeCompare(b.subject_name || '', 'he');
+          break;
+        case 'status':
+          // Sort by passing status: passing first, then failing, then critical fail
+          const getStatusOrder = (eval_) => {
+            if (eval_.has_critical_fail) return 2;
+            if (!eval_.is_passing) return 1;
+            return 0;
+          };
+          comparison = getStatusOrder(a) - getStatusOrder(b);
+          break;
+        default:
+          comparison = 0;
+      }
+
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  };
+
+  const getSortIcon = (field) => {
+    if (sortConfig.field !== field) return '⇅';
+    return sortConfig.direction === 'asc' ? '↑' : '↓';
+  };
+
   const handleExportCourse = async (e, courseId) => {
     e.stopPropagation();
     try {
@@ -216,17 +262,26 @@ function StudentStats() {
                       <thead>
                         <tr>
                           <th>שם חניך</th>
-                          <th>נושא</th>
-                          <th>שיעור</th>
-                          <th>תאריך</th>
+                          <th className="sortable-header" onClick={() => handleSort('subject')}>
+                            נושא <span className="sort-icon">{getSortIcon('subject')}</span>
+                          </th>
+                          <th className="sortable-header" onClick={() => handleSort('lesson')}>
+                            שיעור <span className="sort-icon">{getSortIcon('lesson')}</span>
+                          </th>
+                          <th className="sortable-header" onClick={() => handleSort('date')}>
+                            תאריך <span className="sort-icon">{getSortIcon('date')}</span>
+                          </th>
                           <th>ציון</th>
-                          <th>סטטוס</th>
+                          <th className="sortable-header" onClick={() => handleSort('status')}>
+                            סטטוס <span className="sort-icon">{getSortIcon('status')}</span>
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {course.students.map(student => (
-                          student.evaluations.length > 0 ? (
-                            student.evaluations.map((evaluation, evalIndex) => (
+                        {course.students.map(student => {
+                          const sortedEvaluations = sortEvaluations(student.evaluations);
+                          return student.evaluations.length > 0 ? (
+                            sortedEvaluations.map((evaluation, evalIndex) => (
                               <tr
                                 key={evaluation.id}
                                 className="student-row clickable-row"
@@ -269,8 +324,8 @@ function StudentStats() {
                               </td>
                               <td colSpan={5} className="no-data-cell">אין הערכות</td>
                             </tr>
-                          )
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -296,8 +351,28 @@ function StudentStats() {
 
                         {expandedStudent === student.id && (
                           <div className="student-card-evaluations">
+                            <div className="mobile-sort-controls">
+                              <span className="sort-label">מיון:</span>
+                              <select
+                                value={`${sortConfig.field}-${sortConfig.direction}`}
+                                onChange={(e) => {
+                                  const [field, direction] = e.target.value.split('-');
+                                  setSortConfig({ field, direction });
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <option value="date-desc">תאריך (חדש לישן)</option>
+                                <option value="date-asc">תאריך (ישן לחדש)</option>
+                                <option value="subject-asc">נושא (א-ת)</option>
+                                <option value="subject-desc">נושא (ת-א)</option>
+                                <option value="lesson-asc">שיעור (א-ת)</option>
+                                <option value="lesson-desc">שיעור (ת-א)</option>
+                                <option value="status-asc">סטטוס (עובר-נכשל)</option>
+                                <option value="status-desc">סטטוס (נכשל-עובר)</option>
+                              </select>
+                            </div>
                             {student.evaluations.length > 0 ? (
-                              student.evaluations.map(evaluation => (
+                              sortEvaluations(student.evaluations).map(evaluation => (
                                 <div
                                   key={evaluation.id}
                                   className="evaluation-item clickable-row"

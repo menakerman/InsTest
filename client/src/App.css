@@ -2572,6 +2572,51 @@ body {
   z-index: 10;
 }
 
+.stats-table th.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.stats-table th.sortable-header:hover {
+  background-color: #e9ecef;
+}
+
+.stats-table th .sort-icon {
+  margin-right: 0.3rem;
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
+.stats-table th.sortable-header:hover .sort-icon {
+  opacity: 1;
+}
+
+.mobile-sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-sort-controls .sort-label {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.mobile-sort-controls select {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
 .stats-table tr:hover {
   background-color: #f8f9fa;
 }

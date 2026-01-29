@@ -215,7 +215,7 @@ function StudentStats() {
                     <table>
                       <thead>
                         <tr>
-                          <th>שם תלמיד</th>
+                          <th>שם חניך</th>
                           <th>נושא</th>
                           <th>שיעור</th>
                           <th>תאריך</th>

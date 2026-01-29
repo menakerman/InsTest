@@ -247,6 +247,17 @@ function EvaluationForm() {
 
       {error && <div className="error">{error}</div>}
 
+      <div className="info-note">
+        <p><strong>הערה:</strong> ניקוד 1 בסעיפים בהם מופיעה כוכבית (*) יגרור ציון סופי "לא עבר", ללא קשר לניקוד בשאר הסעיפים.</p>
+      </div>
+
+      {(subject?.code === 'equipment_lesson' || subject?.code === 'lecture_delivery') && (
+        <div className="info-note">
+          <p>איכות העברה תימדד על סמך:</p>
+          <p><strong>קשר עין עם החניכים</strong> ; <strong>שימוש אפקטיבי בקול</strong> ; <strong>חזות רגועה</strong> ; <strong>שליטה בכתה</strong></p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="evaluation-form">
         <div className="form-layout">
           <div className="form-main">

@@ -845,6 +845,10 @@ body {
   border-radius: 12px;
   padding: 1rem 1.5rem;
   margin-bottom: 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3891,4 +3895,33 @@ body {
     padding: 0.6rem 1rem;
     font-size: 0.9rem;
   }
+}
+
+/* ==================== INFO NOTE STYLES ==================== */
+
+.info-note {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  color: #856404;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.info-note p {
+  margin: 0.15rem 0;
+}
+
+.info-note p:first-child {
+  margin-top: 0;
+}
+
+.info-note p:last-child {
+  margin-bottom: 0;
+}
+
+.info-note strong {
+  color: #6d5300;
 }

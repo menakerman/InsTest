@@ -98,7 +98,11 @@ describe('Roles Middleware', () => {
 
   describe('roleHierarchy', () => {
     it('should define admin as having access to all roles', () => {
-      expect(roleHierarchy.admin).toEqual(['admin', 'instructor', 'tester', 'student']);
+      expect(roleHierarchy.admin).toEqual(['admin', 'madar', 'instructor', 'tester', 'student']);
+    });
+
+    it('should define madar as having access to madar, instructor, tester, student', () => {
+      expect(roleHierarchy.madar).toEqual(['madar', 'instructor', 'tester', 'student']);
     });
 
     it('should define instructor as having access to instructor, tester, student', () => {
@@ -129,6 +133,22 @@ describe('Roles Middleware', () => {
 
     it('should return false if admin tries to manage admin', () => {
       expect(canManageRole('admin', 'admin')).toBe(false);
+    });
+
+    it('should return true if admin manages madar', () => {
+      expect(canManageRole('admin', 'madar')).toBe(true);
+    });
+
+    it('should return true if madar manages instructor', () => {
+      expect(canManageRole('madar', 'instructor')).toBe(true);
+    });
+
+    it('should return true if madar manages student', () => {
+      expect(canManageRole('madar', 'student')).toBe(true);
+    });
+
+    it('should return false if madar manages madar', () => {
+      expect(canManageRole('madar', 'madar')).toBe(false);
     });
 
     it('should return true if instructor manages tester', () => {

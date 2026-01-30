@@ -16,7 +16,7 @@ const pool = new Pool({
 
 // All routes require authentication and admin/instructor role
 router.use(authenticateToken);
-router.use(requireRole('admin', 'instructor'));
+router.use(requireRole('admin', 'madar', 'instructor'));
 
 /**
  * GET /api/export/final-report

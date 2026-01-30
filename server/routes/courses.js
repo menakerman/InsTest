@@ -22,7 +22,7 @@ const courseTypeLabels = {
 };
 
 // Get all courses with student count (filtered by instructor if role is instructor)
-router.get('/', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+router.get('/', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { is_active } = req.query;
     const user = req.user;
@@ -89,7 +89,7 @@ router.get('/', authenticateToken, requireRole('admin', 'instructor', 'tester'),
 });
 
 // Get single course with enrolled students and instructors
-router.get('/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+router.get('/:id', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { id } = req.params;
     const user = req.user;
@@ -160,7 +160,7 @@ router.get('/:id', authenticateToken, requireRole('admin', 'instructor', 'tester
 });
 
 // Create course with students and instructors (admin only for creating courses)
-router.post('/', authenticateToken, requireRole('admin'), async (req, res) => {
+router.post('/', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -236,7 +236,7 @@ router.post('/', authenticateToken, requireRole('admin'), async (req, res) => {
 });
 
 // Update course, students and instructors (admin only)
-router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+router.put('/:id', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -322,7 +322,7 @@ router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => 
 });
 
 // Delete course (admin only)
-router.delete('/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+router.delete('/:id', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   try {
     const { id } = req.params;
 

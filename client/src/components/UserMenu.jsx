@@ -23,6 +23,7 @@ export default function UserMenu() {
 
   const roleLabels = {
     admin: 'מנהל',
+    madar: 'מד"ר',
     instructor: 'מדריך',
     tester: 'בוחן',
     student: 'תלמיד'

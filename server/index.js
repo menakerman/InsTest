@@ -69,26 +69,26 @@ const photoUpload = multer({
 // Auth routes (public)
 app.use('/api/auth', authRoutes);
 
-// User management routes (admin only)
+// User management routes (admin/madar only)
 app.use('/api/users', usersRoutes);
 
-// Absences routes (admin/instructor only)
+// Absences routes (admin/madar/instructor only)
 app.use('/api/absences', absencesRoutes);
 
 // Export routes
 app.use('/api/export', exportRoutes);
 
-// Courses routes (admin/instructor = CRUD, tester = view only)
+// Courses routes (admin/madar = CRUD, instructor = CRUD (own courses), tester = view only)
 app.use('/api/courses', coursesRoutes);
 
-// Lessons routes (admin = CRUD, instructor/tester = view only)
+// Lessons routes (admin/madar = CRUD, instructor/tester = view only)
 app.use('/api/lessons', lessonsRoutes);
 
 // ==================== STUDENTS ====================
-// Roles: admin/instructor = CRUD, tester = view only, student = no access
+// Roles: admin/madar = CRUD, instructor = CRUD (own courses), tester = view only, student = no access
 
 // Get all students with their courses (filtered by instructor's courses if role is instructor)
-app.get('/api/students', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/students', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const user = req.user;
     let query;
@@ -155,7 +155,7 @@ app.get('/api/students', authenticateToken, requireRole('admin', 'instructor', '
 });
 
 // Get single student (with instructor access check)
-app.get('/api/students/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/students/:id', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { id } = req.params;
     const user = req.user;
@@ -197,7 +197,7 @@ app.get('/api/students/:id', authenticateToken, requireRole('admin', 'instructor
 });
 
 // Create student (admin only)
-app.post('/api/students', authenticateToken, requireRole('admin'), async (req, res) => {
+app.post('/api/students', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   const client = await pool.connect();
   try {
     const { first_name, last_name, email, phone, unit_id, id_number, course_ids } = req.body;
@@ -257,7 +257,7 @@ app.post('/api/students', authenticateToken, requireRole('admin'), async (req, r
 });
 
 // Update student (admin only)
-app.put('/api/students/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+app.put('/api/students/:id', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   const client = await pool.connect();
   try {
     const { id } = req.params;
@@ -326,7 +326,7 @@ app.put('/api/students/:id', authenticateToken, requireRole('admin'), async (req
 });
 
 // Delete student (admin only)
-app.delete('/api/students/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+app.delete('/api/students/:id', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -355,7 +355,7 @@ app.delete('/api/students/:id', authenticateToken, requireRole('admin'), async (
 });
 
 // Upload student photo (admin only)
-app.post('/api/students/:id/photo', authenticateToken, requireRole('admin'), photoUpload.single('photo'), async (req, res) => {
+app.post('/api/students/:id/photo', authenticateToken, requireRole('admin', 'madar'), photoUpload.single('photo'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -396,7 +396,7 @@ app.post('/api/students/:id/photo', authenticateToken, requireRole('admin'), pho
 });
 
 // Delete student photo (admin only)
-app.delete('/api/students/:id/photo', authenticateToken, requireRole('admin'), async (req, res) => {
+app.delete('/api/students/:id/photo', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -422,10 +422,10 @@ app.delete('/api/students/:id/photo', authenticateToken, requireRole('admin'), a
 });
 
 // ==================== INSTRUCTORS ====================
-// Roles: admin = CRUD, instructor/tester = view only, student = no access
+// Roles: admin/madar = CRUD, instructor/tester = view only, student = no access
 
 // Get all instructors with their courses (based on evaluations they performed)
-app.get('/api/instructors', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/instructors', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT i.*,
@@ -446,7 +446,7 @@ app.get('/api/instructors', authenticateToken, requireRole('admin', 'instructor'
 });
 
 // Get single instructor
-app.get('/api/instructors/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/instructors/:id', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM instructors WHERE id = $1', [id]);
@@ -461,7 +461,7 @@ app.get('/api/instructors/:id', authenticateToken, requireRole('admin', 'instruc
 });
 
 // Create instructor (also creates a user account for login)
-app.post('/api/instructors', authenticateToken, requireRole('admin'), async (req, res) => {
+app.post('/api/instructors', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   const client = await pool.connect();
   try {
     const { first_name, last_name, email, phone, id_number } = req.body;
@@ -522,7 +522,7 @@ app.post('/api/instructors', authenticateToken, requireRole('admin'), async (req
 });
 
 // Update instructor (also updates the associated user account)
-app.put('/api/instructors/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+app.put('/api/instructors/:id', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   const client = await pool.connect();
   try {
     const { id } = req.params;
@@ -592,7 +592,7 @@ app.put('/api/instructors/:id', authenticateToken, requireRole('admin'), async (
 });
 
 // Delete instructor (also deletes the associated user account)
-app.delete('/api/instructors/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+app.delete('/api/instructors/:id', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   const client = await pool.connect();
   try {
     const { id } = req.params;
@@ -632,10 +632,10 @@ app.delete('/api/instructors/:id', authenticateToken, requireRole('admin'), asyn
 });
 
 // ==================== EVALUATION SUBJECTS ====================
-// Roles: admin/instructor/tester = full access, student = no access
+// Roles: admin/madar/instructor/tester = full access, student = no access
 
 // Get all evaluation subjects with criteria
-app.get('/api/evaluation-subjects', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/evaluation-subjects', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const subjectsResult = await pool.query(
       'SELECT * FROM evaluation_subjects ORDER BY display_order'
@@ -659,7 +659,7 @@ app.get('/api/evaluation-subjects', authenticateToken, requireRole('admin', 'ins
 });
 
 // Get single evaluation subject by code with criteria
-app.get('/api/evaluation-subjects/:code', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/evaluation-subjects/:code', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { code } = req.params;
     const subjectResult = await pool.query(
@@ -685,10 +685,10 @@ app.get('/api/evaluation-subjects/:code', authenticateToken, requireRole('admin'
 });
 
 // ==================== EVALUATIONS ====================
-// Roles: admin/instructor/tester = full access, student = no access
+// Roles: admin/madar/instructor/tester = full access, student = no access
 
 // Get all evaluations with filters (filtered by instructor's courses if role is instructor)
-app.get('/api/evaluations', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/evaluations', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { student_id, subject_id, instructor_id, from_date, to_date } = req.query;
     const user = req.user;
@@ -764,7 +764,7 @@ app.get('/api/evaluations', authenticateToken, requireRole('admin', 'instructor'
 });
 
 // Get single evaluation with all item scores
-app.get('/api/evaluations/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/evaluations/:id', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -813,7 +813,7 @@ app.get('/api/evaluations/:id', authenticateToken, requireRole('admin', 'instruc
 });
 
 // Create evaluation with item scores
-app.post('/api/evaluations', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.post('/api/evaluations', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -902,7 +902,7 @@ app.post('/api/evaluations', authenticateToken, requireRole('admin', 'instructor
 });
 
 // Update evaluation
-app.put('/api/evaluations/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.put('/api/evaluations/:id', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -983,7 +983,7 @@ app.put('/api/evaluations/:id', authenticateToken, requireRole('admin', 'instruc
 });
 
 // Delete evaluation
-app.delete('/api/evaluations/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.delete('/api/evaluations/:id', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
@@ -1002,10 +1002,10 @@ app.delete('/api/evaluations/:id', authenticateToken, requireRole('admin', 'inst
 });
 
 // ==================== EXTERNAL TESTS ====================
-// Roles: admin/instructor = CRUD, tester = view only
+// Roles: admin/madar/instructor = CRUD, tester = view only
 
 // Get external tests for a student
-app.get('/api/external-tests/:studentId', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/external-tests/:studentId', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { studentId } = req.params;
     const result = await pool.query(
@@ -1033,7 +1033,7 @@ app.get('/api/external-tests/:studentId', authenticateToken, requireRole('admin'
 });
 
 // Get all external tests (for reporting)
-app.get('/api/external-tests', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/external-tests', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT et.*, s.first_name, s.last_name
@@ -1049,7 +1049,7 @@ app.get('/api/external-tests', authenticateToken, requireRole('admin', 'instruct
 });
 
 // Create or update external tests for a student
-app.put('/api/external-tests/:studentId', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+app.put('/api/external-tests/:studentId', authenticateToken, requireRole('admin', 'madar', 'instructor'), async (req, res) => {
   try {
     const { studentId } = req.params;
     const {
@@ -1102,7 +1102,7 @@ app.put('/api/external-tests/:studentId', authenticateToken, requireRole('admin'
 });
 
 // Delete external tests for a student
-app.delete('/api/external-tests/:studentId', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+app.delete('/api/external-tests/:studentId', authenticateToken, requireRole('admin', 'madar', 'instructor'), async (req, res) => {
   try {
     const { studentId } = req.params;
     const result = await pool.query(
@@ -1121,10 +1121,10 @@ app.delete('/api/external-tests/:studentId', authenticateToken, requireRole('adm
 });
 
 // ==================== CERTIFICATION TESTS ====================
-// Roles: admin/instructor = CRUD, tester = view only
+// Roles: admin/madar/instructor = CRUD, tester = view only
 
 // Get test structure for a course type
-app.get('/api/test-structure/:courseType', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/test-structure/:courseType', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { courseType } = req.params;
 
@@ -1158,7 +1158,7 @@ app.get('/api/test-structure/:courseType', authenticateToken, requireRole('admin
 });
 
 // Get all test scores for a student
-app.get('/api/student-tests/:studentId', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/student-tests/:studentId', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { studentId } = req.params;
 
@@ -1192,7 +1192,7 @@ app.get('/api/student-tests/:studentId', authenticateToken, requireRole('admin',
 });
 
 // Update test scores for a student
-app.put('/api/student-tests/:studentId', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+app.put('/api/student-tests/:studentId', authenticateToken, requireRole('admin', 'madar', 'instructor'), async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -1260,7 +1260,7 @@ app.put('/api/student-tests/:studentId', authenticateToken, requireRole('admin',
 });
 
 // Delete a specific test score for a student
-app.delete('/api/student-tests/:studentId/:testTypeId', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+app.delete('/api/student-tests/:studentId/:testTypeId', authenticateToken, requireRole('admin', 'madar', 'instructor'), async (req, res) => {
   try {
     const { studentId, testTypeId } = req.params;
 
@@ -1281,10 +1281,10 @@ app.delete('/api/student-tests/:studentId/:testTypeId', authenticateToken, requi
 });
 
 // ==================== STUDENT SKILLS ====================
-// Roles: admin/instructor = CRUD, tester = view only
+// Roles: admin/madar/instructor = CRUD, tester = view only
 
 // Get skills for a student
-app.get('/api/student-skills/:studentId', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/student-skills/:studentId', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { studentId } = req.params;
     const result = await pool.query(
@@ -1308,7 +1308,7 @@ app.get('/api/student-skills/:studentId', authenticateToken, requireRole('admin'
 });
 
 // Get all student skills (for reporting)
-app.get('/api/student-skills', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+app.get('/api/student-skills', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT ss.*, s.first_name, s.last_name
@@ -1324,7 +1324,7 @@ app.get('/api/student-skills', authenticateToken, requireRole('admin', 'instruct
 });
 
 // Create or update skills for a student
-app.put('/api/student-skills/:studentId', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+app.put('/api/student-skills/:studentId', authenticateToken, requireRole('admin', 'madar', 'instructor'), async (req, res) => {
   try {
     const { studentId } = req.params;
     const { meters_30, meters_40, guidance } = req.body;

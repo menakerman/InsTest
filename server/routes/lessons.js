@@ -14,7 +14,7 @@ const pool = new Pool({
 });
 
 // Get all lessons with evaluation subject info
-router.get('/', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+router.get('/', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { subject_id, is_active } = req.query;
 
@@ -55,7 +55,7 @@ router.get('/', authenticateToken, requireRole('admin', 'instructor', 'tester'),
 });
 
 // Get single lesson
-router.get('/:id', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+router.get('/:id', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -82,7 +82,7 @@ router.get('/:id', authenticateToken, requireRole('admin', 'instructor', 'tester
 });
 
 // Create lesson (admin only)
-router.post('/', authenticateToken, requireRole('admin'), async (req, res) => {
+router.post('/', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   try {
     const { name, subject_id, description, display_order } = req.body;
 
@@ -117,7 +117,7 @@ router.post('/', authenticateToken, requireRole('admin'), async (req, res) => {
 });
 
 // Update lesson (admin only)
-router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+router.put('/:id', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, subject_id, description, display_order, is_active } = req.body;
@@ -158,7 +158,7 @@ router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => 
 });
 
 // Delete lesson (admin only)
-router.delete('/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+router.delete('/:id', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   try {
     const { id } = req.params;
 

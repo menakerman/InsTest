@@ -16,7 +16,7 @@ const pool = new Pool({
 
 // All routes require admin role
 router.use(authenticateToken);
-router.use(requireRole('admin'));
+router.use(requireRole('admin', 'madar'));
 
 // Get all users
 router.get('/', async (req, res) => {
@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'הסיסמה חייבת להכיל לפחות 6 תווים' });
     }
 
-    const validRoles = ['admin', 'instructor', 'tester', 'student'];
+    const validRoles = ['admin', 'madar', 'instructor', 'tester', 'student'];
     if (role && !validRoles.includes(role)) {
       return res.status(400).json({ error: 'תפקיד לא תקין' });
     }
@@ -111,7 +111,7 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: 'לא ניתן לשנות את התפקיד שלך' });
     }
 
-    const validRoles = ['admin', 'instructor', 'tester', 'student'];
+    const validRoles = ['admin', 'madar', 'instructor', 'tester', 'student'];
     if (role && !validRoles.includes(role)) {
       return res.status(400).json({ error: 'תפקיד לא תקין' });
     }

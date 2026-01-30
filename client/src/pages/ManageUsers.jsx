@@ -11,6 +11,7 @@ export default function ManageUsers() {
 
   const roleLabels = {
     admin: 'מנהל',
+    madar: 'מד"ר',
     instructor: 'מדריך',
     tester: 'בוחן',
     student: 'תלמיד'
@@ -278,6 +279,7 @@ function UserModal({ user, onSave, onClose }) {
                 className="form-select"
               >
                 <option value="admin">מנהל</option>
+                <option value="madar">מד"ר</option>
                 <option value="instructor">מדריך</option>
                 <option value="tester">בוחן</option>
                 <option value="student">תלמיד</option>

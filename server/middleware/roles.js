@@ -14,7 +14,8 @@ export const requireRole = (...allowedRoles) => {
 
 // Role hierarchy for checking permissions
 export const roleHierarchy = {
-  admin: ['admin', 'instructor', 'tester', 'student'],
+  admin: ['admin', 'madar', 'instructor', 'tester', 'student'],
+  madar: ['madar', 'instructor', 'tester', 'student'],
   instructor: ['instructor', 'tester', 'student'],
   tester: ['tester', 'student'],
   student: ['student']

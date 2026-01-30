@@ -59,7 +59,7 @@ function AppContent() {
               <NavLink to="/student-stats" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 סטטיסטיקות
               </NavLink>
-              {user?.role === 'admin' && (
+              {(user?.role === 'admin' || user?.role === 'madar') && (
                 <>
                   <NavLink to="/lessons" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                     ניהול שיעורים
@@ -109,59 +109,59 @@ function AppContent() {
 
           {/* Protected routes */}
           <Route path="/" element={
-            <ProtectedRoute allowedRoles={['admin', 'instructor', 'tester']}>
+            <ProtectedRoute allowedRoles={['admin', 'madar', 'instructor', 'tester']}>
               <ManageStudents />
             </ProtectedRoute>
           } />
           <Route path="/instructors" element={
-            <ProtectedRoute allowedRoles={['admin', 'instructor', 'tester']}>
+            <ProtectedRoute allowedRoles={['admin', 'madar', 'instructor', 'tester']}>
               <ManageInstructors />
             </ProtectedRoute>
           } />
           <Route path="/courses" element={
-            <ProtectedRoute allowedRoles={['admin', 'instructor', 'tester']}>
+            <ProtectedRoute allowedRoles={['admin', 'madar', 'instructor', 'tester']}>
               <ManageCourses />
             </ProtectedRoute>
           } />
           <Route path="/grade" element={
-            <ProtectedRoute allowedRoles={['admin', 'instructor', 'tester']}>
+            <ProtectedRoute allowedRoles={['admin', 'madar', 'instructor', 'tester']}>
               <GradeStudents />
             </ProtectedRoute>
           } />
           <Route path="/evaluations/new/:subjectCode" element={
-            <ProtectedRoute allowedRoles={['admin', 'instructor', 'tester']}>
+            <ProtectedRoute allowedRoles={['admin', 'madar', 'instructor', 'tester']}>
               <EvaluationForm />
             </ProtectedRoute>
           } />
           <Route path="/evaluations/edit/:evaluationId" element={
-            <ProtectedRoute allowedRoles={['admin', 'instructor', 'tester']}>
+            <ProtectedRoute allowedRoles={['admin', 'madar', 'instructor', 'tester']}>
               <EvaluationForm />
             </ProtectedRoute>
           } />
           <Route path="/evaluations/history" element={
-            <ProtectedRoute allowedRoles={['admin', 'instructor', 'tester']}>
+            <ProtectedRoute allowedRoles={['admin', 'madar', 'instructor', 'tester']}>
               <EvaluationHistory />
             </ProtectedRoute>
           } />
           <Route path="/student-stats" element={
-            <ProtectedRoute allowedRoles={['admin', 'instructor', 'tester']}>
+            <ProtectedRoute allowedRoles={['admin', 'madar', 'instructor', 'tester']}>
               <StudentStats />
             </ProtectedRoute>
           } />
           <Route path="/absences" element={
-            <ProtectedRoute allowedRoles={['admin', 'instructor']}>
+            <ProtectedRoute allowedRoles={['admin', 'madar', 'instructor']}>
               <ManageAbsences />
             </ProtectedRoute>
           } />
 
           {/* Admin only routes */}
           <Route path="/lessons" element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'madar']}>
               <ManageLessons />
             </ProtectedRoute>
           } />
           <Route path="/users" element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'madar']}>
               <ManageUsers />
             </ProtectedRoute>
           } />

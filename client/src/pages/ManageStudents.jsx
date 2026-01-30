@@ -875,43 +875,6 @@ function ManageStudents() {
                   </div>
                 )}
 
-                {/* Evaluation Scores Section */}
-                <div className="evaluation-scores-section">
-                  <h4>הערכות שהושלמו</h4>
-                  <div className="evaluation-scores-grid">
-                    <div className="evaluation-score-item">
-                      <span className="evaluation-score-label">צלילת הכרות:</span>
-                      {evaluationScores.intro_dive ? (
-                        <span className={`evaluation-score-value ${evaluationScores.intro_dive.is_passing ? 'passing' : 'failing'}`}>
-                          {evaluationScores.intro_dive.score}%
-                        </span>
-                      ) : (
-                        <span className="evaluation-score-value not-done">לא בוצע</span>
-                      )}
-                    </div>
-                    <div className="evaluation-score-item">
-                      <span className="evaluation-score-label">תדריך:</span>
-                      {evaluationScores.pre_dive_briefing ? (
-                        <span className={`evaluation-score-value ${evaluationScores.pre_dive_briefing.is_passing ? 'passing' : 'failing'}`}>
-                          {evaluationScores.pre_dive_briefing.score}%
-                        </span>
-                      ) : (
-                        <span className="evaluation-score-value not-done">לא בוצע</span>
-                      )}
-                    </div>
-                    <div className="evaluation-score-item">
-                      <span className="evaluation-score-label">ציוד:</span>
-                      {evaluationScores.equipment_lesson ? (
-                        <span className={`evaluation-score-value ${evaluationScores.equipment_lesson.is_passing ? 'passing' : 'failing'}`}>
-                          {evaluationScores.equipment_lesson.score}%
-                        </span>
-                      ) : (
-                        <span className="evaluation-score-value not-done">לא בוצע</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
                 <div className="form-actions">
                   <button type="button" className="btn btn-secondary" onClick={closeExternalTestsModal}>
                     {canEdit ? 'ביטול' : 'סגור'}

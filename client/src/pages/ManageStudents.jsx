@@ -558,54 +558,69 @@ function ManageStudents() {
             ? calculateTheoryTestsRecommendations(category.tests, parseFloat(theoryAverage))
             : [];
 
+          // Separate tests by type
+          const checkboxTests = category.tests?.filter(t => t.score_type === 'pass_fail') || [];
+          const numericTests = category.tests?.filter(t => t.score_type === 'percentage') || [];
+
           return (
             <div key={category.category_id} className="certification-category-block">
               <div className="certification-row">
                 <span className="category-label">{category.category_name}:</span>
-                <div className="category-tests-inline">
-                  {category.tests && category.tests.map((test, idx) => {
-                    const scoreDisplay = getTestScoreDisplay(test.id, test.score_type);
-                    const key = `${test.id}`;
-                    const isSaving = savingScores[key];
+                <div className="category-tests-grouped">
+                  {/* Checkbox tests row */}
+                  {checkboxTests.length > 0 && (
+                    <div className="category-tests-inline">
+                      {checkboxTests.map((test, idx) => {
+                        const scoreDisplay = getTestScoreDisplay(test.id, test.score_type);
+                        const key = `${test.id}`;
+                        const isSaving = savingScores[key];
 
-                    // For pass_fail type (מיומנויות), render checkbox
-                    if (test.score_type === 'pass_fail') {
-                      return (
-                        <label key={test.id} className="test-item-inline test-checkbox-item">
-                          <input
-                            type="checkbox"
-                            checked={scoreDisplay.passed === true}
-                            disabled={isSaving || !canEdit}
-                            onChange={(e) => handleCertCheckboxChange(test.id, e.target.checked)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <span className="test-name-inline">{test.name_he}</span>
-                          {idx < category.tests.length - 1 && <span className="test-separator">|</span>}
-                        </label>
-                      );
-                    }
+                        return (
+                          <label key={test.id} className="test-item-inline test-checkbox-item">
+                            <input
+                              type="checkbox"
+                              checked={scoreDisplay.passed === true}
+                              disabled={isSaving || !canEdit}
+                              onChange={(e) => handleCertCheckboxChange(test.id, e.target.checked)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <span className="test-name-inline">{test.name_he}</span>
+                            {idx < checkboxTests.length - 1 && <span className="test-separator">|</span>}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* Numeric tests row */}
+                  {numericTests.length > 0 && (
+                    <div className="category-tests-inline">
+                      {numericTests.map((test, idx) => {
+                        const scoreDisplay = getTestScoreDisplay(test.id, test.score_type);
+                        const key = `${test.id}`;
+                        const isSaving = savingScores[key];
+                        const editValue = getCertEditingValue(test.id, scoreDisplay.value);
 
-                    // For percentage type, render number input
-                    const editValue = getCertEditingValue(test.id, scoreDisplay.value);
-                    return (
-                      <span key={test.id} className="test-item-inline">
-                        <span className="test-name-inline">{test.name_he}</span>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          className={`test-score-input ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
-                          value={editValue}
-                          disabled={isSaving || !canEdit}
-                          onChange={(e) => handleCertScoreChange(test.id, e.target.value)}
-                          onBlur={() => handleCertScoreBlur(test.id)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        {!editValue && <span className="empty-score-indicator">-</span>}
-                        {idx < category.tests.length - 1 && <span className="test-separator">|</span>}
-                      </span>
-                    );
-                  })}
+                        return (
+                          <span key={test.id} className="test-item-inline">
+                            <span className="test-name-inline">{test.name_he}</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              className={`test-score-input ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
+                              value={editValue}
+                              disabled={isSaving || !canEdit}
+                              onChange={(e) => handleCertScoreChange(test.id, e.target.value)}
+                              onBlur={() => handleCertScoreBlur(test.id)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            {!editValue && <span className="empty-score-indicator">-</span>}
+                            {idx < numericTests.length - 1 && <span className="test-separator">|</span>}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
 

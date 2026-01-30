@@ -79,6 +79,28 @@ function StudentStats() {
     setEditingScores(prev => ({ ...prev, [key]: value }));
   };
 
+  // Handle checkbox change for pass_fail type tests
+  const handleCheckboxChange = async (studentId, testTypeId, checked) => {
+    const key = `${studentId}-${testTypeId}`;
+    setSavingScores(prev => ({ ...prev, [key]: true }));
+    try {
+      const scoreData = {
+        test_type_id: testTypeId,
+        score: checked ? 100 : 0,
+        passed: checked
+      };
+      await saveStudentTests(studentId, [scoreData]);
+
+      // Refresh scores
+      const scores = await getStudentTests(studentId);
+      setStudentTestScores(prev => ({ ...prev, [studentId]: scores }));
+    } catch (err) {
+      console.error('Error saving checkbox:', err);
+    } finally {
+      setSavingScores(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
   const handleScoreBlur = async (studentId, testTypeId, scoreType) => {
     const key = `${studentId}-${testTypeId}`;
     const value = editingScores[key];
@@ -391,27 +413,66 @@ function StudentStats() {
 
     return (
       <div className="certification-sections-compact">
-        {structure.map(category => (
-          <div key={category.category_id} className="certification-row">
-            <span className="category-label">{category.category_name}:</span>
-            <div className="category-tests-inline">
-              {category.tests && category.tests.map((test, idx) => {
-                const scoreDisplay = getTestScoreDisplay(studentId, test.id, test.score_type);
-                return (
-                  <span key={test.id} className="test-item-inline">
-                    <span className="test-name-inline">{test.name_he}</span>
-                    {isLoading ? (
-                      <span className="test-score-inline">...</span>
-                    ) : (
-                      renderScoreInput(test, scoreDisplay)
-                    )}
-                    {idx < category.tests.length - 1 && <span className="test-separator">|</span>}
-                  </span>
-                );
-              })}
+        {structure.map(category => {
+          // Separate tests by type
+          const checkboxTests = category.tests?.filter(t => t.score_type === 'pass_fail') || [];
+          const numericTests = category.tests?.filter(t => t.score_type === 'percentage') || [];
+
+          return (
+            <div key={category.category_id} className="certification-row">
+              <span className="category-label">{category.category_name}:</span>
+              <div className="category-tests-grouped">
+                {/* Checkbox tests row */}
+                {checkboxTests.length > 0 && (
+                  <div className="category-tests-inline">
+                    {checkboxTests.map((test, idx) => {
+                      const scoreDisplay = getTestScoreDisplay(studentId, test.id, test.score_type);
+                      const key = `${studentId}-${test.id}`;
+                      const isSaving = savingScores[key];
+
+                      return (
+                        <label key={test.id} className="test-item-inline test-checkbox-item">
+                          {isLoading ? (
+                            <span className="test-score-inline">...</span>
+                          ) : (
+                            <input
+                              type="checkbox"
+                              checked={scoreDisplay.passed === true}
+                              disabled={isSaving}
+                              onChange={(e) => handleCheckboxChange(studentId, test.id, e.target.checked)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          )}
+                          <span className="test-name-inline">{test.name_he}</span>
+                          {idx < checkboxTests.length - 1 && <span className="test-separator">|</span>}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                {/* Numeric tests row */}
+                {numericTests.length > 0 && (
+                  <div className="category-tests-inline">
+                    {numericTests.map((test, idx) => {
+                      const scoreDisplay = getTestScoreDisplay(studentId, test.id, test.score_type);
+                      return (
+                        <span key={test.id} className="test-item-inline">
+                          <span className="test-name-inline">{test.name_he}</span>
+                          {isLoading ? (
+                            <span className="test-score-inline">...</span>
+                          ) : (
+                            renderScoreInput(test, scoreDisplay)
+                          )}
+                          {idx < numericTests.length - 1 && <span className="test-separator">|</span>}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };

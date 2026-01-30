@@ -2627,6 +2627,12 @@ body {
   flex-shrink: 0;
 }
 
+.category-tests-grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .category-tests-inline {
   display: flex;
   flex-wrap: wrap;

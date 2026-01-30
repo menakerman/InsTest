@@ -834,43 +834,46 @@ function ManageStudents() {
                   </div>
                 )}
 
-                <div className="skills-section">
-                  <h4>מיומנויות</h4>
-                  <div className="skills-grid">
-                    <label className="skill-checkbox">
-                      <input
-                        type="checkbox"
-                        name="meters_30"
-                        checked={skillsData.meters_30}
-                        onChange={handleSkillChange}
-                        disabled={!canEdit}
-                      />
-                      <span className="skill-label">30 מטר</span>
-                    </label>
+                {/* Skills section - only for מדריך עוזר courses */}
+                {selectedStudent?.courses?.some(c => c.course_type === 'מדריך_עוזר' || c.course_type === 'מדריך_עוזר_משולב_עם_מדריך') && (
+                  <div className="skills-section">
+                    <h4>מיומנויות</h4>
+                    <div className="skills-grid">
+                      <label className="skill-checkbox">
+                        <input
+                          type="checkbox"
+                          name="meters_30"
+                          checked={skillsData.meters_30}
+                          onChange={handleSkillChange}
+                          disabled={!canEdit}
+                        />
+                        <span className="skill-label">30 מטר</span>
+                      </label>
 
-                    <label className="skill-checkbox">
-                      <input
-                        type="checkbox"
-                        name="meters_40"
-                        checked={skillsData.meters_40}
-                        onChange={handleSkillChange}
-                        disabled={!canEdit}
-                      />
-                      <span className="skill-label">40 מטר</span>
-                    </label>
+                      <label className="skill-checkbox">
+                        <input
+                          type="checkbox"
+                          name="meters_40"
+                          checked={skillsData.meters_40}
+                          onChange={handleSkillChange}
+                          disabled={!canEdit}
+                        />
+                        <span className="skill-label">40 מטר</span>
+                      </label>
 
-                    <label className="skill-checkbox">
-                      <input
-                        type="checkbox"
-                        name="guidance"
-                        checked={skillsData.guidance}
-                        onChange={handleSkillChange}
-                        disabled={!canEdit}
-                      />
-                      <span className="skill-label">הובלה</span>
-                    </label>
+                      <label className="skill-checkbox">
+                        <input
+                          type="checkbox"
+                          name="guidance"
+                          checked={skillsData.guidance}
+                          onChange={handleSkillChange}
+                          disabled={!canEdit}
+                        />
+                        <span className="skill-label">הובלה</span>
+                      </label>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Evaluation Scores Section */}
                 <div className="evaluation-scores-section">

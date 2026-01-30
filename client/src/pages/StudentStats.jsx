@@ -368,39 +368,44 @@ function StudentStats() {
         const currentValue = scoreDisplay.display === '-' ? '' : scoreDisplay.display.replace('%', '');
         const editValue = getEditingValue(studentId, test.id, currentValue);
         return (
-          <input
-            type="number"
-            min="0"
-            max="100"
-            className={`test-score-input ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
-            value={editValue}
-            placeholder="-"
-            disabled={isSaving}
-            onChange={(e) => handleScoreChange(studentId, test.id, test.score_type, e.target.value)}
-            onBlur={() => handleScoreBlur(studentId, test.id, test.score_type)}
-            onClick={(e) => e.stopPropagation()}
-          />
+          <>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              className={`test-score-input ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
+              value={editValue}
+              disabled={isSaving}
+              onChange={(e) => handleScoreChange(studentId, test.id, test.score_type, e.target.value)}
+              onBlur={() => handleScoreBlur(studentId, test.id, test.score_type)}
+              onClick={(e) => e.stopPropagation()}
+            />
+            {!editValue && <span className="empty-score-indicator">-</span>}
+          </>
         );
       } else {
         // pass_fail or evaluation type
         const currentValue = scoreDisplay.display === '-' ? '' : (scoreDisplay.passed ? 'עבר' : 'לא עבר');
         const editValue = getEditingValue(studentId, test.id, currentValue);
         return (
-          <select
-            className={`test-score-select ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
-            value={editValue}
-            disabled={isSaving}
-            onChange={(e) => {
-              handleScoreChange(studentId, test.id, test.score_type, e.target.value);
-              // Auto-save on select change
-              setTimeout(() => handleScoreBlur(studentId, test.id, test.score_type), 100);
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <option value="">-</option>
-            <option value="עבר">עבר</option>
-            <option value="לא עבר">לא עבר</option>
-          </select>
+          <>
+            <select
+              className={`test-score-select ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
+              value={editValue}
+              disabled={isSaving}
+              onChange={(e) => {
+                handleScoreChange(studentId, test.id, test.score_type, e.target.value);
+                // Auto-save on select change
+                setTimeout(() => handleScoreBlur(studentId, test.id, test.score_type), 100);
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <option value=""></option>
+              <option value="עבר">עבר</option>
+              <option value="לא עבר">לא עבר</option>
+            </select>
+            {!editValue && <span className="empty-score-indicator">-</span>}
+          </>
         );
       }
     };

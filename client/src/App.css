@@ -4173,9 +4173,9 @@ body {
 }
 
 .evaluation-type-badge.test {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background-color: #fde8d8;
+  color: #E58231;
+  border: 1px solid #E58231;
 }
 
 /* Mobile Responsive for Toggle */

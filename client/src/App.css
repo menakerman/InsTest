@@ -2691,14 +2691,14 @@ body {
 .category-tests-inline {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 0.5rem;
+  gap: 0.5rem 1.5rem;
   align-items: center;
 }
 
 .test-item-inline {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
   font-size: 0.85rem;
 }
 

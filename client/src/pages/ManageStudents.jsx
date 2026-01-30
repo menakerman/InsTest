@@ -561,7 +561,6 @@ function ManageStudents() {
                               onClick={(e) => e.stopPropagation()}
                             />
                             <span className="test-name-inline">{test.name_he}</span>
-                            {idx < checkboxTests.length - 1 && <span className="test-separator">|</span>}
                           </label>
                         );
                       })}
@@ -591,8 +590,6 @@ function ManageStudents() {
                               onBlur={() => handleCertScoreBlur(test.id)}
                               onClick={(e) => e.stopPropagation()}
                             />
-                            {!editValue && <span className="empty-score-indicator">-</span>}
-                            {idx < numericTests.length - 1 && <span className="test-separator">|</span>}
                           </span>
                         );
                       })}

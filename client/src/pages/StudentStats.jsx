@@ -591,7 +591,14 @@ function StudentStats() {
                                       onClick={() => openDetailModal(evaluation.id)}
                                     >
                                       <div className="evaluation-item-header">
-                                        <span className="evaluation-item-subject">{evaluation.subject_name}</span>
+                                        <span className="evaluation-item-subject">
+                                          {evaluation.subject_name}
+                                          {evaluation.is_final_test !== undefined && evaluation.is_final_test !== null && (
+                                            <span className={`evaluation-type-badge ${evaluation.is_final_test ? 'test' : 'training'}`}>
+                                              {evaluation.is_final_test ? 'מבחן' : 'תרגול'}
+                                            </span>
+                                          )}
+                                        </span>
                                         <span
                                           className="score-badge-small"
                                           style={{

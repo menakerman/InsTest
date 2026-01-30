@@ -2950,6 +2950,9 @@ body {
 }
 
 .evaluation-item-subject {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-weight: 600;
   color: #0077b6;
 }

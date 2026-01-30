@@ -1166,19 +1166,19 @@ body {
 .quality-tag {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #0d6efd;
-  background: #e7f1ff;
+  color: #E58231;
+  background: #fde8d8;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
 }
 
 .criterion-card-new.quality-scale {
-  border-color: #e7f1ff;
-  background: linear-gradient(135deg, #fafafa 0%, #f0f7ff 100%);
+  border: 2px solid #E58231;
+  background: linear-gradient(135deg, #fffaf5 0%, #fff5eb 100%);
 }
 
 .criterion-card-new.quality-scale .criterion-header-new {
-  background: linear-gradient(90deg, #e7f1ff 0%, #ffffff 100%);
+  background: linear-gradient(90deg, #fde8d8 0%, #ffffff 100%);
 }
 
 .quality-description {

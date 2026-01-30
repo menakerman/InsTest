@@ -101,7 +101,7 @@ function StudentStats() {
     }
   };
 
-  const handleScoreBlur = async (studentId, testTypeId, scoreType) => {
+  const handleScoreBlur = async (studentId, testTypeId) => {
     const key = `${studentId}-${testTypeId}`;
     const value = editingScores[key];
 
@@ -233,13 +233,6 @@ function StudentStats() {
     setExpandedStudent(expandedStudent === studentId ? null : studentId);
   };
 
-  const handleSort = (field) => {
-    setSortConfig(prev => ({
-      field,
-      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
-    }));
-  };
-
   const sortEvaluations = (evaluations) => {
     if (!evaluations || evaluations.length === 0) return evaluations;
 
@@ -272,11 +265,6 @@ function StudentStats() {
 
       return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
-  };
-
-  const getSortIcon = (field) => {
-    if (sortConfig.field !== field) return '⇅';
-    return sortConfig.direction === 'asc' ? '↑' : '↓';
   };
 
   const handleExportCourse = async (e, courseId) => {

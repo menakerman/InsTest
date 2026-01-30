@@ -7,8 +7,7 @@ import {
   COURSE_AVERAGE_PASSING_THRESHOLD,
   isInInstructorCourse,
   getExternalTestsStatusColor,
-  getExternalTestsStatusText,
-  calculateRetakeRecommendations
+  getExternalTestsStatusText
 } from '../utils/externalTestsCalculations';
 
 function ManageStudents() {
@@ -47,7 +46,7 @@ function ManageStudents() {
   });
   const [courses, setCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
-  const [evaluationScores, setEvaluationScores] = useState({
+  const [, setEvaluationScores] = useState({
     intro_dive: null,      // צלילת הכרות
     pre_dive_briefing: null, // תדריך
     equipment_lesson: null   // ציוד
@@ -262,19 +261,6 @@ function ManageStudents() {
     });
   };
 
-  const handleExternalTestChange = (e) => {
-    const { name, value } = e.target;
-    // Allow empty string or numbers 0-100
-    if (value === '' || (parseFloat(value) >= 0 && parseFloat(value) <= 100)) {
-      setExternalTestsData(prev => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const handleSkillChange = (e) => {
-    const { name, checked } = e.target;
-    setSkillsData(prev => ({ ...prev, [name]: checked }));
-  };
-
   const handleSaveExternalTests = async (e) => {
     e.preventDefault();
     if (!selectedStudent) return;
@@ -297,20 +283,6 @@ function ManageStudents() {
     } finally {
       setExternalTestsSaving(false);
     }
-  };
-
-  const calculateAverageScore = () => {
-    const scores = [
-      externalTestsData.physics_score,
-      externalTestsData.physiology_score,
-      externalTestsData.eye_contact_score,
-      externalTestsData.equipment_score,
-      externalTestsData.decompression_score
-    ].filter(s => s !== '' && s !== null && s !== undefined).map(s => parseFloat(s));
-
-    if (scores.length === 0) return null;
-    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-    return avg.toFixed(1);
   };
 
   const handlePhotoUpload = async (e) => {
@@ -439,7 +411,7 @@ function ManageStudents() {
     return editingScores[key] !== undefined ? editingScores[key] : currentValue;
   };
 
-  const getTestScoreDisplay = (testTypeId, scoreType) => {
+  const getTestScoreDisplay = (testTypeId) => {
     const score = studentTestScores.find(s => s.test_type_id === testTypeId);
     if (!score) {
       return { display: '-', color: '#999', passed: null, value: '' };

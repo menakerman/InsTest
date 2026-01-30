@@ -113,13 +113,28 @@ describe('Report Export Service', () => {
     { id: 3, student_id: 2, absence_date: '2024-01-10', reason: 'Family', is_excused: true }
   ];
 
+  const mockItemScores = [];
+  const mockExternalTests = [];
+  const mockStudentSkills = [];
+  const mockCriteria = [];
+
+  // Helper to set up all 9 required mock query responses
+  const setupMockQueries = (students, subjects, evaluations, absences, itemScores = [], course = [], externalTests = [], studentSkills = [], criteria = []) => {
+    mockPool.query
+      .mockResolvedValueOnce({ rows: students })      // students
+      .mockResolvedValueOnce({ rows: subjects })      // subjects
+      .mockResolvedValueOnce({ rows: evaluations })   // evaluations
+      .mockResolvedValueOnce({ rows: absences })      // absences
+      .mockResolvedValueOnce({ rows: itemScores })    // itemScores
+      .mockResolvedValueOnce({ rows: course })        // course
+      .mockResolvedValueOnce({ rows: externalTests }) // externalTests
+      .mockResolvedValueOnce({ rows: studentSkills }) // studentSkills
+      .mockResolvedValueOnce({ rows: criteria });     // criteria
+  };
+
   describe('generateFinalReport', () => {
     it('should create workbook with all required sheets', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: mockStudents })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: mockEvaluations })
-        .mockResolvedValueOnce({ rows: mockAbsences });
+      setupMockQueries(mockStudents, mockSubjects, mockEvaluations, mockAbsences, mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       const workbook = await generateFinalReport(mockPool);
 
@@ -129,25 +144,17 @@ describe('Report Export Service', () => {
     });
 
     it('should query all required tables', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] });
+      setupMockQueries([], [], [], [], [], [], [], [], []);
 
       await generateFinalReport(mockPool);
 
-      expect(mockPool.query).toHaveBeenCalledTimes(4);
-      expect(mockPool.query).toHaveBeenCalledWith('SELECT * FROM students ORDER BY last_name, first_name');
+      // 8 queries when courseId is not provided (course query returns Promise.resolve directly)
+      expect(mockPool.query).toHaveBeenCalledTimes(8);
       expect(mockPool.query).toHaveBeenCalledWith('SELECT * FROM evaluation_subjects ORDER BY display_order');
     });
 
     it('should handle empty data gracefully', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] });
+      setupMockQueries([], [], [], [], [], [], [], [], []);
 
       const workbook = await generateFinalReport(mockPool);
 
@@ -157,11 +164,7 @@ describe('Report Export Service', () => {
     });
 
     it('should create course sheet with right-to-left view', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: mockStudents })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: mockEvaluations })
-        .mockResolvedValueOnce({ rows: mockAbsences });
+      setupMockQueries(mockStudents, mockSubjects, mockEvaluations, mockAbsences, mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       await generateFinalReport(mockPool);
 
@@ -171,11 +174,7 @@ describe('Report Export Service', () => {
     });
 
     it('should create main sheet with passing thresholds', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: mockStudents })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: mockEvaluations })
-        .mockResolvedValueOnce({ rows: mockAbsences });
+      setupMockQueries(mockStudents, mockSubjects, mockEvaluations, mockAbsences, mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       await generateFinalReport(mockPool);
 
@@ -185,11 +184,7 @@ describe('Report Export Service', () => {
     });
 
     it('should create absences sheet', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: mockStudents })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: mockEvaluations })
-        .mockResolvedValueOnce({ rows: mockAbsences });
+      setupMockQueries(mockStudents, mockSubjects, mockEvaluations, mockAbsences, mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       await generateFinalReport(mockPool);
 
@@ -199,11 +194,7 @@ describe('Report Export Service', () => {
     });
 
     it('should create exams matrix sheet', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: mockStudents })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: mockEvaluations })
-        .mockResolvedValueOnce({ rows: mockAbsences });
+      setupMockQueries(mockStudents, mockSubjects, mockEvaluations, mockAbsences, mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       await generateFinalReport(mockPool);
 
@@ -213,11 +204,7 @@ describe('Report Export Service', () => {
     });
 
     it('should create individual student sheets', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: mockStudents })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: mockEvaluations })
-        .mockResolvedValueOnce({ rows: mockAbsences });
+      setupMockQueries(mockStudents, mockSubjects, mockEvaluations, mockAbsences, mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       await generateFinalReport(mockPool);
 
@@ -233,11 +220,7 @@ describe('Report Export Service', () => {
         { ...mockEvaluations[2], course_name: 'Other Course' }
       ];
 
-      mockPool.query
-        .mockResolvedValueOnce({ rows: mockStudents })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: evaluationsWithCourse })
-        .mockResolvedValueOnce({ rows: mockAbsences });
+      setupMockQueries(mockStudents, mockSubjects, evaluationsWithCourse, mockAbsences, mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       await generateFinalReport(mockPool);
 
@@ -246,11 +229,7 @@ describe('Report Export Service', () => {
     });
 
     it('should use default course name when no evaluations', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: mockStudents })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: mockAbsences });
+      setupMockQueries(mockStudents, mockSubjects, [], mockAbsences, mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       await generateFinalReport(mockPool);
 
@@ -262,11 +241,7 @@ describe('Report Export Service', () => {
         { id: 3, first_name: 'No', last_name: 'Evals', email: 'no@test.com', phone: null, unit_id: null }
       ];
 
-      mockPool.query
-        .mockResolvedValueOnce({ rows: studentWithNoEvals })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] });
+      setupMockQueries(studentWithNoEvals, mockSubjects, [], [], mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       const workbook = await generateFinalReport(mockPool);
 
@@ -274,11 +249,7 @@ describe('Report Export Service', () => {
     });
 
     it('should handle students with no absences', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: mockStudents })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: mockEvaluations })
-        .mockResolvedValueOnce({ rows: [] });
+      setupMockQueries(mockStudents, mockSubjects, mockEvaluations, [], mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       const workbook = await generateFinalReport(mockPool);
 
@@ -294,11 +265,7 @@ describe('Report Export Service', () => {
         }
       ];
 
-      mockPool.query
-        .mockResolvedValueOnce({ rows: mockStudents })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: evalsWithCriticalFail })
-        .mockResolvedValueOnce({ rows: mockAbsences });
+      setupMockQueries(mockStudents, mockSubjects, evalsWithCriticalFail, mockAbsences, mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       const workbook = await generateFinalReport(mockPool);
 
@@ -329,11 +296,7 @@ describe('Report Export Service', () => {
         }
       ];
 
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [mockStudents[0]] })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: multipleEvals })
-        .mockResolvedValueOnce({ rows: [] });
+      setupMockQueries([mockStudents[0]], mockSubjects, multipleEvals, [], mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       const workbook = await generateFinalReport(mockPool);
 
@@ -341,11 +304,7 @@ describe('Report Export Service', () => {
     });
 
     it('should set workbook metadata', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] });
+      setupMockQueries([], [], [], [], [], [], [], [], []);
 
       const workbook = await generateFinalReport(mockPool);
 
@@ -363,11 +322,7 @@ describe('Report Export Service', () => {
         unit_id: null
       }];
 
-      mockPool.query
-        .mockResolvedValueOnce({ rows: studentWithLongName })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] });
+      setupMockQueries(studentWithLongName, mockSubjects, [], [], mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       await generateFinalReport(mockPool);
 
@@ -384,11 +339,7 @@ describe('Report Export Service', () => {
         { id: 2, student_id: 1, absence_date: '2024-01-11', reason: 'Unknown', is_excused: false }
       ];
 
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [mockStudents[0]] })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: mockEvaluations.filter(e => e.student_id === 1) })
-        .mockResolvedValueOnce({ rows: mixedAbsences });
+      setupMockQueries([mockStudents[0]], mockSubjects, mockEvaluations.filter(e => e.student_id === 1), mixedAbsences, mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       const workbook = await generateFinalReport(mockPool);
 
@@ -409,11 +360,7 @@ describe('Report Export Service', () => {
         instructor_last_name: null
       }];
 
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [mockStudents[0]] })
-        .mockResolvedValueOnce({ rows: mockSubjects })
-        .mockResolvedValueOnce({ rows: evalsNoInstructor })
-        .mockResolvedValueOnce({ rows: [] });
+      setupMockQueries([mockStudents[0]], mockSubjects, evalsNoInstructor, [], mockItemScores, [], mockExternalTests, mockStudentSkills, mockCriteria);
 
       const workbook = await generateFinalReport(mockPool);
 

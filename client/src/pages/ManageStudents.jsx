@@ -433,9 +433,12 @@ function ManageStudents() {
     if (!tests || tests.length === 0) return null;
 
     const scores = tests.map(test => {
-      const score = studentTestScores.find(s => s.test_type_id === test.id);
-      return score?.score;
-    }).filter(s => s !== null && s !== undefined);
+      const scoreRecord = studentTestScores.find(s => s.test_type_id === test.id);
+      if (scoreRecord && scoreRecord.score !== null && scoreRecord.score !== undefined) {
+        return parseFloat(scoreRecord.score);
+      }
+      return null;
+    }).filter(s => s !== null && !isNaN(s));
 
     if (scores.length === 0) return null;
     const avg = scores.reduce((a, b) => a + b, 0) / scores.length;

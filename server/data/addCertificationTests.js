@@ -38,8 +38,8 @@ const testStructure = {
       display_order: 3,
       tests: [
         { code: 'assistant_intro', name_he: 'הכרות', score_type: 'pass_fail', display_order: 1 },
-        { code: 'assistant_briefing', name_he: 'תדריך', score_type: 'pass_fail', display_order: 2 },
-        { code: 'assistant_equipment', name_he: 'ציוד', score_type: 'pass_fail', display_order: 3 },
+        { code: 'assistant_briefing', name_he: 'תדריך', score_type: 'percentage', display_order: 2 },
+        { code: 'assistant_equipment', name_he: 'ציוד', score_type: 'percentage', display_order: 3 },
         { code: 'assistant_rescue', name_he: 'הצלה', score_type: 'pass_fail', display_order: 4 },
         { code: 'assistant_extra_1', name_he: 'נוסף 1', score_type: 'pass_fail', display_order: 5 },
         { code: 'assistant_extra_2', name_he: 'נוסף 2', score_type: 'pass_fail', display_order: 6 }

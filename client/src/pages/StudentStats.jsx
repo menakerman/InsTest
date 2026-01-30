@@ -88,19 +88,13 @@ function StudentStats() {
     try {
       let scoreData = { test_type_id: testTypeId };
 
-      if (scoreType === 'pass_fail') {
-        scoreData.passed = value === 'עבר' || value === '1' || value === 'true';
-        scoreData.score = scoreData.passed ? 100 : 0;
-      } else if (scoreType === 'percentage') {
-        const numValue = parseFloat(value);
-        if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-          scoreData.score = numValue;
-          scoreData.passed = numValue >= 60;
-        } else {
-          return;
-        }
-      } else if (scoreType === 'evaluation') {
-        scoreData.passed = value === 'עבר' || value === '1' || value === 'true';
+      // All types now use numeric input
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+        scoreData.score = Math.round(numValue);
+        scoreData.passed = numValue >= 60;
+      } else {
+        return;
       }
 
       await saveStudentTests(studentId, [scoreData]);
@@ -364,50 +358,33 @@ function StudentStats() {
       const key = `${studentId}-${test.id}`;
       const isSaving = savingScores[key];
 
-      if (test.score_type === 'percentage') {
-        const currentValue = scoreDisplay.display === '-' ? '' : scoreDisplay.display.replace('%', '');
-        const editValue = getEditingValue(studentId, test.id, currentValue);
-        return (
-          <>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              className={`test-score-input ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
-              value={editValue}
-              disabled={isSaving}
-              onChange={(e) => handleScoreChange(studentId, test.id, test.score_type, e.target.value)}
-              onBlur={() => handleScoreBlur(studentId, test.id, test.score_type)}
-              onClick={(e) => e.stopPropagation()}
-            />
-            {!editValue && <span className="empty-score-indicator">-</span>}
-          </>
-        );
-      } else {
-        // pass_fail or evaluation type
-        const currentValue = scoreDisplay.display === '-' ? '' : (scoreDisplay.passed ? 'עבר' : 'לא עבר');
-        const editValue = getEditingValue(studentId, test.id, currentValue);
-        return (
-          <>
-            <select
-              className={`test-score-select ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
-              value={editValue}
-              disabled={isSaving}
-              onChange={(e) => {
-                handleScoreChange(studentId, test.id, test.score_type, e.target.value);
-                // Auto-save on select change
-                setTimeout(() => handleScoreBlur(studentId, test.id, test.score_type), 100);
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <option value=""></option>
-              <option value="עבר">עבר</option>
-              <option value="לא עבר">לא עבר</option>
-            </select>
-            {!editValue && <span className="empty-score-indicator">-</span>}
-          </>
-        );
+      // All fields use number input
+      let currentValue = '';
+      if (scoreDisplay.display !== '-') {
+        // Extract number and round it
+        const numMatch = scoreDisplay.display.match(/[\d.]+/);
+        if (numMatch) {
+          currentValue = Math.round(parseFloat(numMatch[0])).toString();
+        }
       }
+      const editValue = getEditingValue(studentId, test.id, currentValue);
+
+      return (
+        <>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            className={`test-score-input ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
+            value={editValue}
+            disabled={isSaving}
+            onChange={(e) => handleScoreChange(studentId, test.id, test.score_type, e.target.value)}
+            onBlur={() => handleScoreBlur(studentId, test.id, test.score_type)}
+            onClick={(e) => e.stopPropagation()}
+          />
+          {!editValue && <span className="empty-score-indicator">-</span>}
+        </>
+      );
     };
 
     return (

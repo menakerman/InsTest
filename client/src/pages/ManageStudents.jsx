@@ -534,14 +534,18 @@ function ManageStudents() {
           const checkboxTests = category.tests?.filter(t => t.score_type === 'pass_fail') || [];
           const numericTests = category.tests?.filter(t => t.score_type === 'percentage') || [];
 
+          // Check if this is the "מבחני מדריך עוזר" category
+          const isAssistantInstructorTests = category.category_code === 'assistant_instructor_tests' || category.category_name === 'מבחני מדריך עוזר';
+
           return (
             <div key={category.category_id} className="certification-category-block">
               <div className="certification-row">
                 <span className="category-label">{category.category_name}:</span>
                 <div className="category-tests-grouped">
-                  {/* Checkbox tests row */}
+                  {/* Checkbox tests row (מים for assistant instructor tests) */}
                   {checkboxTests.length > 0 && (
                     <div className="category-tests-inline">
+                      {isAssistantInstructorTests && <span className="test-location-label">מים:</span>}
                       {checkboxTests.map((test, idx) => {
                         const scoreDisplay = getTestScoreDisplay(test.id, test.score_type);
                         const key = `${test.id}`;
@@ -563,9 +567,10 @@ function ManageStudents() {
                       })}
                     </div>
                   )}
-                  {/* Numeric tests row */}
+                  {/* Numeric tests row (כיתה for assistant instructor tests) */}
                   {numericTests.length > 0 && (
                     <div className="category-tests-inline">
+                      {isAssistantInstructorTests && <span className="test-location-label">כיתה:</span>}
                       {numericTests.map((test, idx) => {
                         const scoreDisplay = getTestScoreDisplay(test.id, test.score_type);
                         const key = `${test.id}`;
@@ -831,8 +836,23 @@ function ManageStudents() {
 
       {showExternalTestsModal && selectedStudent && (
         <div className="modal-overlay" onClick={closeExternalTestsModal}>
-          <div className="modal modal-large" onClick={e => e.stopPropagation()}>
+          <div className="modal modal-large modal-student-details" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={closeExternalTestsModal} type="button">
+              ✕
+            </button>
             <div className="student-details-header">
+              <div className="student-details-info">
+                <h3>{selectedStudent.first_name} {selectedStudent.last_name}</h3>
+                {selectedStudent.id_number && <p className="student-id-number">ת.ז.: {selectedStudent.id_number}</p>}
+                {selectedStudent.courses && selectedStudent.courses.length > 0 && (
+                  <>
+                    <p className="student-course-type">
+                      {selectedStudent.courses[0].course_type?.replace(/_/g, ' ')}
+                    </p>
+                    <p className="student-course-name">קורס : {selectedStudent.courses[0].name}</p>
+                  </>
+                )}
+              </div>
               <div className="student-photo-section">
                 {selectedStudent.photo_url ? (
                   <img
@@ -862,24 +882,10 @@ function ManageStudents() {
                       onClick={() => photoInputRef.current?.click()}
                       disabled={photoUploading}
                     >
-                      {photoUploading ? 'מעלה...' : (selectedStudent.photo_url ? 'החלף תמונה' : 'העלה תמונה')}
+                      {photoUploading ? 'מעלה...' : 'העלה תמונה'}
                     </button>
-                    {selectedStudent.photo_url && (
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-danger"
-                        onClick={handlePhotoDelete}
-                        disabled={photoUploading}
-                      >
-                        מחק
-                      </button>
-                    )}
                   </div>
                 )}
-              </div>
-              <div className="student-details-info">
-                <h3>{selectedStudent.first_name} {selectedStudent.last_name}</h3>
-                {selectedStudent.id_number && <p className="student-id-number">ת.ז.: {selectedStudent.id_number}</p>}
               </div>
             </div>
             {externalTestsLoading ? (
@@ -899,7 +905,7 @@ function ManageStudents() {
                 )}
 
 
-                <div className="form-actions">
+                <div className="form-actions form-actions-spread">
                   <button type="button" className="btn btn-secondary" onClick={closeExternalTestsModal}>
                     {canEdit ? 'ביטול' : 'סגור'}
                   </button>

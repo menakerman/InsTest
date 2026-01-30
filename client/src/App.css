@@ -223,14 +223,39 @@ body {
   overflow-y: auto;
 }
 
+.modal.modal-student-details {
+  position: relative;
+  padding-top: 2.5rem;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.modal-close-btn:hover {
+  color: #343a40;
+}
+
 /* Student Details Header with Photo */
 .student-details-header {
   display: flex;
   gap: 1.5rem;
   align-items: flex-start;
+  justify-content: space-between;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid #eee;
+  flex-direction: row-reverse;
 }
 
 .student-photo-section {
@@ -284,6 +309,7 @@ body {
 
 .student-details-info {
   flex: 1;
+  text-align: right;
 }
 
 .student-details-info h3 {
@@ -294,6 +320,19 @@ body {
 
 .student-id-number {
   color: #6c757d;
+  font-size: 0.95rem;
+  margin: 0 0 0.25rem 0;
+}
+
+.student-course-type {
+  color: #0077b6;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0.5rem 0 0.25rem 0;
+}
+
+.student-course-name {
+  color: #495057;
   font-size: 0.95rem;
   margin: 0;
 }
@@ -355,6 +394,10 @@ body {
   justify-content: flex-start;
   gap: 0.5rem;
   margin-top: 1.5rem;
+}
+
+.form-actions.form-actions-spread {
+  justify-content: space-between;
 }
 
 .form-hint {
@@ -2672,6 +2715,12 @@ body {
 
 .test-name-inline {
   color: #4a5568;
+}
+
+.test-location-label {
+  font-weight: 600;
+  color: #495057;
+  margin-left: 0.25rem;
 }
 
 .test-score-inline {

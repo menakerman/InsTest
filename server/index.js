@@ -812,6 +812,50 @@ app.get('/api/evaluations/:id', authenticateToken, requireRole('admin', 'madar',
   }
 });
 
+// Mapping from lesson names to test type codes
+const lessonToTestTypeMapping = {
+  'קמס': 'water_cmas',
+  'קמס 1': 'water_cmas',
+  'סקובה 1': 'water_scuba_1',
+  'סקובה 3': 'water_scuba_3',
+  'סקובה 5': 'water_scuba_5',
+  // מבחני כיתה
+  'כללי התנהגות': 'classroom_behavior',
+  'סיכוני צלילה': 'classroom_risks',
+  'הרצאה חופשית': 'classroom_free_lecture',
+};
+
+// Helper function to link evaluation to test score
+async function linkEvaluationToTestScore(client, studentId, lessonName, evaluationId, percentageScore, isPassing) {
+  if (!lessonName) return;
+
+  const testTypeCode = lessonToTestTypeMapping[lessonName];
+  if (!testTypeCode) return;
+
+  // Find the test type
+  const testTypeResult = await client.query(
+    'SELECT id FROM test_types WHERE code = $1',
+    [testTypeCode]
+  );
+
+  if (testTypeResult.rows.length === 0) return;
+
+  const testTypeId = testTypeResult.rows[0].id;
+
+  // Insert or update the test score with evaluation link
+  await client.query(`
+    INSERT INTO student_test_scores (student_id, test_type_id, score, passed, evaluation_id, test_date)
+    VALUES ($1, $2, $3, $4, $5, CURRENT_DATE)
+    ON CONFLICT (student_id, test_type_id)
+    DO UPDATE SET
+      score = EXCLUDED.score,
+      passed = EXCLUDED.passed,
+      evaluation_id = EXCLUDED.evaluation_id,
+      test_date = EXCLUDED.test_date,
+      updated_at = CURRENT_TIMESTAMP
+  `, [studentId, testTypeId, Math.round(percentageScore), isPassing, evaluationId]);
+}
+
 // Create evaluation with item scores
 app.post('/api/evaluations', authenticateToken, requireRole('admin', 'madar', 'instructor', 'tester'), async (req, res) => {
   const client = await pool.connect();
@@ -873,6 +917,11 @@ app.post('/api/evaluations', authenticateToken, requireRole('admin', 'madar', 'i
          VALUES ($1, $2, $3)`,
         [evaluationId, item.criterion_id, item.score]
       );
+    }
+
+    // If this is a final test, link to student_test_scores
+    if (is_final_test && lesson_name) {
+      await linkEvaluationToTestScore(client, student_id, lesson_name, evaluationId, percentage_score, is_passing);
     }
 
     await client.query('COMMIT');
@@ -968,6 +1017,11 @@ app.put('/api/evaluations/:id', authenticateToken, requireRole('admin', 'madar',
           [id, item.criterion_id, item.score]
         );
       }
+    }
+
+    // If this is a final test, link to student_test_scores
+    if (is_final_test && lesson_name) {
+      await linkEvaluationToTestScore(client, student_id, lesson_name, parseInt(id), percentage_score, is_passing);
     }
 
     await client.query('COMMIT');

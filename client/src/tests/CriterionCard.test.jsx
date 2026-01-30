@@ -36,10 +36,14 @@ describe('CriterionCard', () => {
     expect(screen.getByText('ביצוע תרגיל')).toBeInTheDocument();
   });
 
-  it('should render criterion description when provided', () => {
+  it('should render criterion description when provided for quality sections', () => {
+    const qualityCriterion = {
+      ...regularCriterion,
+      max_score: 5
+    };
     render(
       <CriterionCard
-        criterion={regularCriterion}
+        criterion={qualityCriterion}
         score={null}
         onScoreChange={mockOnScoreChange}
       />
@@ -70,7 +74,7 @@ describe('CriterionCard', () => {
       />
     );
 
-    expect(screen.getByText('*')).toBeInTheDocument();
+    expect(screen.getByText('כישלון בציון 1')).toBeInTheDocument();
   });
 
   it('should not show critical badge for regular criteria', () => {
@@ -82,7 +86,7 @@ describe('CriterionCard', () => {
       />
     );
 
-    expect(screen.queryByText('*')).not.toBeInTheDocument();
+    expect(screen.queryByText('כישלון בציון 1')).not.toBeInTheDocument();
   });
 
   it('should apply critical class for critical criteria', () => {
@@ -135,7 +139,7 @@ describe('CriterionCard', () => {
       />
     );
 
-    expect(screen.getByText('ציון 1 בפריט קריטי - המבחן נכשל')).toBeInTheDocument();
+    expect(screen.getByText('ציון 1 בפריט קריטי - המבחן נכשל אוטומטית')).toBeInTheDocument();
   });
 
   it('should not show critical fail warning for non-critical item with score 1', () => {

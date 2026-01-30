@@ -2657,6 +2657,13 @@ body {
   font-size: 0.8rem;
   text-align: center;
   background: white;
+  -moz-appearance: textfield;
+}
+
+.test-score-input::-webkit-outer-spin-button,
+.test-score-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .test-score-input:focus {

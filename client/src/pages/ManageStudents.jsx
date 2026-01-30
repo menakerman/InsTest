@@ -428,6 +428,52 @@ function ManageStudents() {
     };
   };
 
+  // Calculate average for מבחנים עיוניים category
+  const calculateTheoryTestsAverage = (tests) => {
+    if (!tests || tests.length === 0) return null;
+
+    const scores = tests.map(test => {
+      const score = studentTestScores.find(s => s.test_type_id === test.id);
+      return score?.score;
+    }).filter(s => s !== null && s !== undefined);
+
+    if (scores.length === 0) return null;
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    return avg.toFixed(1);
+  };
+
+  // Calculate recommendations for improving מבחנים עיוניים average
+  const calculateTheoryTestsRecommendations = (tests) => {
+    if (!tests || tests.length === 0) return [];
+
+    const testNames = {
+      'ext_physics': 'פיזיקה',
+      'ext_physiology': 'פיזיולוגיה',
+      'ext_eye_contact': 'קשר עין',
+      'ext_equipment': 'ציוד',
+      'ext_decompression': 'דקומפרסיה'
+    };
+
+    const scoresWithTests = tests.map(test => {
+      const score = studentTestScores.find(s => s.test_type_id === test.id);
+      return {
+        testCode: test.code,
+        testName: test.name_he || testNames[test.code] || test.code,
+        currentScore: score?.score ?? null
+      };
+    }).filter(s => s.currentScore !== null && s.currentScore < 100);
+
+    // Sort by current score (lowest first) to prioritize improvements
+    scoresWithTests.sort((a, b) => a.currentScore - b.currentScore);
+
+    return scoresWithTests.slice(0, 3).map(item => ({
+      testName: item.testName,
+      currentScore: Math.round(item.currentScore),
+      targetScore: Math.min(100, Math.round(item.currentScore) + 10),
+      improvement: 10
+    }));
+  };
+
   const renderCertificationSections = (courseType) => {
     const structure = testStructures[courseType];
     if (!structure || structure.length === 0) {
@@ -443,38 +489,84 @@ function ManageStudents() {
 
     return (
       <div className="certification-sections-compact">
-        {structure.map(category => (
-          <div key={category.category_id} className="certification-row">
-            <span className="category-label">{category.category_name}:</span>
-            <div className="category-tests-inline">
-              {category.tests && category.tests.map((test, idx) => {
-                const scoreDisplay = getTestScoreDisplay(test.id, test.score_type);
-                const key = `${test.id}`;
-                const isSaving = savingScores[key];
-                const editValue = getCertEditingValue(test.id, scoreDisplay.value);
+        {structure.map(category => {
+          const isTheoryTests = category.category_code === 'instructor_external_tests' || category.category_name === 'מבחנים עיוניים';
+          const theoryAverage = isTheoryTests ? calculateTheoryTestsAverage(category.tests) : null;
+          const theoryRecommendations = isTheoryTests && theoryAverage !== null && parseFloat(theoryAverage) < EXTERNAL_TESTS_PASSING_THRESHOLD
+            ? calculateTheoryTestsRecommendations(category.tests)
+            : [];
 
-                return (
-                  <span key={test.id} className="test-item-inline">
-                    <span className="test-name-inline">{test.name_he}</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      className={`test-score-input ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
-                      value={editValue}
-                      disabled={isSaving || !canEdit}
-                      onChange={(e) => handleCertScoreChange(test.id, e.target.value)}
-                      onBlur={() => handleCertScoreBlur(test.id)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    {!editValue && <span className="empty-score-indicator">-</span>}
-                    {idx < category.tests.length - 1 && <span className="test-separator">|</span>}
-                  </span>
-                );
-              })}
+          return (
+            <div key={category.category_id} className="certification-category-block">
+              <div className="certification-row">
+                <span className="category-label">{category.category_name}:</span>
+                <div className="category-tests-inline">
+                  {category.tests && category.tests.map((test, idx) => {
+                    const scoreDisplay = getTestScoreDisplay(test.id, test.score_type);
+                    const key = `${test.id}`;
+                    const isSaving = savingScores[key];
+                    const editValue = getCertEditingValue(test.id, scoreDisplay.value);
+
+                    return (
+                      <span key={test.id} className="test-item-inline">
+                        <span className="test-name-inline">{test.name_he}</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          className={`test-score-input ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
+                          value={editValue}
+                          disabled={isSaving || !canEdit}
+                          onChange={(e) => handleCertScoreChange(test.id, e.target.value)}
+                          onBlur={() => handleCertScoreBlur(test.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        {!editValue && <span className="empty-score-indicator">-</span>}
+                        {idx < category.tests.length - 1 && <span className="test-separator">|</span>}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Average and recommendations for מבחנים עיוניים */}
+              {isTheoryTests && theoryAverage !== null && (
+                <div className="theory-tests-summary">
+                  <div className="external-tests-average">
+                    <span className="average-label">ממוצע:</span>
+                    <span className="average-value">{theoryAverage}%</span>
+                  </div>
+
+                  {selectedStudent && isInInstructorCourse(selectedStudent.courses) && (
+                    <div className="external-tests-status-section">
+                      <div className="status-row">
+                        <span className="status-label">סטטוס:</span>
+                        <span className={`status-badge external-tests-status ${getExternalTestsStatusColor(parseFloat(theoryAverage))}`}>
+                          {getExternalTestsStatusText(parseFloat(theoryAverage))}
+                        </span>
+                        <span className="threshold-indicator">סף מעבר: {EXTERNAL_TESTS_PASSING_THRESHOLD}%</span>
+                      </div>
+
+                      {theoryRecommendations.length > 0 && (
+                        <div className="retake-recommendations">
+                          <h5>המלצות לשיפור הממוצע:</h5>
+                          {theoryRecommendations.map((rec, index) => (
+                            <div key={index} className="recommendation-item">
+                              <span className="recommendation-bullet">•</span>
+                              <span className="recommendation-text">
+                                {rec.testName}: שפר מ-{rec.currentScore} ל-{rec.targetScore} (+{rec.improvement} נקודות)
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
@@ -736,145 +828,6 @@ function ManageStudents() {
                         {renderCertificationSections(courseType)}
                       </div>
                     ))}
-                  </div>
-                )}
-
-                <h4 className="section-title">מבחנים חיצוניים</h4>
-                <div className="external-tests-grid">
-                  <div className="form-group">
-                    <label htmlFor="physics_score">פיזיקה</label>
-                    <div className={`score-input-wrapper ${externalTestsData.physics_score !== '' && parseFloat(externalTestsData.physics_score) < 60 ? 'score-failing' : ''}`}>
-                      <input
-                        type="number"
-                        id="physics_score"
-                        name="physics_score"
-                        value={externalTestsData.physics_score}
-                        onChange={handleExternalTestChange}
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        placeholder="0-100"
-                        disabled={!canEdit}
-                      />
-                      <span className="score-suffix">%</span>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="physiology_score">פיזיולוגיה</label>
-                    <div className={`score-input-wrapper ${externalTestsData.physiology_score !== '' && parseFloat(externalTestsData.physiology_score) < 60 ? 'score-failing' : ''}`}>
-                      <input
-                        type="number"
-                        id="physiology_score"
-                        name="physiology_score"
-                        value={externalTestsData.physiology_score}
-                        onChange={handleExternalTestChange}
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        placeholder="0-100"
-                        disabled={!canEdit}
-                      />
-                      <span className="score-suffix">%</span>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="eye_contact_score">קשר עין</label>
-                    <div className={`score-input-wrapper ${externalTestsData.eye_contact_score !== '' && parseFloat(externalTestsData.eye_contact_score) < 60 ? 'score-failing' : ''}`}>
-                      <input
-                        type="number"
-                        id="eye_contact_score"
-                        name="eye_contact_score"
-                        value={externalTestsData.eye_contact_score}
-                        onChange={handleExternalTestChange}
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        placeholder="0-100"
-                        disabled={!canEdit}
-                      />
-                      <span className="score-suffix">%</span>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="equipment_score">ציוד</label>
-                    <div className={`score-input-wrapper ${externalTestsData.equipment_score !== '' && parseFloat(externalTestsData.equipment_score) < 60 ? 'score-failing' : ''}`}>
-                      <input
-                        type="number"
-                        id="equipment_score"
-                        name="equipment_score"
-                        value={externalTestsData.equipment_score}
-                        onChange={handleExternalTestChange}
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        placeholder="0-100"
-                        disabled={!canEdit}
-                      />
-                      <span className="score-suffix">%</span>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="decompression_score">דקומפרסיה</label>
-                    <div className={`score-input-wrapper ${externalTestsData.decompression_score !== '' && parseFloat(externalTestsData.decompression_score) < 60 ? 'score-failing' : ''}`}>
-                      <input
-                        type="number"
-                        id="decompression_score"
-                        name="decompression_score"
-                        value={externalTestsData.decompression_score}
-                        onChange={handleExternalTestChange}
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        placeholder="0-100"
-                        disabled={!canEdit}
-                      />
-                      <span className="score-suffix">%</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="external-tests-average">
-                  <span className="average-label">ממוצע:</span>
-                  <span className="average-value">
-                    {calculateAverageScore() !== null ? `${calculateAverageScore()}%` : '-'}
-                  </span>
-                </div>
-
-                {/* External Tests Status Section - Only for Instructor Courses */}
-                {selectedStudent && isInInstructorCourse(selectedStudent.courses) && calculateAverageScore() !== null && (
-                  <div className="external-tests-status-section">
-                    <div className="status-row">
-                      <span className="status-label">סטטוס:</span>
-                      <span className={`status-badge external-tests-status ${getExternalTestsStatusColor(parseFloat(calculateAverageScore()))}`}>
-                        {getExternalTestsStatusText(parseFloat(calculateAverageScore()))}
-                      </span>
-                      <span className="threshold-indicator">סף מעבר: {EXTERNAL_TESTS_PASSING_THRESHOLD}%</span>
-                    </div>
-
-                    {parseFloat(calculateAverageScore()) < EXTERNAL_TESTS_PASSING_THRESHOLD && (
-                      <div className="retake-recommendations">
-                        <h5>המלצות לשיפור הממוצע:</h5>
-                        {calculateRetakeRecommendations(externalTestsData).map((rec, index) => (
-                          <div key={index} className="recommendation-item">
-                            <span className="recommendation-bullet">•</span>
-                            <span className="recommendation-text">
-                              {rec.testName}: שפר מ-{rec.currentScore} ל-{rec.targetScore} (+{rec.improvement} נקודות)
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Info message for non-instructor courses */}
-                {selectedStudent && !isInInstructorCourse(selectedStudent.courses) && calculateAverageScore() !== null && (
-                  <div className="external-tests-info-message">
-                    סטטוס מעבר/נכשל מוצג רק עבור קורסי מדריך
                   </div>
                 )}
 

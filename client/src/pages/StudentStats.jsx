@@ -668,6 +668,16 @@ function StudentStats() {
                         <span className="detail-value">{selectedEvaluation.lesson_name}</span>
                       </div>
                     )}
+                    {selectedEvaluation.is_final_test !== undefined && selectedEvaluation.is_final_test !== null && (
+                      <div className="detail-field">
+                        <span className="detail-label">סוג:</span>
+                        <span className="detail-value">
+                          <span className={`evaluation-type-badge ${selectedEvaluation.is_final_test ? 'test' : 'training'}`}>
+                            {selectedEvaluation.is_final_test ? 'מבחן' : 'תרגול'}
+                          </span>
+                        </span>
+                      </div>
+                    )}
                     <div className="detail-field">
                       <span className="detail-label">תאריך:</span>
                       <span className="detail-value">{formatDate(selectedEvaluation.evaluation_date)}</span>

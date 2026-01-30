@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getEvaluations, getEvaluation, getStudents, getCourses, exportFinalReport } from '../utils/api';
+import { getEvaluations, getEvaluation, getStudents, getCourses, exportFinalReport, getTestStructure, getStudentTests, saveStudentTests } from '../utils/api';
 import { formatPercentage, getStatusColor, getStatusText, SCORE_VALUES } from '../utils/scoreCalculations';
 
 function StudentStats() {
@@ -15,6 +15,11 @@ function StudentStats() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [exportingCourseId, setExportingCourseId] = useState(null);
   const [sortConfig, setSortConfig] = useState({ field: 'date', direction: 'desc' });
+  const [testStructures, setTestStructures] = useState({});
+  const [studentTestScores, setStudentTestScores] = useState({});
+  const [loadingStudentTests, setLoadingStudentTests] = useState({});
+  const [editingScores, setEditingScores] = useState({});
+  const [savingScores, setSavingScores] = useState({});
 
   useEffect(() => {
     fetchData();
@@ -31,6 +36,20 @@ function StudentStats() {
       setEvaluations(evaluationsData);
       setStudents(studentsData);
       setCourses(coursesData);
+
+      // Pre-load test structures for unique course types
+      const courseTypes = [...new Set(coursesData.map(c => c.course_type).filter(Boolean))];
+      const structures = {};
+      for (const courseType of courseTypes) {
+        try {
+          structures[courseType] = await getTestStructure(courseType);
+        } catch (err) {
+          console.error(`Failed to load test structure for ${courseType}:`, err);
+          structures[courseType] = [];
+        }
+      }
+      setTestStructures(structures);
+
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -39,7 +58,75 @@ function StudentStats() {
     }
   };
 
+  const loadStudentTestScores = async (studentId) => {
+    if (studentTestScores[studentId] || loadingStudentTests[studentId]) return;
+
+    setLoadingStudentTests(prev => ({ ...prev, [studentId]: true }));
+    try {
+      const scores = await getStudentTests(studentId);
+      setStudentTestScores(prev => ({ ...prev, [studentId]: scores }));
+    } catch (err) {
+      console.error(`Failed to load test scores for student ${studentId}:`, err);
+      setStudentTestScores(prev => ({ ...prev, [studentId]: [] }));
+    } finally {
+      setLoadingStudentTests(prev => ({ ...prev, [studentId]: false }));
+    }
+  };
+
+  const handleScoreChange = (studentId, testTypeId, scoreType, value) => {
+    const key = `${studentId}-${testTypeId}`;
+    setEditingScores(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleScoreBlur = async (studentId, testTypeId, scoreType) => {
+    const key = `${studentId}-${testTypeId}`;
+    const value = editingScores[key];
+
+    if (value === undefined || value === '') return;
+
+    setSavingScores(prev => ({ ...prev, [key]: true }));
+    try {
+      let scoreData = { test_type_id: testTypeId };
+
+      if (scoreType === 'pass_fail') {
+        scoreData.passed = value === 'עבר' || value === '1' || value === 'true';
+        scoreData.score = scoreData.passed ? 100 : 0;
+      } else if (scoreType === 'percentage') {
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+          scoreData.score = numValue;
+          scoreData.passed = numValue >= 60;
+        } else {
+          return;
+        }
+      } else if (scoreType === 'evaluation') {
+        scoreData.passed = value === 'עבר' || value === '1' || value === 'true';
+      }
+
+      await saveStudentTests(studentId, [scoreData]);
+
+      // Refresh scores
+      const scores = await getStudentTests(studentId);
+      setStudentTestScores(prev => ({ ...prev, [studentId]: scores }));
+      setEditingScores(prev => {
+        const newState = { ...prev };
+        delete newState[key];
+        return newState;
+      });
+    } catch (err) {
+      console.error('Failed to save score:', err);
+    } finally {
+      setSavingScores(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const getEditingValue = (studentId, testTypeId, currentValue) => {
+    const key = `${studentId}-${testTypeId}`;
+    return editingScores[key] !== undefined ? editingScores[key] : currentValue;
+  };
+
   const formatDate = (dateString) => {
+    if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('he-IL', {
       year: 'numeric',
       month: 'short',
@@ -66,6 +153,7 @@ function StudentStats() {
     courseMap.set(0, {
       id: 0,
       name: 'ללא קורס',
+      course_type: null,
       students: []
     });
 
@@ -74,6 +162,8 @@ function StudentStats() {
       courseMap.set(course.id, {
         id: course.id,
         name: course.name,
+        course_type: course.course_type,
+        course_type_label: course.course_type_label,
         students: []
       });
     });
@@ -120,6 +210,9 @@ function StudentStats() {
   };
 
   const toggleStudent = (studentId) => {
+    if (expandedStudent !== studentId) {
+      loadStudentTestScores(studentId);
+    }
     setExpandedStudent(expandedStudent === studentId ? null : studentId);
   };
 
@@ -209,6 +302,136 @@ function StudentStats() {
     return scoreValue ? scoreValue.label : '';
   };
 
+  // Get test score display for a student
+  const getTestScoreDisplay = (studentId, testTypeId, scoreType) => {
+    const scores = studentTestScores[studentId] || [];
+    const score = scores.find(s => s.test_type_id === testTypeId);
+
+    if (!score) {
+      return { display: '-', color: '#999', passed: null };
+    }
+
+    if (scoreType === 'pass_fail') {
+      return {
+        display: score.passed ? 'עבר' : 'לא עבר',
+        color: score.passed ? '#28a745' : '#dc3545',
+        passed: score.passed
+      };
+    }
+
+    if (scoreType === 'percentage') {
+      const passed = score.score >= 60;
+      return {
+        display: score.score !== null ? `${score.score}%` : '-',
+        color: passed ? '#28a745' : '#dc3545',
+        passed
+      };
+    }
+
+    if (scoreType === 'evaluation') {
+      // For evaluation type, check if there's a linked evaluation
+      if (score.evaluation_id) {
+        return {
+          display: score.passed ? 'עבר' : 'לא עבר',
+          color: score.passed ? '#28a745' : '#dc3545',
+          passed: score.passed
+        };
+      }
+      return { display: '-', color: '#999', passed: null };
+    }
+
+    return { display: '-', color: '#999', passed: null };
+  };
+
+  // Render certification sections for a student based on course type
+  const renderCertificationSections = (studentId, courseType) => {
+    const structure = testStructures[courseType];
+
+    if (!structure || structure.length === 0) {
+      if (courseType === 'קרוסאובר') {
+        return (
+          <div className="certification-section empty-section">
+            <p className="empty-message">מבנה הבחינות לקרוסאובר יוגדר בהמשך</p>
+          </div>
+        );
+      }
+      return null;
+    }
+
+    const isLoading = loadingStudentTests[studentId];
+
+    const renderScoreInput = (test, scoreDisplay) => {
+      const key = `${studentId}-${test.id}`;
+      const isSaving = savingScores[key];
+
+      if (test.score_type === 'percentage') {
+        const currentValue = scoreDisplay.display === '-' ? '' : scoreDisplay.display.replace('%', '');
+        const editValue = getEditingValue(studentId, test.id, currentValue);
+        return (
+          <input
+            type="number"
+            min="0"
+            max="100"
+            className={`test-score-input ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
+            value={editValue}
+            placeholder="-"
+            disabled={isSaving}
+            onChange={(e) => handleScoreChange(studentId, test.id, test.score_type, e.target.value)}
+            onBlur={() => handleScoreBlur(studentId, test.id, test.score_type)}
+            onClick={(e) => e.stopPropagation()}
+          />
+        );
+      } else {
+        // pass_fail or evaluation type
+        const currentValue = scoreDisplay.display === '-' ? '' : (scoreDisplay.passed ? 'עבר' : 'לא עבר');
+        const editValue = getEditingValue(studentId, test.id, currentValue);
+        return (
+          <select
+            className={`test-score-select ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
+            value={editValue}
+            disabled={isSaving}
+            onChange={(e) => {
+              handleScoreChange(studentId, test.id, test.score_type, e.target.value);
+              // Auto-save on select change
+              setTimeout(() => handleScoreBlur(studentId, test.id, test.score_type), 100);
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <option value="">-</option>
+            <option value="עבר">עבר</option>
+            <option value="לא עבר">לא עבר</option>
+          </select>
+        );
+      }
+    };
+
+    return (
+      <div className="certification-sections-compact">
+        {structure.map(category => (
+          <div key={category.category_id} className="certification-row">
+            <span className="category-label">{category.category_name}:</span>
+            <div className="category-tests-inline">
+              {category.tests && category.tests.map((test, idx) => {
+                const scoreDisplay = getTestScoreDisplay(studentId, test.id, test.score_type);
+                return (
+                  <span key={test.id} className="test-item-inline">
+                    <span className="test-name-inline">{test.name_he}</span>
+                    {isLoading ? (
+                      <span className="test-score-inline">...</span>
+                    ) : (
+                      renderScoreInput(test, scoreDisplay)
+                    )}
+                    {idx < category.tests.length - 1 && <span className="test-separator">|</span>}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const coursesWithStudents = getCoursesWithStudents();
 
   if (loading) {
@@ -237,7 +460,12 @@ function StudentStats() {
               >
                 <div className="course-group-info">
                   <h3>{course.name}</h3>
-                  <span className="student-count">{course.students.length} חניכים</span>
+                  <div className="course-meta">
+                    {course.course_type_label && (
+                      <span className="course-type-badge">{course.course_type_label}</span>
+                    )}
+                    <span className="student-count">{course.students.length} חניכים</span>
+                  </div>
                 </div>
                 <div className="course-group-actions">
                   {course.id !== 0 && (
@@ -257,89 +485,15 @@ function StudentStats() {
 
               {expandedCourse === course.id && (
                 <div className="course-students">
-                  {/* Desktop Table View */}
-                  <div className="stats-table">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>שם חניך</th>
-                          <th className="sortable-header" onClick={() => handleSort('subject')}>
-                            נושא <span className="sort-icon">{getSortIcon('subject')}</span>
-                          </th>
-                          <th className="sortable-header" onClick={() => handleSort('lesson')}>
-                            שיעור <span className="sort-icon">{getSortIcon('lesson')}</span>
-                          </th>
-                          <th className="sortable-header" onClick={() => handleSort('date')}>
-                            תאריך <span className="sort-icon">{getSortIcon('date')}</span>
-                          </th>
-                          <th>ציון</th>
-                          <th className="sortable-header" onClick={() => handleSort('status')}>
-                            סטטוס <span className="sort-icon">{getSortIcon('status')}</span>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {course.students.map(student => {
-                          const sortedEvaluations = sortEvaluations(student.evaluations);
-                          return student.evaluations.length > 0 ? (
-                            sortedEvaluations.map((evaluation, evalIndex) => (
-                              <tr
-                                key={evaluation.id}
-                                className="student-row clickable-row"
-                                onClick={() => openDetailModal(evaluation.id)}
-                              >
-                                {evalIndex === 0 ? (
-                                  <td rowSpan={student.evaluations.length} className="student-name-cell">
-                                    {student.firstName} {student.lastName}
-                                  </td>
-                                ) : null}
-                                <td>{evaluation.subject_name}</td>
-                                <td>{evaluation.lesson_name || '-'}</td>
-                                <td>{formatDate(evaluation.evaluation_date)}</td>
-                                <td>
-                                  <span
-                                    className="score-badge-small"
-                                    style={{
-                                      backgroundColor: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
-                                    }}
-                                  >
-                                    {formatPercentage(evaluation.percentage_score)}
-                                  </span>
-                                </td>
-                                <td>
-                                  <span
-                                    className="status-text"
-                                    style={{
-                                      color: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
-                                    }}
-                                  >
-                                    {getStatusText(evaluation.is_passing, evaluation.has_critical_fail)}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr key={student.id} className="student-row no-evaluations">
-                              <td className="student-name-cell">
-                                {student.firstName} {student.lastName}
-                              </td>
-                              <td colSpan={5} className="no-data-cell">אין הערכות</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile Card View */}
-                  <div className="stats-cards">
+                  {/* Student Cards with Certification Sections */}
+                  <div className="student-stats-cards">
                     {course.students.map(student => (
-                      <div key={student.id} className="student-card">
+                      <div key={student.id} className="student-stats-card">
                         <div
-                          className="student-card-header"
+                          className="student-stats-card-header"
                           onClick={() => toggleStudent(student.id)}
                         >
-                          <div className="student-card-info">
+                          <div className="student-stats-card-info">
                             <h4>{student.firstName} {student.lastName}</h4>
                             <span className="evaluation-count">
                               {student.evaluations.length} הערכות
@@ -351,64 +505,78 @@ function StudentStats() {
                         </div>
 
                         {expandedStudent === student.id && (
-                          <div className="student-card-evaluations">
-                            <div className="mobile-sort-controls">
-                              <span className="sort-label">מיון:</span>
-                              <select
-                                value={`${sortConfig.field}-${sortConfig.direction}`}
-                                onChange={(e) => {
-                                  const [field, direction] = e.target.value.split('-');
-                                  setSortConfig({ field, direction });
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <option value="date-desc">תאריך (חדש לישן)</option>
-                                <option value="date-asc">תאריך (ישן לחדש)</option>
-                                <option value="subject-asc">נושא (א-ת)</option>
-                                <option value="subject-desc">נושא (ת-א)</option>
-                                <option value="lesson-asc">שיעור (א-ת)</option>
-                                <option value="lesson-desc">שיעור (ת-א)</option>
-                                <option value="status-asc">סטטוס (עובר-נכשל)</option>
-                                <option value="status-desc">סטטוס (נכשל-עובר)</option>
-                              </select>
-                            </div>
-                            {student.evaluations.length > 0 ? (
-                              sortEvaluations(student.evaluations).map(evaluation => (
-                                <div
-                                  key={evaluation.id}
-                                  className="evaluation-item clickable-row"
-                                  onClick={() => openDetailModal(evaluation.id)}
-                                >
-                                  <div className="evaluation-item-header">
-                                    <span className="evaluation-item-subject">{evaluation.subject_name}</span>
-                                    <span
-                                      className="score-badge-small"
-                                      style={{
-                                        backgroundColor: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
-                                      }}
-                                    >
-                                      {formatPercentage(evaluation.percentage_score)}
-                                    </span>
-                                  </div>
-                                  <div className="evaluation-item-details">
-                                    {evaluation.lesson_name && (
-                                      <span className="evaluation-item-course">{evaluation.lesson_name}</span>
-                                    )}
-                                    <span className="evaluation-item-date">{formatDate(evaluation.evaluation_date)}</span>
-                                    <span
-                                      className="evaluation-item-status"
-                                      style={{
-                                        color: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
-                                      }}
-                                    >
-                                      {getStatusText(evaluation.is_passing, evaluation.has_critical_fail)}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="no-evaluations-message">אין הערכות</div>
+                          <div className="student-stats-card-content">
+                            {/* Certification Sections based on course type */}
+                            {course.course_type && (
+                              <div className="student-certification-wrapper">
+                                <h5 className="section-title">ציוני מבחנים</h5>
+                                {renderCertificationSections(student.id, course.course_type)}
+                              </div>
                             )}
+
+                            {/* Evaluations Section */}
+                            <div className="student-evaluations-wrapper">
+                              <h5 className="section-title">הערכות ביצוע</h5>
+                              <div className="mobile-sort-controls">
+                                <span className="sort-label">מיון:</span>
+                                <select
+                                  value={`${sortConfig.field}-${sortConfig.direction}`}
+                                  onChange={(e) => {
+                                    const [field, direction] = e.target.value.split('-');
+                                    setSortConfig({ field, direction });
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <option value="date-desc">תאריך (חדש לישן)</option>
+                                  <option value="date-asc">תאריך (ישן לחדש)</option>
+                                  <option value="subject-asc">נושא (א-ת)</option>
+                                  <option value="subject-desc">נושא (ת-א)</option>
+                                  <option value="lesson-asc">שיעור (א-ת)</option>
+                                  <option value="lesson-desc">שיעור (ת-א)</option>
+                                  <option value="status-asc">סטטוס (עובר-נכשל)</option>
+                                  <option value="status-desc">סטטוס (נכשל-עובר)</option>
+                                </select>
+                              </div>
+                              {student.evaluations.length > 0 ? (
+                                <div className="evaluations-list">
+                                  {sortEvaluations(student.evaluations).map(evaluation => (
+                                    <div
+                                      key={evaluation.id}
+                                      className="evaluation-item clickable-row"
+                                      onClick={() => openDetailModal(evaluation.id)}
+                                    >
+                                      <div className="evaluation-item-header">
+                                        <span className="evaluation-item-subject">{evaluation.subject_name}</span>
+                                        <span
+                                          className="score-badge-small"
+                                          style={{
+                                            backgroundColor: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
+                                          }}
+                                        >
+                                          {formatPercentage(evaluation.percentage_score)}
+                                        </span>
+                                      </div>
+                                      <div className="evaluation-item-details">
+                                        {evaluation.lesson_name && (
+                                          <span className="evaluation-item-course">{evaluation.lesson_name}</span>
+                                        )}
+                                        <span className="evaluation-item-date">{formatDate(evaluation.evaluation_date)}</span>
+                                        <span
+                                          className="evaluation-item-status"
+                                          style={{
+                                            color: getStatusColor(evaluation.is_passing, evaluation.has_critical_fail)
+                                          }}
+                                        >
+                                          {getStatusText(evaluation.is_passing, evaluation.has_critical_fail)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="no-evaluations-message">אין הערכות</div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -433,7 +601,7 @@ function StudentStats() {
                 <div className="evaluation-detail-header">
                   <div className="evaluation-detail-info">
                     <div className="detail-field">
-                      <span className="detail-label">תלמיד:</span>
+                      <span className="detail-label">חניך:</span>
                       <span className="detail-value">
                         {selectedEvaluation.student_first_name} {selectedEvaluation.student_last_name}
                       </span>

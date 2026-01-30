@@ -220,6 +220,17 @@ export const deleteExternalTests = (studentId) => fetchAPI(`/external-tests/${st
   method: 'DELETE'
 });
 
+// Certification Tests
+export const getTestStructure = (courseType) => fetchAPI(`/test-structure/${courseType}`);
+export const getStudentTests = (studentId) => fetchAPI(`/student-tests/${studentId}`);
+export const saveStudentTests = (studentId, scores) => fetchAPI(`/student-tests/${studentId}`, {
+  method: 'PUT',
+  body: JSON.stringify({ scores })
+});
+export const deleteStudentTest = (studentId, testTypeId) => fetchAPI(`/student-tests/${studentId}/${testTypeId}`, {
+  method: 'DELETE'
+});
+
 // Export
 export const exportFinalReport = async (courseId = null) => {
   const token = localStorage.getItem('token');

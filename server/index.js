@@ -1120,6 +1120,166 @@ app.delete('/api/external-tests/:studentId', authenticateToken, requireRole('adm
   }
 });
 
+// ==================== CERTIFICATION TESTS ====================
+// Roles: admin/instructor = CRUD, tester = view only
+
+// Get test structure for a course type
+app.get('/api/test-structure/:courseType', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  try {
+    const { courseType } = req.params;
+
+    const result = await pool.query(`
+      SELECT
+        tc.id as category_id,
+        tc.code as category_code,
+        tc.name_he as category_name,
+        tc.display_order as category_order,
+        json_agg(
+          json_build_object(
+            'id', tt.id,
+            'code', tt.code,
+            'name_he', tt.name_he,
+            'score_type', tt.score_type,
+            'display_order', tt.display_order
+          ) ORDER BY tt.display_order
+        ) as tests
+      FROM test_categories tc
+      LEFT JOIN test_types tt ON tc.id = tt.category_id
+      WHERE tc.course_type = $1
+      GROUP BY tc.id, tc.code, tc.name_he, tc.display_order
+      ORDER BY tc.display_order
+    `, [courseType]);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching test structure:', error);
+    res.status(500).json({ error: 'Failed to fetch test structure' });
+  }
+});
+
+// Get all test scores for a student
+app.get('/api/student-tests/:studentId', authenticateToken, requireRole('admin', 'instructor', 'tester'), async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    const result = await pool.query(`
+      SELECT
+        sts.id,
+        sts.test_type_id,
+        sts.score,
+        sts.passed,
+        sts.evaluation_id,
+        sts.test_date,
+        sts.notes,
+        tt.code as test_code,
+        tt.name_he as test_name,
+        tt.score_type,
+        tc.code as category_code,
+        tc.name_he as category_name,
+        tc.course_type
+      FROM student_test_scores sts
+      JOIN test_types tt ON sts.test_type_id = tt.id
+      JOIN test_categories tc ON tt.category_id = tc.id
+      WHERE sts.student_id = $1
+      ORDER BY tc.display_order, tt.display_order
+    `, [studentId]);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching student tests:', error);
+    res.status(500).json({ error: 'Failed to fetch student tests' });
+  }
+});
+
+// Update test scores for a student
+app.put('/api/student-tests/:studentId', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { studentId } = req.params;
+    const { scores } = req.body;
+
+    // scores should be an array of { test_type_id, score, passed, test_date, notes }
+
+    if (!scores || !Array.isArray(scores)) {
+      return res.status(400).json({ error: 'Scores array is required' });
+    }
+
+    await client.query('BEGIN');
+
+    for (const scoreData of scores) {
+      const { test_type_id, score, passed, test_date, notes, evaluation_id } = scoreData;
+
+      await client.query(`
+        INSERT INTO student_test_scores (student_id, test_type_id, score, passed, evaluation_id, test_date, notes)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (student_id, test_type_id)
+        DO UPDATE SET
+          score = EXCLUDED.score,
+          passed = EXCLUDED.passed,
+          evaluation_id = EXCLUDED.evaluation_id,
+          test_date = EXCLUDED.test_date,
+          notes = EXCLUDED.notes,
+          updated_at = CURRENT_TIMESTAMP
+      `, [studentId, test_type_id, score, passed, evaluation_id || null, test_date || null, notes || null]);
+    }
+
+    await client.query('COMMIT');
+
+    // Fetch updated scores
+    const result = await pool.query(`
+      SELECT
+        sts.id,
+        sts.test_type_id,
+        sts.score,
+        sts.passed,
+        sts.evaluation_id,
+        sts.test_date,
+        sts.notes,
+        tt.code as test_code,
+        tt.name_he as test_name,
+        tt.score_type,
+        tc.code as category_code,
+        tc.name_he as category_name,
+        tc.course_type
+      FROM student_test_scores sts
+      JOIN test_types tt ON sts.test_type_id = tt.id
+      JOIN test_categories tc ON tt.category_id = tc.id
+      WHERE sts.student_id = $1
+      ORDER BY tc.display_order, tt.display_order
+    `, [studentId]);
+
+    res.json(result.rows);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error saving student tests:', error);
+    res.status(500).json({ error: 'Failed to save student tests' });
+  } finally {
+    client.release();
+  }
+});
+
+// Delete a specific test score for a student
+app.delete('/api/student-tests/:studentId/:testTypeId', authenticateToken, requireRole('admin', 'instructor'), async (req, res) => {
+  try {
+    const { studentId, testTypeId } = req.params;
+
+    const result = await pool.query(
+      'DELETE FROM student_test_scores WHERE student_id = $1 AND test_type_id = $2 RETURNING *',
+      [studentId, testTypeId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Test score not found' });
+    }
+
+    res.json({ message: 'Test score deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting test score:', error);
+    res.status(500).json({ error: 'Failed to delete test score' });
+  }
+});
+
 // ==================== STUDENT SKILLS ====================
 // Roles: admin/instructor = CRUD, tester = view only
 

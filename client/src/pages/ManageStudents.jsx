@@ -445,9 +445,11 @@ function ManageStudents() {
     return avg.toFixed(1);
   };
 
-  // Calculate recommendations for improving מבחנים עיוניים average
-  const calculateTheoryTestsRecommendations = (tests) => {
+  // Calculate recommendations for improving מבחנים עיוניים average to reach 80%
+  const calculateTheoryTestsRecommendations = (tests, currentAverage) => {
     if (!tests || tests.length === 0) return [];
+    const targetAverage = 80;
+    if (currentAverage >= targetAverage) return [];
 
     const testNames = {
       'ext_physics': 'פיזיקה',
@@ -457,24 +459,55 @@ function ManageStudents() {
       'ext_decompression': 'דקומפרסיה'
     };
 
+    // Get all tests with their current scores
     const scoresWithTests = tests.map(test => {
-      const score = studentTestScores.find(s => s.test_type_id === test.id);
+      const scoreRecord = studentTestScores.find(s => s.test_type_id === test.id);
+      const score = scoreRecord?.score !== null && scoreRecord?.score !== undefined
+        ? parseFloat(scoreRecord.score)
+        : null;
       return {
         testCode: test.code,
         testName: test.name_he || testNames[test.code] || test.code,
-        currentScore: score?.score ?? null
+        currentScore: score
       };
-    }).filter(s => s.currentScore !== null && s.currentScore < 100);
+    });
 
-    // Sort by current score (lowest first) to prioritize improvements
-    scoresWithTests.sort((a, b) => a.currentScore - b.currentScore);
+    // Calculate total points needed to reach 80% average
+    const testsWithScores = scoresWithTests.filter(s => s.currentScore !== null);
+    if (testsWithScores.length === 0) return [];
 
-    return scoresWithTests.slice(0, 3).map(item => ({
-      testName: item.testName,
-      currentScore: Math.round(item.currentScore),
-      targetScore: Math.min(100, Math.round(item.currentScore) + 10),
-      improvement: 10
-    }));
+    const currentTotal = testsWithScores.reduce((sum, t) => sum + t.currentScore, 0);
+    const targetTotal = targetAverage * testsWithScores.length;
+    const pointsNeeded = targetTotal - currentTotal;
+
+    if (pointsNeeded <= 0) return [];
+
+    // Find tests that can be improved (score < 100), sorted by lowest score first
+    const improvableTests = scoresWithTests
+      .filter(s => s.currentScore !== null && s.currentScore < 100)
+      .sort((a, b) => a.currentScore - b.currentScore);
+
+    const recommendations = [];
+    let remainingPoints = pointsNeeded;
+
+    for (const test of improvableTests) {
+      if (remainingPoints <= 0) break;
+
+      const maxImprovement = 100 - test.currentScore;
+      const neededImprovement = Math.min(maxImprovement, remainingPoints);
+      const targetScore = Math.round(test.currentScore + neededImprovement);
+
+      recommendations.push({
+        testName: test.testName,
+        currentScore: Math.round(test.currentScore),
+        targetScore: targetScore,
+        improvement: Math.round(neededImprovement)
+      });
+
+      remainingPoints -= neededImprovement;
+    }
+
+    return recommendations;
   };
 
   const renderCertificationSections = (courseType) => {
@@ -495,8 +528,8 @@ function ManageStudents() {
         {structure.map(category => {
           const isTheoryTests = category.category_code === 'instructor_external_tests' || category.category_name === 'מבחנים עיוניים';
           const theoryAverage = isTheoryTests ? calculateTheoryTestsAverage(category.tests) : null;
-          const theoryRecommendations = isTheoryTests && theoryAverage !== null && parseFloat(theoryAverage) < EXTERNAL_TESTS_PASSING_THRESHOLD
-            ? calculateTheoryTestsRecommendations(category.tests)
+          const theoryRecommendations = isTheoryTests && theoryAverage !== null && parseFloat(theoryAverage) < 80
+            ? calculateTheoryTestsRecommendations(category.tests, parseFloat(theoryAverage))
             : [];
 
           return (
@@ -536,7 +569,7 @@ function ManageStudents() {
               {isTheoryTests && theoryAverage !== null && (
                 <div className="theory-tests-summary">
                   <div className="external-tests-average">
-                    <span className="average-label">ממוצע:</span>
+                    <span className="average-label">ממוצע מבחנים עיוניים:</span>
                     <span className="average-value">{theoryAverage}%</span>
                   </div>
 
@@ -552,7 +585,7 @@ function ManageStudents() {
 
                       {theoryRecommendations.length > 0 && (
                         <div className="retake-recommendations">
-                          <h5>המלצות לשיפור הממוצע:</h5>
+                          <h5>המלצות להגעה לממוצע 80%:</h5>
                           {theoryRecommendations.map((rec, index) => (
                             <div key={index} className="recommendation-item">
                               <span className="recommendation-bullet">•</span>

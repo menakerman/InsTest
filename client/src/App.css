@@ -2641,6 +2641,17 @@ body {
   font-size: 0.85rem;
 }
 
+.test-checkbox-item {
+  cursor: pointer;
+}
+
+.test-checkbox-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #28a745;
+}
+
 .test-name-inline {
   color: #4a5568;
 }

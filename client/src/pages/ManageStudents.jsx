@@ -377,6 +377,30 @@ function ManageStudents() {
     setEditingScores(prev => ({ ...prev, [key]: value }));
   };
 
+  // Handle checkbox change for pass_fail type tests (מיומנויות)
+  const handleCertCheckboxChange = async (testTypeId, checked) => {
+    if (!selectedStudent) return;
+    const key = `${testTypeId}`;
+
+    setSavingScores(prev => ({ ...prev, [key]: true }));
+    try {
+      const scoreData = {
+        test_type_id: testTypeId,
+        score: checked ? 100 : 0,
+        passed: checked
+      };
+      await saveStudentTests(selectedStudent.id, [scoreData]);
+
+      // Refresh scores
+      const scores = await getStudentTests(selectedStudent.id);
+      setStudentTestScores(scores);
+    } catch (err) {
+      console.error('Error saving checkbox:', err);
+    } finally {
+      setSavingScores(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
   const handleCertScoreBlur = async (testTypeId) => {
     if (!selectedStudent) return;
     const key = `${testTypeId}`;
@@ -543,8 +567,26 @@ function ManageStudents() {
                     const scoreDisplay = getTestScoreDisplay(test.id, test.score_type);
                     const key = `${test.id}`;
                     const isSaving = savingScores[key];
-                    const editValue = getCertEditingValue(test.id, scoreDisplay.value);
 
+                    // For pass_fail type (מיומנויות), render checkbox
+                    if (test.score_type === 'pass_fail') {
+                      return (
+                        <label key={test.id} className="test-item-inline test-checkbox-item">
+                          <input
+                            type="checkbox"
+                            checked={scoreDisplay.passed === true}
+                            disabled={isSaving || !canEdit}
+                            onChange={(e) => handleCertCheckboxChange(test.id, e.target.checked)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <span className="test-name-inline">{test.name_he}</span>
+                          {idx < category.tests.length - 1 && <span className="test-separator">|</span>}
+                        </label>
+                      );
+                    }
+
+                    // For percentage type, render number input
+                    const editValue = getCertEditingValue(test.id, scoreDisplay.value);
                     return (
                       <span key={test.id} className="test-item-inline">
                         <span className="test-name-inline">{test.name_he}</span>
@@ -869,46 +911,6 @@ function ManageStudents() {
                   </div>
                 )}
 
-                {/* Skills section - only for מדריך עוזר courses */}
-                {selectedStudent?.courses?.some(c => c.course_type === 'מדריך_עוזר' || c.course_type === 'מדריך_עוזר_משולב_עם_מדריך') && (
-                  <div className="skills-section">
-                    <h4>מיומנויות</h4>
-                    <div className="skills-grid">
-                      <label className="skill-checkbox">
-                        <input
-                          type="checkbox"
-                          name="meters_30"
-                          checked={skillsData.meters_30}
-                          onChange={handleSkillChange}
-                          disabled={!canEdit}
-                        />
-                        <span className="skill-label">30 מטר</span>
-                      </label>
-
-                      <label className="skill-checkbox">
-                        <input
-                          type="checkbox"
-                          name="meters_40"
-                          checked={skillsData.meters_40}
-                          onChange={handleSkillChange}
-                          disabled={!canEdit}
-                        />
-                        <span className="skill-label">40 מטר</span>
-                      </label>
-
-                      <label className="skill-checkbox">
-                        <input
-                          type="checkbox"
-                          name="guidance"
-                          checked={skillsData.guidance}
-                          onChange={handleSkillChange}
-                          disabled={!canEdit}
-                        />
-                        <span className="skill-label">הובלה</span>
-                      </label>
-                    </div>
-                  </div>
-                )}
 
                 <div className="form-actions">
                   <button type="button" className="btn btn-secondary" onClick={closeExternalTestsModal}>

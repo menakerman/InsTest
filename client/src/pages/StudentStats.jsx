@@ -146,7 +146,7 @@ function StudentStats() {
         case 'subject':
           comparison = (a.subject_name || '').localeCompare(b.subject_name || '', 'he');
           break;
-        case 'status':
+        case 'status': {
           // Sort by passing status: passing first, then failing, then critical fail
           const getStatusOrder = (eval_) => {
             if (eval_.has_critical_fail) return 2;
@@ -155,6 +155,7 @@ function StudentStats() {
           };
           comparison = getStatusOrder(a) - getStatusOrder(b);
           break;
+        }
         default:
           comparison = 0;
       }

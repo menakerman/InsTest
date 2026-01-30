@@ -1,6 +1,11 @@
 // External Tests Calculations Utility Functions
 
-export const EXTERNAL_TESTS_PASSING_THRESHOLD = 60;
+// Individual test passing threshold
+export const INDIVIDUAL_TEST_PASSING_THRESHOLD = 60;
+// Overall average required to pass the course
+export const COURSE_AVERAGE_PASSING_THRESHOLD = 80;
+// Keep for backwards compatibility
+export const EXTERNAL_TESTS_PASSING_THRESHOLD = INDIVIDUAL_TEST_PASSING_THRESHOLD;
 
 export const INSTRUCTOR_COURSE_TYPES = ['מדריך', 'מדריך_עוזר_משולב_עם_מדריך'];
 
@@ -26,23 +31,23 @@ export function isInInstructorCourse(courses) {
 }
 
 /**
- * Get status color based on average score
+ * Get status color based on average score (uses course average threshold of 80%)
  * @param {number|null} average - The average score
  * @returns {string} - CSS color class ('green' or 'red')
  */
 export function getExternalTestsStatusColor(average) {
   if (average === null || average === undefined) return '';
-  return average >= EXTERNAL_TESTS_PASSING_THRESHOLD ? 'green' : 'red';
+  return average >= COURSE_AVERAGE_PASSING_THRESHOLD ? 'green' : 'red';
 }
 
 /**
- * Get status text based on average score
+ * Get status text based on average score (uses course average threshold of 80%)
  * @param {number|null} average - The average score
  * @returns {string} - Status text in Hebrew ('עבר' or 'נכשל')
  */
 export function getExternalTestsStatusText(average) {
   if (average === null || average === undefined) return '';
-  return average >= EXTERNAL_TESTS_PASSING_THRESHOLD ? 'עבר' : 'נכשל';
+  return average >= COURSE_AVERAGE_PASSING_THRESHOLD ? 'עבר' : 'נכשל';
 }
 
 /**

@@ -3,7 +3,8 @@ import { useAuth } from '../contexts';
 import { getStudents, createStudent, updateStudent, deleteStudent, getExternalTests, saveExternalTests, getStudentSkills, saveStudentSkills, getCourses, getEvaluations, uploadStudentPhoto, deleteStudentPhoto, getTestStructure, getStudentTests, saveStudentTests } from '../utils/api';
 import CourseMultiSelect from '../components/CourseMultiSelect';
 import {
-  EXTERNAL_TESTS_PASSING_THRESHOLD,
+  INDIVIDUAL_TEST_PASSING_THRESHOLD,
+  COURSE_AVERAGE_PASSING_THRESHOLD,
   isInInstructorCourse,
   getExternalTestsStatusColor,
   getExternalTestsStatusText,
@@ -419,7 +420,8 @@ function ManageStudents() {
     if (!score) {
       return { display: '-', color: '#999', passed: null, value: '' };
     }
-    const passed = score.score >= 60;
+    // Individual test passing threshold is 60%
+    const passed = score.score >= INDIVIDUAL_TEST_PASSING_THRESHOLD;
     return {
       display: score.score !== null ? `${Math.round(score.score)}` : '-',
       color: passed ? '#28a745' : '#dc3545',
@@ -580,7 +582,7 @@ function ManageStudents() {
                         <span className={`status-badge external-tests-status ${getExternalTestsStatusColor(parseFloat(theoryAverage))}`}>
                           {getExternalTestsStatusText(parseFloat(theoryAverage))}
                         </span>
-                        <span className="threshold-indicator">סף מעבר: {EXTERNAL_TESTS_PASSING_THRESHOLD}%</span>
+                        <span className="threshold-indicator">סף מעבר מבחן: {INDIVIDUAL_TEST_PASSING_THRESHOLD}% | סף ממוצע: {COURSE_AVERAGE_PASSING_THRESHOLD}%</span>
                       </div>
 
                       {theoryRecommendations.length > 0 && (

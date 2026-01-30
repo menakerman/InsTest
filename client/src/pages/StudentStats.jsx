@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getEvaluations, getEvaluation, getStudents, getCourses, exportFinalReport, getTestStructure, getStudentTests, saveStudentTests } from '../utils/api';
 import { formatPercentage, getStatusColor, getStatusText, SCORE_VALUES } from '../utils/scoreCalculations';
+import { INDIVIDUAL_TEST_PASSING_THRESHOLD } from '../utils/externalTestsCalculations';
 
 function StudentStats() {
   const [evaluations, setEvaluations] = useState([]);
@@ -92,7 +93,7 @@ function StudentStats() {
       const numValue = parseFloat(value);
       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
         scoreData.score = Math.round(numValue);
-        scoreData.passed = numValue >= 60;
+        scoreData.passed = numValue >= INDIVIDUAL_TEST_PASSING_THRESHOLD;
       } else {
         return;
       }
@@ -314,7 +315,8 @@ function StudentStats() {
     }
 
     if (scoreType === 'percentage') {
-      const passed = score.score >= 60;
+      // Individual test passing threshold is 60%
+      const passed = score.score >= INDIVIDUAL_TEST_PASSING_THRESHOLD;
       return {
         display: score.score !== null ? `${score.score}%` : '-',
         color: passed ? '#28a745' : '#dc3545',

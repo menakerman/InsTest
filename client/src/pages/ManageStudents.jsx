@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts';
-import { getStudents, createStudent, updateStudent, deleteStudent, getExternalTests, saveExternalTests, getStudentSkills, saveStudentSkills, getCourses, getEvaluations, uploadStudentPhoto, deleteStudentPhoto } from '../utils/api';
+import { getStudents, createStudent, updateStudent, deleteStudent, getExternalTests, saveExternalTests, getStudentSkills, saveStudentSkills, getCourses, getEvaluations, uploadStudentPhoto, deleteStudentPhoto, getTestStructure, getStudentTests, saveStudentTests } from '../utils/api';
 import CourseMultiSelect from '../components/CourseMultiSelect';
 import {
   EXTERNAL_TESTS_PASSING_THRESHOLD,
@@ -53,6 +53,10 @@ function ManageStudents() {
   });
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
+  const [testStructures, setTestStructures] = useState({});
+  const [studentTestScores, setStudentTestScores] = useState([]);
+  const [editingScores, setEditingScores] = useState({});
+  const [savingScores, setSavingScores] = useState({});
 
   // Check if user can edit (admin only)
   const canEdit = user && user.role === 'admin';
@@ -170,11 +174,13 @@ function ManageStudents() {
     setSelectedStudent(student);
     setShowExternalTestsModal(true);
     setExternalTestsLoading(true);
+    setEditingScores({});
     try {
-      const [testsData, skillsResult, evaluationsData] = await Promise.all([
+      const [testsData, skillsResult, evaluationsData, certTestScores] = await Promise.all([
         getExternalTests(student.id),
         getStudentSkills(student.id),
-        getEvaluations({ student_id: student.id })
+        getEvaluations({ student_id: student.id }),
+        getStudentTests(student.id)
       ]);
       setExternalTestsData({
         physics_score: testsData.physics_score ?? '',
@@ -188,6 +194,24 @@ function ManageStudents() {
         meters_40: skillsResult.meters_40 || false,
         guidance: skillsResult.guidance || false
       });
+      setStudentTestScores(certTestScores);
+
+      // Load test structures for student's courses
+      if (student.courses && student.courses.length > 0) {
+        const courseTypes = [...new Set(student.courses.map(c => c.course_type).filter(Boolean))];
+        const structures = { ...testStructures };
+        for (const courseType of courseTypes) {
+          if (!structures[courseType]) {
+            try {
+              structures[courseType] = await getTestStructure(courseType);
+            } catch (err) {
+              console.error(`Failed to load test structure for ${courseType}:`, err);
+              structures[courseType] = [];
+            }
+          }
+        }
+        setTestStructures(structures);
+      }
 
       // Process evaluations to find highest score for each lesson type
       const lessonTypes = ['intro_dive', 'pre_dive_briefing', 'equipment_lesson'];
@@ -344,6 +368,115 @@ function ManageStudents() {
     } finally {
       setPhotoUploading(false);
     }
+  };
+
+  // Certification test score handlers
+  const handleCertScoreChange = (testTypeId, value) => {
+    const key = `${testTypeId}`;
+    setEditingScores(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleCertScoreBlur = async (testTypeId) => {
+    if (!selectedStudent) return;
+    const key = `${testTypeId}`;
+    const value = editingScores[key];
+
+    if (value === undefined || value === '') return;
+
+    setSavingScores(prev => ({ ...prev, [key]: true }));
+    try {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+        const scoreData = {
+          test_type_id: testTypeId,
+          score: Math.round(numValue),
+          passed: numValue >= 60
+        };
+        await saveStudentTests(selectedStudent.id, [scoreData]);
+        // Refresh scores
+        const scores = await getStudentTests(selectedStudent.id);
+        setStudentTestScores(scores);
+        setEditingScores(prev => {
+          const newState = { ...prev };
+          delete newState[key];
+          return newState;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to save score:', err);
+    } finally {
+      setSavingScores(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const getCertEditingValue = (testTypeId, currentValue) => {
+    const key = `${testTypeId}`;
+    return editingScores[key] !== undefined ? editingScores[key] : currentValue;
+  };
+
+  const getTestScoreDisplay = (testTypeId, scoreType) => {
+    const score = studentTestScores.find(s => s.test_type_id === testTypeId);
+    if (!score) {
+      return { display: '-', color: '#999', passed: null, value: '' };
+    }
+    const passed = score.score >= 60;
+    return {
+      display: score.score !== null ? `${Math.round(score.score)}` : '-',
+      color: passed ? '#28a745' : '#dc3545',
+      passed,
+      value: score.score !== null ? Math.round(score.score).toString() : ''
+    };
+  };
+
+  const renderCertificationSections = (courseType) => {
+    const structure = testStructures[courseType];
+    if (!structure || structure.length === 0) {
+      if (courseType === 'קרוסאובר') {
+        return (
+          <div className="certification-section empty-section">
+            <p className="empty-message">מבנה הבחינות לקרוסאובר יוגדר בהמשך</p>
+          </div>
+        );
+      }
+      return null;
+    }
+
+    return (
+      <div className="certification-sections-compact">
+        {structure.map(category => (
+          <div key={category.category_id} className="certification-row">
+            <span className="category-label">{category.category_name}:</span>
+            <div className="category-tests-inline">
+              {category.tests && category.tests.map((test, idx) => {
+                const scoreDisplay = getTestScoreDisplay(test.id, test.score_type);
+                const key = `${test.id}`;
+                const isSaving = savingScores[key];
+                const editValue = getCertEditingValue(test.id, scoreDisplay.value);
+
+                return (
+                  <span key={test.id} className="test-item-inline">
+                    <span className="test-name-inline">{test.name_he}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      className={`test-score-input ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
+                      value={editValue}
+                      disabled={isSaving || !canEdit}
+                      onChange={(e) => handleCertScoreChange(test.id, e.target.value)}
+                      onBlur={() => handleCertScoreBlur(test.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    {!editValue && <span className="empty-score-indicator">-</span>}
+                    {idx < category.tests.length - 1 && <span className="test-separator">|</span>}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -594,6 +727,18 @@ function ManageStudents() {
               <div className="loading-small">טוען נתונים...</div>
             ) : (
               <form onSubmit={handleSaveExternalTests}>
+                {/* Certification Tests Section */}
+                {selectedStudent.courses && selectedStudent.courses.length > 0 && (
+                  <div className="certification-tests-section">
+                    <h4 className="section-title">ציוני מבחנים</h4>
+                    {[...new Set(selectedStudent.courses.map(c => c.course_type).filter(Boolean))].map(courseType => (
+                      <div key={courseType} className="course-type-tests">
+                        {renderCertificationSections(courseType)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <h4 className="section-title">מבחנים חיצוניים</h4>
                 <div className="external-tests-grid">
                   <div className="form-group">

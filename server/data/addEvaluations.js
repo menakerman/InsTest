@@ -14,7 +14,7 @@ const pool = new Pool({
 
 // Lessons to evaluate
 const classLessonsToEvaluate = [
-  'צלילת הכירות',
+  'צלילת היכרות',
   'סיכונים בירידה',
   'סיכונים בשהיה',
   'סיכונים בעליה',

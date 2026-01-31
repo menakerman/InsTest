@@ -5,10 +5,10 @@
 export const evaluationSubjects = [
   {
     code: 'intro_dive',
-    name_he: 'צלילת הכרות',
+    name_he: 'צלילת היכרות',
     max_raw_score: 70,
     passing_raw_score: 40,
-    description_he: 'הערכת צלילת הכרות - 7 קריטריונים',
+    description_he: 'הערכת צלילת היכרות - 7 קריטריונים',
     display_order: 1
   },
   {
@@ -46,15 +46,15 @@ export const evaluationSubjects = [
 ];
 
 export const evaluationCriteria = {
-  // ==================== Page 1: צלילת הכרות (Intro Dive) - 7 items ====================
+  // ==================== Page 1: צלילת היכרות (Intro Dive) - 7 items ====================
   intro_dive: [
     {
-      name_he: 'הכרות והצהרה רפואית',
+      name_he: 'היכרות והצהרה רפואית',
       description_he: 'ביצוע היכרות, קבלת שם הצולל, והחתמה על הצהרה רפואית',
       display_order: 1,
       is_critical: true,
       score_descriptions: {
-        1: 'לא ביצע הכרות, ו/או לא החתים על הצהרה רפואית.',
+        1: 'לא ביצע היכרות, ו/או לא החתים על הצהרה רפואית.',
         4: 'הציג את שמו וקבל את שם הצולל, והחתים על הצהרה רפואית.',
         7: 'הציג את עצמו, קיבל מידע מהצולל על ניסיון קודם במים, והחתים על ההצהרה תוך הסבר על חשיבותה.',
         10: 'בצע את 2 הנקודות שבסעיף הקודם ברמה גבוהה והפיג חששות אצל הצולל.'

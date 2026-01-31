@@ -47,7 +47,7 @@ function ManageStudents() {
   const [courses, setCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [, setEvaluationScores] = useState({
-    intro_dive: null,      // צלילת הכרות
+    intro_dive: null,      // צלילת היכרות
     pre_dive_briefing: null, // תדריך
     equipment_lesson: null   // ציוד
   });

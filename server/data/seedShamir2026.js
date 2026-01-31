@@ -33,7 +33,7 @@ const students = [
 
 // Class lessons (for lecture_delivery subject)
 const classLessons = [
-  'צלילת הכירות',
+  'צלילת היכרות',
   'סיכונים בירידה',
   'סיכונים בשהיה',
   'סיכונים בעליה',

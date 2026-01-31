@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts';
-import { getStudents, createStudent, updateStudent, deleteStudent, getExternalTests, saveExternalTests, getStudentSkills, saveStudentSkills, getCourses, getEvaluations, uploadStudentPhoto, deleteStudentPhoto, getTestStructure, getStudentTests, saveStudentTests } from '../utils/api';
+import { getStudents, createStudent, updateStudent, deleteStudent, getExternalTests, saveExternalTests, getStudentSkills, saveStudentSkills, getCourses, getEvaluations, uploadStudentPhoto, deleteStudentPhoto, getTestStructure, getStudentTests, saveStudentTests, SERVER_URL } from '../utils/api';
 import CourseMultiSelect from '../components/CourseMultiSelect';
 import {
   INDIVIDUAL_TEST_PASSING_THRESHOLD,
@@ -853,7 +853,7 @@ function ManageStudents() {
               <div className="student-photo-section">
                 {selectedStudent.photo_url ? (
                   <img
-                    src={`http://localhost:3001${selectedStudent.photo_url}`}
+                    src={`${SERVER_URL}${selectedStudent.photo_url}`}
                     alt={`${selectedStudent.first_name} ${selectedStudent.last_name}`}
                     className="student-photo"
                   />

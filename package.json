@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Diving Instructor Course Student Management System",
   "scripts": {
+    "start": "cd server && node index.js",
+    "build": "cd client && npm install && npm run build",
+    "postinstall": "cd server && npm install",
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
     "migrate": "cd server && npm run migrate",

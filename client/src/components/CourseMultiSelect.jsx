@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 function CourseMultiSelect({ courses, selectedIds, onChange, loading }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [openUpward, setOpenUpward] = useState(false);
   const wrapperRef = useRef(null);
 
   // Close dropdown when clicking outside
@@ -16,6 +17,16 @@ function CourseMultiSelect({ courses, selectedIds, onChange, loading }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Check if dropdown should open upward
+  useEffect(() => {
+    if (isOpen && wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropdownHeight = 300; // approximate height
+      setOpenUpward(spaceBelow < dropdownHeight);
+    }
+  }, [isOpen]);
 
   const filteredCourses = courses.filter(course => {
     const name = (course.name || '').toLowerCase();
@@ -68,7 +79,7 @@ function CourseMultiSelect({ courses, selectedIds, onChange, loading }) {
       </div>
 
       {isOpen && (
-        <div className="multi-select-dropdown">
+        <div className={`multi-select-dropdown ${openUpward ? 'open-upward' : ''}`}>
           <input
             type="text"
             className="multi-select-search"

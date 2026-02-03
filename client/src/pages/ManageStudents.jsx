@@ -882,58 +882,60 @@ function ManageStudents() {
             <button className="modal-close-btn" onClick={closeExternalTestsModal} type="button">
               ✕
             </button>
-            <div className="student-details-header">
-              <div className="student-details-info">
-                <h3>{selectedStudent.first_name} {selectedStudent.last_name}</h3>
-                {selectedStudent.id_number && <p className="student-id-number">ת.ז.: {selectedStudent.id_number}</p>}
-                {selectedStudent.courses && selectedStudent.courses.length > 0 && (
-                  <>
-                    <p className="student-course-type">
-                      {selectedStudent.courses[0].course_type?.replace(/_/g, ' ')}
-                    </p>
-                    <p className="student-course-name">קורס : {selectedStudent.courses[0].name}</p>
-                  </>
-                )}
-              </div>
-              <div className="student-photo-section">
-                {selectedStudent.photo_url ? (
-                  <img
-                    src={`${SERVER_URL}${selectedStudent.photo_url}`}
-                    alt={`${selectedStudent.first_name} ${selectedStudent.last_name}`}
-                    className="student-photo"
-                  />
-                ) : (
-                  <img
-                    src="/tidf-logo.png"
-                    alt="TIDF Logo"
-                    className="student-photo student-photo-placeholder-logo"
-                  />
-                )}
-                {canEdit && (
-                  <div className="photo-actions">
-                    <input
-                      type="file"
-                      ref={photoInputRef}
-                      onChange={handlePhotoUpload}
-                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                      style={{ display: 'none' }}
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-secondary"
-                      onClick={() => photoInputRef.current?.click()}
-                      disabled={photoUploading}
-                    >
-                      {photoUploading ? 'מעלה...' : 'העלה תמונה'}
-                    </button>
+            <form onSubmit={handleSaveExternalTests} className="modal-form-container">
+              <div className="modal-scrollable-content">
+                <div className="student-details-header">
+                  <div className="student-details-info">
+                    <h3>{selectedStudent.first_name} {selectedStudent.last_name}</h3>
+                    {selectedStudent.id_number && <p className="student-id-number">ת.ז.: {selectedStudent.id_number}</p>}
+                    {selectedStudent.courses && selectedStudent.courses.length > 0 && (
+                      <>
+                        <p className="student-course-type">
+                          {selectedStudent.courses[0].course_type?.replace(/_/g, ' ')}
+                        </p>
+                        <p className="student-course-name">קורס : {selectedStudent.courses[0].name}</p>
+                      </>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
-            {externalTestsLoading ? (
-              <div className="loading-small">טוען נתונים...</div>
-            ) : (
-              <form onSubmit={handleSaveExternalTests}>
+                  <div className="student-photo-section">
+                    {selectedStudent.photo_url ? (
+                      <img
+                        src={`${SERVER_URL}${selectedStudent.photo_url}`}
+                        alt={`${selectedStudent.first_name} ${selectedStudent.last_name}`}
+                        className="student-photo"
+                      />
+                    ) : (
+                      <img
+                        src="/tidf-logo.png"
+                        alt="TIDF Logo"
+                        className="student-photo student-photo-placeholder-logo"
+                      />
+                    )}
+                    {canEdit && (
+                      <div className="photo-actions">
+                        <input
+                          type="file"
+                          ref={photoInputRef}
+                          onChange={handlePhotoUpload}
+                          accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                          style={{ display: 'none' }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => photoInputRef.current?.click()}
+                          disabled={photoUploading}
+                        >
+                          {photoUploading ? 'מעלה...' : 'העלה תמונה'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {externalTestsLoading ? (
+                  <div className="loading-small">טוען נתונים...</div>
+                ) : (
+                  <>
                 {/* Certification Tests Section - 3 Course Type Sections (Vertical & Collapsible) */}
                 <div className="certification-tests-section">
                   <h4 className="section-title">ציוני מבחנים</h4>
@@ -1027,20 +1029,21 @@ function ManageStudents() {
                     })()}
                   </div>
                 </div>
+                </>
+                )}
+              </div>
 
-
-                <div className="form-actions form-actions-spread">
-                  <button type="button" className="btn btn-secondary" onClick={closeExternalTestsModal}>
-                    {canEdit ? 'ביטול' : 'סגור'}
+              <div className="form-actions form-actions-sticky">
+                <button type="button" className="btn btn-secondary" onClick={closeExternalTestsModal}>
+                  {canEdit ? 'ביטול' : 'סגור'}
+                </button>
+                {canEdit && (
+                  <button type="submit" className="btn btn-primary" disabled={externalTestsSaving}>
+                    {externalTestsSaving ? 'שומר...' : 'שמור'}
                   </button>
-                  {canEdit && (
-                    <button type="submit" className="btn btn-primary" disabled={externalTestsSaving}>
-                      {externalTestsSaving ? 'שומר...' : 'שמור'}
-                    </button>
-                  )}
-                </div>
-              </form>
-            )}
+                )}
+              </div>
+            </form>
           </div>
         </div>
       )}

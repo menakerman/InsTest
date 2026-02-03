@@ -12,11 +12,10 @@ dotenv.config();
 const router = express.Router();
 const { Pool } = pg;
 
+const isLocalhost = process.env.DATABASE_URL?.includes('localhost');
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: isLocalhost ? false : { rejectUnauthorized: false }
 });
 
 // Login

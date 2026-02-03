@@ -25,11 +25,10 @@ const { Pool } = pg;
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+const isLocalhost = process.env.DATABASE_URL?.includes('localhost');
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: isLocalhost ? false : { rejectUnauthorized: false }
 });
 
 app.use(cors());

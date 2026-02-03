@@ -250,10 +250,10 @@ body {
 }
 
 /* Sticky action buttons at bottom */
-.form-actions-sticky {
+.form-actions.form-actions-sticky {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
+  justify-content: space-between !important;
+  gap: 0;
   padding: 1rem 1.5rem;
   background: white;
   border-top: 1px solid #e2e8f0;

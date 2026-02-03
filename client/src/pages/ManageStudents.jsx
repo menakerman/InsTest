@@ -322,7 +322,7 @@ function ManageStudents() {
     }
   };
 
-  const handlePhotoDelete = async () => {
+  const _handlePhotoDelete = async () => {
     if (!selectedStudent?.photo_url) return;
 
     if (!window.confirm('האם למחוק את תמונת החניך?')) return;
@@ -546,7 +546,7 @@ function ManageStudents() {
                   {checkboxTests.length > 0 && (
                     <div className="category-tests-inline">
                       {isAssistantInstructorTests && <span className="test-location-label">מים:</span>}
-                      {checkboxTests.map((test, idx) => {
+                      {checkboxTests.map((test) => {
                         const scoreDisplay = getTestScoreDisplay(test.id, test.score_type);
                         const key = `${test.id}`;
                         const isSaving = savingScores[key];
@@ -570,7 +570,7 @@ function ManageStudents() {
                   {numericTests.length > 0 && (
                     <div className="category-tests-inline">
                       {isAssistantInstructorTests && <span className="test-location-label">כיתה:</span>}
-                      {numericTests.map((test, idx) => {
+                      {numericTests.map((test) => {
                         const scoreDisplay = getTestScoreDisplay(test.id, test.score_type);
                         const key = `${test.id}`;
                         const isSaving = savingScores[key];
@@ -889,17 +889,78 @@ function ManageStudents() {
               <div className="loading-small">טוען נתונים...</div>
             ) : (
               <form onSubmit={handleSaveExternalTests}>
-                {/* Certification Tests Section */}
-                {selectedStudent.courses && selectedStudent.courses.length > 0 && (
-                  <div className="certification-tests-section">
-                    <h4 className="section-title">ציוני מבחנים</h4>
-                    {[...new Set(selectedStudent.courses.map(c => c.course_type).filter(Boolean))].map(courseType => (
-                      <div key={courseType} className="course-type-tests">
-                        {renderCertificationSections(courseType)}
-                      </div>
-                    ))}
+                {/* Certification Tests Section - 3 Course Type Sections */}
+                <div className="certification-tests-section">
+                  <h4 className="section-title">ציוני מבחנים</h4>
+                  <div className="course-sections-container">
+                    {/* Section 1: מדריך עוזר */}
+                    {(() => {
+                      const studentCourseTypes = selectedStudent.courses?.map(c => c.course_type).filter(Boolean) || [];
+                      const isAssistantEnabled = studentCourseTypes.some(ct =>
+                        ct === 'מדריך_עוזר' || ct === 'מדריך_עוזר_משולב_עם_מדריך'
+                      );
+                      return (
+                        <div className={`course-section ${isAssistantEnabled ? 'section-enabled' : 'section-disabled'}`}>
+                          <div className="course-section-header">
+                            <h5>מדריך עוזר</h5>
+                            {!isAssistantEnabled && <span className="section-status">לא פעיל</span>}
+                          </div>
+                          <div className="course-section-content">
+                            {isAssistantEnabled ? (
+                              renderCertificationSections('מדריך_עוזר')
+                            ) : (
+                              <p className="section-inactive-message">החניך אינו רשום לקורס מדריך עוזר</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Section 2: מדריך */}
+                    {(() => {
+                      const studentCourseTypes = selectedStudent.courses?.map(c => c.course_type).filter(Boolean) || [];
+                      const isInstructorEnabled = studentCourseTypes.some(ct =>
+                        ct === 'מדריך' || ct === 'מדריך_עוזר_משולב_עם_מדריך'
+                      );
+                      return (
+                        <div className={`course-section ${isInstructorEnabled ? 'section-enabled' : 'section-disabled'}`}>
+                          <div className="course-section-header">
+                            <h5>מדריך</h5>
+                            {!isInstructorEnabled && <span className="section-status">לא פעיל</span>}
+                          </div>
+                          <div className="course-section-content">
+                            {isInstructorEnabled ? (
+                              renderCertificationSections('מדריך')
+                            ) : (
+                              <p className="section-inactive-message">החניך אינו רשום לקורס מדריך</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Section 3: קרוסאובר */}
+                    {(() => {
+                      const studentCourseTypes = selectedStudent.courses?.map(c => c.course_type).filter(Boolean) || [];
+                      const isCrossoverEnabled = studentCourseTypes.some(ct => ct === 'קרוסאובר');
+                      return (
+                        <div className={`course-section ${isCrossoverEnabled ? 'section-enabled' : 'section-disabled'}`}>
+                          <div className="course-section-header">
+                            <h5>קרוסאובר</h5>
+                            {!isCrossoverEnabled && <span className="section-status">לא פעיל</span>}
+                          </div>
+                          <div className="course-section-content">
+                            {isCrossoverEnabled ? (
+                              renderCertificationSections('קרוסאובר')
+                            ) : (
+                              <p className="section-inactive-message">החניך אינו רשום לקורס קרוסאובר</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
-                )}
+                </div>
 
 
                 <div className="form-actions form-actions-spread">

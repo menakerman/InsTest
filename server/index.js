@@ -1196,6 +1196,7 @@ app.get('/api/test-structure/:courseType', authenticateToken, requireRole('admin
             'code', tt.code,
             'name_he', tt.name_he,
             'score_type', tt.score_type,
+            'location', tt.location,
             'display_order', tt.display_order
           ) ORDER BY tt.display_order
         ) as tests

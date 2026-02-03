@@ -2647,11 +2647,15 @@ body {
   border-bottom: 2px solid #e9ecef;
 }
 
-/* Course Sections Container - 3 Column Layout */
+/* Course Sections Container - Vertical Stacked Layout */
 .course-sections-container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
+}
+
+.course-sections-container.vertical {
+  flex-direction: column !important;
 }
 
 .course-section {
@@ -2681,8 +2685,37 @@ body {
   color: white;
 }
 
+.course-section-header.clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.course-section-header.clickable:hover {
+  background: linear-gradient(135deg, #234876 0%, #2b6cb0 100%);
+}
+
+.course-section-header .header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.course-section-header .collapse-icon {
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+  display: inline-block;
+}
+
+.course-section-header .collapse-icon.collapsed {
+  transform: rotate(-90deg);
+}
+
 .course-section.section-disabled .course-section-header {
   background: linear-gradient(135deg, #718096 0%, #a0aec0 100%);
+}
+
+.course-section.section-disabled .course-section-header.clickable:hover {
+  background: linear-gradient(135deg, #5a6b7a 0%, #8a9aaa 100%);
 }
 
 .course-section-header h5 {
@@ -2701,6 +2734,17 @@ body {
 .course-section-content {
   padding: 1rem;
   background-color: white;
+  max-height: 2000px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
+  opacity: 1;
+}
+
+.course-section-content.collapsed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
 }
 
 .course-section.section-disabled .course-section-content {
@@ -2715,19 +2759,6 @@ body {
   margin: 0;
 }
 
-/* Responsive - Side by side on larger screens */
-@media (min-width: 1200px) {
-  .course-sections-container {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .course-section {
-    flex: 1;
-    min-width: 300px;
-  }
-}
-
 .student-certification-wrapper {
   margin-bottom: 1.5rem;
 }
@@ -2736,72 +2767,108 @@ body {
   margin-top: 1rem;
 }
 
-/* Certification Sections - Compact Layout */
+/* Certification Sections - Clean Grid Layout */
 .certification-sections-compact {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.certification-category-block {
+  background: #fafbfc;
+  border-radius: 8px;
+  padding: 0.75rem;
+  border: 1px solid #e9ecef;
 }
 
 .certification-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #eee;
-}
-
-.certification-row:last-child {
-  border-bottom: none;
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 1rem;
+  align-items: start;
 }
 
 .category-label {
   font-weight: 600;
   color: #2c5282;
   font-size: 0.9rem;
-  min-width: 100px;
-  flex-shrink: 0;
+  text-align: right;
+  padding-top: 0.25rem;
 }
 
 .category-tests-grouped {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.75rem;
 }
 
+/* Row of test items (checkboxes or inputs) */
 .category-tests-inline {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
+  gap: 0.75rem 1.5rem;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Location-based subsection (כיתה / מים) */
+.category-tests-inline.location-row {
+  display: grid;
+  grid-template-columns: 50px 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.category-tests-inline.location-row .test-items-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
   align-items: center;
 }
 
 .test-item-inline {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.85rem;
+  gap: 0.4rem;
+  font-size: 0.875rem;
 }
 
 .test-checkbox-item {
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.test-checkbox-item:hover {
+  background-color: #f0f4f8;
 }
 
 .test-checkbox-item input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   cursor: pointer;
   accent-color: #28a745;
 }
 
 .test-name-inline {
   color: #4a5568;
+  white-space: nowrap;
 }
 
 .test-location-label {
   font-weight: 600;
-  color: #495057;
-  margin-left: 0.25rem;
+  color: #2c5282;
+  font-size: 0.875rem;
+  white-space: nowrap;
 }
 
 .test-score-inline {
@@ -2809,14 +2876,15 @@ body {
 }
 
 .test-score-input {
-  width: 45px;
-  padding: 0.15rem 0.25rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  width: 50px;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  font-size: 0.875rem;
   text-align: center;
   background: white;
   -moz-appearance: textfield;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .test-score-input::-webkit-outer-spin-button,
@@ -2828,17 +2896,19 @@ body {
 .test-score-input:focus {
   outline: none;
   border-color: #4299e1;
-  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
 }
 
 .test-score-input.score-pass {
-  border-color: #28a745;
-  color: #28a745;
+  border-color: #48bb78;
+  background-color: #f0fff4;
+  color: #276749;
 }
 
 .test-score-input.score-fail {
-  border-color: #dc3545;
-  color: #dc3545;
+  border-color: #fc8181;
+  background-color: #fff5f5;
+  color: #c53030;
 }
 
 .test-score-select {
@@ -3839,25 +3909,32 @@ body {
   color: #dc3545;
 }
 
+/* Theory Tests Summary Section */
+.theory-tests-summary {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
 .external-tests-average {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-radius: 8px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .external-tests-average .average-label {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #495057;
 }
 
 .external-tests-average .average-value {
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 700;
   color: #0077b6;
 }

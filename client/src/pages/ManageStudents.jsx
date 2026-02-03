@@ -57,6 +57,19 @@ function ManageStudents() {
   const [studentTestScores, setStudentTestScores] = useState([]);
   const [editingScores, setEditingScores] = useState({});
   const [savingScores, setSavingScores] = useState({});
+  const [collapsedSections, setCollapsedSections] = useState({
+    'מדריך_עוזר': false,
+    'מדריך': false,
+    'קרוסאובר': false
+  });
+
+  // Toggle section collapse
+  const toggleSectionCollapse = (sectionKey) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
+  };
 
   // Check if user can edit (admin only)
   const canEdit = user && user.role === 'admin';
@@ -530,70 +543,102 @@ function ManageStudents() {
             ? calculateTheoryTestsRecommendations(category.tests, parseFloat(theoryAverage))
             : [];
 
-          // Separate tests by type
-          const checkboxTests = category.tests?.filter(t => t.score_type === 'pass_fail') || [];
-          const numericTests = category.tests?.filter(t => t.score_type === 'percentage') || [];
+          // Check if tests have location property (for מבחני מדריך עוזר and מבחני מדריך)
+          const hasLocationTests = category.tests?.some(t => t.location) || false;
 
-          // Check if this is the "מבחני מדריך עוזר" category
-          const isAssistantInstructorTests = category.category_code === 'assistant_instructor_tests' || category.category_name === 'מבחני מדריך עוזר';
+          // For categories with location-based tests
+          const classroomTests = category.tests?.filter(t => t.location === 'כיתה') || [];
+          const waterTests = category.tests?.filter(t => t.location === 'מים') || [];
+
+          // For categories without location (מבחני כניסה, מבחנים עיוניים)
+          const checkboxTests = category.tests?.filter(t => !t.location && t.score_type === 'pass_fail') || [];
+          const numericTests = category.tests?.filter(t => !t.location && t.score_type === 'percentage') || [];
+
+          // Helper function to render a test item
+          const renderTestItem = (test) => {
+            const scoreDisplay = getTestScoreDisplay(test.id);
+            const key = `${test.id}`;
+            const isSaving = savingScores[key];
+            const editValue = getCertEditingValue(test.id, scoreDisplay.value);
+
+            if (test.score_type === 'pass_fail') {
+              return (
+                <label key={test.id} className="test-item-inline test-checkbox-item">
+                  <input
+                    type="checkbox"
+                    checked={scoreDisplay.passed === true}
+                    disabled={isSaving || !canEdit}
+                    onChange={(e) => handleCertCheckboxChange(test.id, e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <span className="test-name-inline">{test.name_he}</span>
+                </label>
+              );
+            } else {
+              return (
+                <span key={test.id} className="test-item-inline">
+                  <span className="test-name-inline">{test.name_he}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    className={`test-score-input ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
+                    value={editValue}
+                    disabled={isSaving || !canEdit}
+                    onChange={(e) => handleCertScoreChange(test.id, e.target.value)}
+                    onBlur={() => handleCertScoreBlur(test.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </span>
+              );
+            }
+          };
 
           return (
             <div key={category.category_id} className="certification-category-block">
               <div className="certification-row">
                 <span className="category-label">{category.category_name}:</span>
                 <div className="category-tests-grouped">
-                  {/* Checkbox tests row (מים for assistant instructor tests) */}
-                  {checkboxTests.length > 0 && (
-                    <div className="category-tests-inline">
-                      {isAssistantInstructorTests && <span className="test-location-label">מים:</span>}
-                      {checkboxTests.map((test) => {
-                        const scoreDisplay = getTestScoreDisplay(test.id, test.score_type);
-                        const key = `${test.id}`;
-                        const isSaving = savingScores[key];
-
-                        return (
-                          <label key={test.id} className="test-item-inline test-checkbox-item">
-                            <input
-                              type="checkbox"
-                              checked={scoreDisplay.passed === true}
-                              disabled={isSaving || !canEdit}
-                              onChange={(e) => handleCertCheckboxChange(test.id, e.target.checked)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <span className="test-name-inline">{test.name_he}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
+                  {/* For categories with location-based tests (מבחני מדריך עוזר, מבחני מדריך) */}
+                  {hasLocationTests && (
+                    <>
+                      {/* כיתה (Classroom) tests */}
+                      {classroomTests.length > 0 && (
+                        <div className="category-tests-inline location-row">
+                          <span className="test-location-label">כיתה:</span>
+                          <div className="test-items-group">
+                            {classroomTests.map(renderTestItem)}
+                          </div>
+                        </div>
+                      )}
+                      {/* מים (Water) tests */}
+                      {waterTests.length > 0 && (
+                        <div className="category-tests-inline location-row">
+                          <span className="test-location-label">מים:</span>
+                          <div className="test-items-group">
+                            {waterTests.map(renderTestItem)}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
-                  {/* Numeric tests row (כיתה for assistant instructor tests) */}
-                  {numericTests.length > 0 && (
-                    <div className="category-tests-inline">
-                      {isAssistantInstructorTests && <span className="test-location-label">כיתה:</span>}
-                      {numericTests.map((test) => {
-                        const scoreDisplay = getTestScoreDisplay(test.id, test.score_type);
-                        const key = `${test.id}`;
-                        const isSaving = savingScores[key];
-                        const editValue = getCertEditingValue(test.id, scoreDisplay.value);
 
-                        return (
-                          <span key={test.id} className="test-item-inline">
-                            <span className="test-name-inline">{test.name_he}</span>
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              className={`test-score-input ${scoreDisplay.passed === false ? 'score-fail' : scoreDisplay.passed === true ? 'score-pass' : ''}`}
-                              value={editValue}
-                              disabled={isSaving || !canEdit}
-                              onChange={(e) => handleCertScoreChange(test.id, e.target.value)}
-                              onBlur={() => handleCertScoreBlur(test.id)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </span>
-                        );
-                      })}
-                    </div>
+                  {/* For categories without location (מבחני כניסה, מבחנים עיוניים) */}
+                  {!hasLocationTests && (
+                    <>
+                      {/* Checkbox tests */}
+                      {checkboxTests.length > 0 && (
+                        <div className="category-tests-inline">
+                          {checkboxTests.map(renderTestItem)}
+                        </div>
+                      )}
+                      {/* Numeric tests */}
+                      {numericTests.length > 0 && (
+                        <div className="category-tests-inline">
+                          {numericTests.map(renderTestItem)}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -889,23 +934,30 @@ function ManageStudents() {
               <div className="loading-small">טוען נתונים...</div>
             ) : (
               <form onSubmit={handleSaveExternalTests}>
-                {/* Certification Tests Section - 3 Course Type Sections */}
+                {/* Certification Tests Section - 3 Course Type Sections (Vertical & Collapsible) */}
                 <div className="certification-tests-section">
                   <h4 className="section-title">ציוני מבחנים</h4>
-                  <div className="course-sections-container">
+                  <div className="course-sections-container vertical">
                     {/* Section 1: מדריך עוזר */}
                     {(() => {
                       const studentCourseTypes = selectedStudent.courses?.map(c => c.course_type).filter(Boolean) || [];
                       const isAssistantEnabled = studentCourseTypes.some(ct =>
                         ct === 'מדריך_עוזר' || ct === 'מדריך_עוזר_משולב_עם_מדריך'
                       );
+                      const isCollapsed = collapsedSections['מדריך_עוזר'];
                       return (
-                        <div className={`course-section ${isAssistantEnabled ? 'section-enabled' : 'section-disabled'}`}>
-                          <div className="course-section-header">
-                            <h5>מדריך עוזר</h5>
+                        <div className={`course-section ${isAssistantEnabled ? 'section-enabled' : 'section-disabled'} ${isCollapsed ? 'collapsed' : ''}`}>
+                          <div
+                            className="course-section-header clickable"
+                            onClick={() => toggleSectionCollapse('מדריך_עוזר')}
+                          >
+                            <div className="header-title">
+                              <span className={`collapse-icon ${isCollapsed ? 'collapsed' : ''}`}>▼</span>
+                              <h5>מדריך עוזר</h5>
+                            </div>
                             {!isAssistantEnabled && <span className="section-status">לא פעיל</span>}
                           </div>
-                          <div className="course-section-content">
+                          <div className={`course-section-content ${isCollapsed ? 'collapsed' : ''}`}>
                             {isAssistantEnabled ? (
                               renderCertificationSections('מדריך_עוזר')
                             ) : (
@@ -922,13 +974,20 @@ function ManageStudents() {
                       const isInstructorEnabled = studentCourseTypes.some(ct =>
                         ct === 'מדריך' || ct === 'מדריך_עוזר_משולב_עם_מדריך'
                       );
+                      const isCollapsed = collapsedSections['מדריך'];
                       return (
-                        <div className={`course-section ${isInstructorEnabled ? 'section-enabled' : 'section-disabled'}`}>
-                          <div className="course-section-header">
-                            <h5>מדריך</h5>
+                        <div className={`course-section ${isInstructorEnabled ? 'section-enabled' : 'section-disabled'} ${isCollapsed ? 'collapsed' : ''}`}>
+                          <div
+                            className="course-section-header clickable"
+                            onClick={() => toggleSectionCollapse('מדריך')}
+                          >
+                            <div className="header-title">
+                              <span className={`collapse-icon ${isCollapsed ? 'collapsed' : ''}`}>▼</span>
+                              <h5>מדריך</h5>
+                            </div>
                             {!isInstructorEnabled && <span className="section-status">לא פעיל</span>}
                           </div>
-                          <div className="course-section-content">
+                          <div className={`course-section-content ${isCollapsed ? 'collapsed' : ''}`}>
                             {isInstructorEnabled ? (
                               renderCertificationSections('מדריך')
                             ) : (
@@ -943,13 +1002,20 @@ function ManageStudents() {
                     {(() => {
                       const studentCourseTypes = selectedStudent.courses?.map(c => c.course_type).filter(Boolean) || [];
                       const isCrossoverEnabled = studentCourseTypes.some(ct => ct === 'קרוסאובר');
+                      const isCollapsed = collapsedSections['קרוסאובר'];
                       return (
-                        <div className={`course-section ${isCrossoverEnabled ? 'section-enabled' : 'section-disabled'}`}>
-                          <div className="course-section-header">
-                            <h5>קרוסאובר</h5>
+                        <div className={`course-section ${isCrossoverEnabled ? 'section-enabled' : 'section-disabled'} ${isCollapsed ? 'collapsed' : ''}`}>
+                          <div
+                            className="course-section-header clickable"
+                            onClick={() => toggleSectionCollapse('קרוסאובר')}
+                          >
+                            <div className="header-title">
+                              <span className={`collapse-icon ${isCollapsed ? 'collapsed' : ''}`}>▼</span>
+                              <h5>קרוסאובר</h5>
+                            </div>
                             {!isCrossoverEnabled && <span className="section-status">לא פעיל</span>}
                           </div>
-                          <div className="course-section-content">
+                          <div className={`course-section-content ${isCollapsed ? 'collapsed' : ''}`}>
                             {isCrossoverEnabled ? (
                               renderCertificationSections('קרוסאובר')
                             ) : (

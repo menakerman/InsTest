@@ -5,34 +5,35 @@ dotenv.config();
 
 const { Pool } = pg;
 
+const isLocalhost = process.env.DATABASE_URL?.includes('localhost');
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: isLocalhost ? false : { rejectUnauthorized: false }
 });
 
 // Test categories and types for each certification track
 const testStructure = {
   'מדריך_עוזר': [
     {
-      code: 'assistant_external_tests',
-      name_he: 'מבחנים עיוניים',
+      code: 'assistant_entry_tests',
+      name_he: 'מבחני כניסה',
       display_order: 1,
       tests: [
-        { code: 'assistant_instructor_exam', name_he: 'ציון מבחן מדריך עוזר', score_type: 'percentage', display_order: 1 },
-        { code: 'diving_authority_exam', name_he: 'ציון מבחן רשות הצלילה', score_type: 'percentage', display_order: 2 },
-        { code: 'three_stars_exam', name_he: 'ציון מבחן שלושה כוכבים', score_type: 'percentage', display_order: 3 }
+        { code: 'assistant_entry_basis', name_he: 'ביסוס', score_type: 'pass_fail', display_order: 1 },
+        { code: 'assistant_entry_free_swim', name_he: 'שחיה חופשית', score_type: 'pass_fail', display_order: 2 },
+        { code: 'assistant_entry_tow', name_he: 'גרירה', score_type: 'pass_fail', display_order: 3 },
+        { code: 'assistant_entry_package', name_he: 'חבילה', score_type: 'pass_fail', display_order: 4 },
+        { code: 'assistant_entry_free_dive', name_he: 'צלילה חופשית', score_type: 'pass_fail', display_order: 5 }
       ]
     },
     {
-      code: 'assistant_skills',
-      name_he: 'מיומנויות',
+      code: 'assistant_external_tests',
+      name_he: 'מבחנים עיוניים',
       display_order: 2,
       tests: [
-        { code: 'skill_30m', name_he: '30 מטר', score_type: 'pass_fail', display_order: 1 },
-        { code: 'skill_40m', name_he: '40 מטר', score_type: 'pass_fail', display_order: 2 },
-        { code: 'skill_rescue', name_he: 'הצלה', score_type: 'pass_fail', display_order: 3 }
+        { code: 'assistant_instructor_exam', name_he: 'מבחן מדריך עוזר', score_type: 'percentage', display_order: 1 },
+        { code: 'diving_authority_exam', name_he: 'מבחן רשות הצלילה', score_type: 'percentage', display_order: 2 },
+        { code: 'three_stars_exam', name_he: 'מבחן שלושה כוכבים', score_type: 'percentage', display_order: 3 }
       ]
     },
     {
@@ -40,49 +41,56 @@ const testStructure = {
       name_he: 'מבחני מדריך עוזר',
       display_order: 3,
       tests: [
-        { code: 'assistant_intro', name_he: 'היכרות', score_type: 'pass_fail', display_order: 1 },
-        { code: 'assistant_briefing', name_he: 'תדריך', score_type: 'percentage', display_order: 2 },
-        { code: 'assistant_equipment', name_he: 'ציוד', score_type: 'percentage', display_order: 3 },
-        { code: 'assistant_rescue', name_he: 'הצלה', score_type: 'pass_fail', display_order: 4 },
-        { code: 'assistant_extra_1', name_he: 'נוסף 1', score_type: 'pass_fail', display_order: 5 },
-        { code: 'assistant_extra_2', name_he: 'נוסף 2', score_type: 'pass_fail', display_order: 6 }
+        // כיתה (Classroom) - percentage inputs
+        { code: 'assistant_briefing', name_he: 'תדריך', score_type: 'percentage', display_order: 1, location: 'כיתה' },
+        { code: 'assistant_equipment', name_he: 'ציוד', score_type: 'percentage', display_order: 2, location: 'כיתה' },
+        // מים (Water) - checkboxes
+        { code: 'assistant_rescue', name_he: 'הצלה', score_type: 'pass_fail', display_order: 3, location: 'מים' },
+        { code: 'assistant_intro', name_he: 'היכרות', score_type: 'pass_fail', display_order: 4, location: 'מים' }
       ]
     }
   ],
   'מדריך': [
     {
-      code: 'instructor_water_tests',
-      name_he: 'מבחני מים',
+      code: 'instructor_entry_tests',
+      name_he: 'מבחני כניסה',
       display_order: 1,
       tests: [
-        { code: 'water_cmas', name_he: 'קמס', score_type: 'percentage', display_order: 1 },
-        { code: 'water_scuba_1', name_he: 'סקובה 1', score_type: 'percentage', display_order: 2 },
-        { code: 'water_scuba_3', name_he: 'סקובה 3', score_type: 'percentage', display_order: 3 },
-        { code: 'water_scuba_5', name_he: 'סקובה 5', score_type: 'percentage', display_order: 4 },
-        { code: 'water_extra', name_he: 'נוסף', score_type: 'percentage', display_order: 5 }
-      ]
-    },
-    {
-      code: 'instructor_classroom_tests',
-      name_he: 'מבחני כיתה',
-      display_order: 2,
-      tests: [
-        { code: 'classroom_behavior', name_he: 'כללי התנהגות', score_type: 'percentage', display_order: 1 },
-        { code: 'classroom_risks', name_he: 'סיכוני צלילה', score_type: 'percentage', display_order: 2 },
-        { code: 'classroom_free_lecture', name_he: 'הרצאה חופשית', score_type: 'percentage', display_order: 3 },
-        { code: 'classroom_extra', name_he: 'נוסף', score_type: 'percentage', display_order: 4 }
+        { code: 'instructor_entry_basis', name_he: 'ביסוס', score_type: 'pass_fail', display_order: 1 },
+        { code: 'instructor_entry_free_swim', name_he: 'שחיה חופשית', score_type: 'pass_fail', display_order: 2 },
+        { code: 'instructor_entry_tow', name_he: 'גרירה', score_type: 'pass_fail', display_order: 3 },
+        { code: 'instructor_entry_package', name_he: 'חבילה', score_type: 'pass_fail', display_order: 4 },
+        { code: 'instructor_entry_free_dive', name_he: 'צלילה חופשית', score_type: 'pass_fail', display_order: 5 }
       ]
     },
     {
       code: 'instructor_external_tests',
       name_he: 'מבחנים עיוניים',
+      display_order: 2,
+      tests: [
+        { code: 'ext_physics', name_he: 'מבחן פיזיקה', score_type: 'percentage', display_order: 1 },
+        { code: 'ext_physiology', name_he: 'מבחן פיזיולוגיה', score_type: 'percentage', display_order: 2 },
+        { code: 'ext_eye_contact', name_he: 'מבחן קשר עין', score_type: 'percentage', display_order: 3 },
+        { code: 'ext_equipment', name_he: 'מבחן ציוד', score_type: 'percentage', display_order: 4 },
+        { code: 'ext_decompression', name_he: 'מבחן דקומפרסיה', score_type: 'percentage', display_order: 5 }
+      ]
+    },
+    {
+      code: 'instructor_tests',
+      name_he: 'מבחני מדריך',
       display_order: 3,
       tests: [
-        { code: 'ext_physics', name_he: 'פיזיקה', score_type: 'percentage', display_order: 1 },
-        { code: 'ext_physiology', name_he: 'פיזיולוגיה', score_type: 'percentage', display_order: 2 },
-        { code: 'ext_eye_contact', name_he: 'קשר עין', score_type: 'percentage', display_order: 3 },
-        { code: 'ext_equipment', name_he: 'ציוד', score_type: 'percentage', display_order: 4 },
-        { code: 'ext_decompression', name_he: 'דקומפרסיה', score_type: 'percentage', display_order: 5 }
+        // כיתה (Classroom) - percentage inputs from העברת שיעור כיתה forms
+        { code: 'classroom_behavior', name_he: 'כללי התנהגות', score_type: 'percentage', display_order: 1, location: 'כיתה' },
+        { code: 'classroom_risks', name_he: 'סיכוני צלילה', score_type: 'percentage', display_order: 2, location: 'כיתה' },
+        { code: 'classroom_free_lecture', name_he: 'הרצאה חופשית', score_type: 'percentage', display_order: 3, location: 'כיתה' },
+        { code: 'classroom_extra', name_he: 'נוסף', score_type: 'percentage', display_order: 4, location: 'כיתה' },
+        // מים (Water) - percentage inputs from העברת שיעור מים forms
+        { code: 'water_cmas', name_he: 'קמס', score_type: 'percentage', display_order: 5, location: 'מים' },
+        { code: 'water_scuba_1', name_he: 'סקובה 1', score_type: 'percentage', display_order: 6, location: 'מים' },
+        { code: 'water_scuba_3', name_he: 'סקובה 3', score_type: 'percentage', display_order: 7, location: 'מים' },
+        { code: 'water_scuba_5', name_he: 'סקובה 5', score_type: 'percentage', display_order: 8, location: 'מים' },
+        { code: 'water_extra', name_he: 'נוסף', score_type: 'percentage', display_order: 9, location: 'מים' }
       ]
     }
   ],
@@ -119,12 +127,27 @@ async function addCertificationTestsTables() {
         category_id INTEGER REFERENCES test_categories(id) ON DELETE CASCADE,
         name_he VARCHAR(200) NOT NULL,
         score_type VARCHAR(50) NOT NULL DEFAULT 'percentage',
+        location VARCHAR(50),
         display_order INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT valid_score_type CHECK (score_type IN ('percentage', 'pass_fail', 'evaluation'))
       )
     `);
     console.log('  - Created test_types table');
+
+    // Add location column if it doesn't exist (for existing tables)
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'test_types' AND column_name = 'location'
+        ) THEN
+          ALTER TABLE test_types ADD COLUMN location VARCHAR(50);
+        END IF;
+      END $$;
+    `);
+    console.log('  - Ensured location column exists');
 
     // Create student_test_scores table
     await client.query(`
@@ -186,10 +209,10 @@ async function addCertificationTestsTables() {
         // Insert test types
         for (const test of category.tests) {
           await client.query(
-            `INSERT INTO test_types (code, category_id, name_he, score_type, display_order)
-             VALUES ($1, $2, $3, $4, $5)
-             ON CONFLICT (code) DO UPDATE SET category_id = $2, name_he = $3, score_type = $4, display_order = $5`,
-            [test.code, categoryId, test.name_he, test.score_type, test.display_order]
+            `INSERT INTO test_types (code, category_id, name_he, score_type, location, display_order)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             ON CONFLICT (code) DO UPDATE SET category_id = $2, name_he = $3, score_type = $4, location = $5, display_order = $6`,
+            [test.code, categoryId, test.name_he, test.score_type, test.location || null, test.display_order]
           );
         }
         console.log(`    Added ${category.tests.length} test types`);

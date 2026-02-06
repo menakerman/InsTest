@@ -41,9 +41,9 @@ const testStructure = {
       name_he: 'מבחני העברת הרצאה',
       display_order: 3,
       tests: [
-        { code: 'assistant_equipment_lecture', name_he: 'ציוד צלילה', score_type: 'pass_fail', display_order: 1 },
-        { code: 'assistant_pre_dive_briefing', name_he: 'תדריך לפני צלילה', score_type: 'pass_fail', display_order: 2 },
-        { code: 'assistant_review_topic', name_he: 'חוזר בנושא', score_type: 'pass_fail', display_order: 3 }
+        { code: 'assistant_equipment_lecture', name_he: 'ציוד צלילה', score_type: 'percentage', display_order: 1 },
+        { code: 'assistant_pre_dive_briefing', name_he: 'תדריך לפני צלילה', score_type: 'percentage', display_order: 2 },
+        { code: 'assistant_review_topic', name_he: 'חוזר בנושא', score_type: 'percentage', display_order: 3 }
       ]
     },
     {
@@ -51,11 +51,11 @@ const testStructure = {
       name_he: 'מבחנים מעשיים',
       display_order: 4,
       tests: [
-        { code: 'assistant_cmas_lesson', name_he: 'שיעור קמ"ס', score_type: 'pass_fail', display_order: 1 },
-        { code: 'assistant_dive_leading', name_he: 'הובלת צלילה', score_type: 'pass_fail', display_order: 2 },
-        { code: 'assistant_first_dive_leading', name_he: 'הובלת צלילת בכורה', score_type: 'pass_fail', display_order: 3 },
-        { code: 'assistant_rescue_procedure', name_he: 'נוהל הצלה', score_type: 'pass_fail', display_order: 4 },
-        { code: 'assistant_practical_retake', name_he: 'מבחן חוזר', score_type: 'pass_fail', display_order: 5 }
+        { code: 'assistant_cmas_lesson', name_he: 'שיעור קמ"ס', score_type: 'percentage', display_order: 1 },
+        { code: 'assistant_dive_leading', name_he: 'הובלת צלילה', score_type: 'percentage', display_order: 2 },
+        { code: 'assistant_first_dive_leading', name_he: 'הובלת צלילת בכורה', score_type: 'percentage', display_order: 3 },
+        { code: 'assistant_rescue_procedure', name_he: 'נוהל הצלה', score_type: 'percentage', display_order: 4 },
+        { code: 'assistant_practical_retake', name_he: 'מבחן חוזר', score_type: 'percentage', display_order: 5 }
       ]
     }
   ],
@@ -98,10 +98,10 @@ const testStructure = {
       name_he: 'מבחני העברת הרצאה',
       display_order: 3,
       tests: [
-        { code: 'instructor_lecture_1', name_he: 'נושא הרצאה 1', score_type: 'pass_fail', display_order: 1 },
-        { code: 'instructor_lecture_2', name_he: 'נושא הרצאה 2', score_type: 'pass_fail', display_order: 2 },
-        { code: 'instructor_lecture_choice', name_he: 'הרצאת בחירה', score_type: 'pass_fail', display_order: 3 },
-        { code: 'instructor_lecture_retake', name_he: 'חוזר בנושא', score_type: 'pass_fail', display_order: 4 }
+        { code: 'instructor_lecture_1', name_he: 'נושא הרצאה 1', score_type: 'percentage', display_order: 1 },
+        { code: 'instructor_lecture_2', name_he: 'נושא הרצאה 2', score_type: 'percentage', display_order: 2 },
+        { code: 'instructor_lecture_choice', name_he: 'הרצאת בחירה', score_type: 'percentage', display_order: 3 },
+        { code: 'instructor_lecture_retake', name_he: 'חוזר בנושא', score_type: 'percentage', display_order: 4 }
       ]
     },
     {
@@ -109,11 +109,11 @@ const testStructure = {
       name_he: 'מבחני העברת שיעור מים',
       display_order: 4,
       tests: [
-        { code: 'instructor_water_cmas', name_he: 'מבחן קמ"ס', score_type: 'pass_fail', display_order: 1 },
-        { code: 'instructor_water_protected_1', name_he: 'מבחן מים מוגנים 1', score_type: 'pass_fail', display_order: 2 },
-        { code: 'instructor_water_protected_2', name_he: 'מבחן מים מוגנים 2', score_type: 'pass_fail', display_order: 3 },
-        { code: 'instructor_water_open_sea', name_he: 'מבחן ים פתוח', score_type: 'pass_fail', display_order: 4 },
-        { code: 'instructor_water_retake', name_he: 'מבחן חוזר', score_type: 'pass_fail', display_order: 5 }
+        { code: 'instructor_water_cmas', name_he: 'מבחן קמ"ס', score_type: 'percentage', display_order: 1 },
+        { code: 'instructor_water_protected_1', name_he: 'מבחן מים מוגנים 1', score_type: 'percentage', display_order: 2 },
+        { code: 'instructor_water_protected_2', name_he: 'מבחן מים מוגנים 2', score_type: 'percentage', display_order: 3 },
+        { code: 'instructor_water_open_sea', name_he: 'מבחן ים פתוח', score_type: 'percentage', display_order: 4 },
+        { code: 'instructor_water_retake', name_he: 'מבחן חוזר', score_type: 'percentage', display_order: 5 }
       ]
     },
     {
@@ -153,9 +153,9 @@ const testStructure = {
       name_he: 'מבחני העברת הרצאה',
       display_order: 2,
       tests: [
-        { code: 'crossover_lecture_1', name_he: 'נושא הרצאה 1', score_type: 'pass_fail', display_order: 1 },
-        { code: 'crossover_lecture_2', name_he: 'נושא הרצאה 2', score_type: 'pass_fail', display_order: 2 },
-        { code: 'crossover_lecture_retake', name_he: 'חוזר בנושא', score_type: 'pass_fail', display_order: 3 }
+        { code: 'crossover_lecture_1', name_he: 'נושא הרצאה 1', score_type: 'percentage', display_order: 1 },
+        { code: 'crossover_lecture_2', name_he: 'נושא הרצאה 2', score_type: 'percentage', display_order: 2 },
+        { code: 'crossover_lecture_retake', name_he: 'חוזר בנושא', score_type: 'percentage', display_order: 3 }
       ]
     },
     {
@@ -163,10 +163,10 @@ const testStructure = {
       name_he: 'מבחני העברת שיעור מים',
       display_order: 3,
       tests: [
-        { code: 'crossover_water_cmas', name_he: 'מבחן קמ"ס', score_type: 'pass_fail', display_order: 1 },
-        { code: 'crossover_water_protected', name_he: 'מבחן מים מוגנים', score_type: 'pass_fail', display_order: 2 },
-        { code: 'crossover_water_open_sea', name_he: 'מבחן ים פתוח', score_type: 'pass_fail', display_order: 3 },
-        { code: 'crossover_water_retake', name_he: 'מבחן חוזר', score_type: 'pass_fail', display_order: 4 }
+        { code: 'crossover_water_cmas', name_he: 'מבחן קמ"ס', score_type: 'percentage', display_order: 1 },
+        { code: 'crossover_water_protected', name_he: 'מבחן מים מוגנים', score_type: 'percentage', display_order: 2 },
+        { code: 'crossover_water_open_sea', name_he: 'מבחן ים פתוח', score_type: 'percentage', display_order: 3 },
+        { code: 'crossover_water_retake', name_he: 'מבחן חוזר', score_type: 'percentage', display_order: 4 }
       ]
     },
     {

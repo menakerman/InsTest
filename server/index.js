@@ -755,6 +755,12 @@ app.get('/api/evaluations', authenticateToken, requireRole('admin', 'madar', 'in
       params.push(to_date);
     }
 
+    // Filter by is_final_test (test vs practice)
+    if (req.query.is_final_test !== undefined) {
+      query += ` AND se.is_final_test = $${paramIndex++}`;
+      params.push(req.query.is_final_test === 'true');
+    }
+
     query += ' ORDER BY se.evaluation_date DESC';
 
     const result = await pool.query(query, params);

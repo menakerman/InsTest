@@ -192,7 +192,7 @@ function ManageStudents() {
       const [testsData, skillsResult, evaluationsData, certTestScores] = await Promise.all([
         getExternalTests(student.id),
         getStudentSkills(student.id),
-        getEvaluations({ student_id: student.id }),
+        getEvaluations({ student_id: student.id, is_final_test: true }), // Only fetch test evaluations, not practice
         getStudentTests(student.id)
       ]);
       setExternalTestsData({

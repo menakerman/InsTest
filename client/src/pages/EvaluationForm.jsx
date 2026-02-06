@@ -33,6 +33,7 @@ function EvaluationForm() {
   // Stopwatch state
   const [stopwatchTime, setStopwatchTime] = useState(0);
   const [stopwatchRunning, setStopwatchRunning] = useState(false);
+  const [stopwatchMinimized, setStopwatchMinimized] = useState(false);
   const stopwatchInterval = useRef(null);
 
   // Subjects that support test vs training selection
@@ -221,27 +222,37 @@ function EvaluationForm() {
       </div>
 
       {showStopwatch && (
-        <div className="stopwatch-container">
+        <div className={`stopwatch-container ${stopwatchMinimized ? 'minimized' : ''}`}>
+          <button
+            type="button"
+            className="btn-stopwatch-toggle"
+            onClick={() => setStopwatchMinimized(!stopwatchMinimized)}
+            title={stopwatchMinimized ? 'הרחב' : 'מזער'}
+          >
+            {stopwatchMinimized ? '◀' : '▶'}
+          </button>
           <div className="stopwatch-display">
-            <span className="stopwatch-label">זמן השיעור:</span>
+            {!stopwatchMinimized && <span className="stopwatch-label">זמן השיעור:</span>}
             <span className={`stopwatch-time ${stopwatchRunning ? 'running' : ''}`}>
               {formatStopwatchTime(stopwatchTime)}
             </span>
           </div>
-          <div className="stopwatch-controls">
-            {!stopwatchRunning ? (
-              <button type="button" className="btn btn-stopwatch start" onClick={handleStartStopwatch}>
-                התחל
+          {!stopwatchMinimized && (
+            <div className="stopwatch-controls">
+              {!stopwatchRunning ? (
+                <button type="button" className="btn btn-stopwatch start" onClick={handleStartStopwatch}>
+                  התחל
+                </button>
+              ) : (
+                <button type="button" className="btn btn-stopwatch stop" onClick={handleStopStopwatch}>
+                  עצור
+                </button>
+              )}
+              <button type="button" className="btn btn-stopwatch reset" onClick={handleResetStopwatch}>
+                אפס
               </button>
-            ) : (
-              <button type="button" className="btn btn-stopwatch stop" onClick={handleStopStopwatch}>
-                עצור
-              </button>
-            )}
-            <button type="button" className="btn btn-stopwatch reset" onClick={handleResetStopwatch}>
-              אפס
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       )}
 

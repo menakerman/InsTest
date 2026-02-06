@@ -62,44 +62,68 @@ const testStructure = {
   'מדריך': [
     {
       code: 'instructor_entry_tests',
-      name_he: 'מבחני כניסה',
+      name_he: 'תנאי קבלה',
       display_order: 1,
       tests: [
-        { code: 'instructor_entry_basis', name_he: 'ביסוס', score_type: 'pass_fail', display_order: 1 },
-        { code: 'instructor_entry_free_swim', name_he: 'שחיה חופשית', score_type: 'pass_fail', display_order: 2 },
-        { code: 'instructor_entry_tow', name_he: 'גרירה', score_type: 'pass_fail', display_order: 3 },
-        { code: 'instructor_entry_package', name_he: 'חבילה', score_type: 'pass_fail', display_order: 4 },
-        { code: 'instructor_entry_free_dive', name_he: 'צלילה חופשית', score_type: 'pass_fail', display_order: 5 }
+        { code: 'instructor_entry_swim_200', name_he: 'שחייה 200 מ\'', score_type: 'pass_fail', display_order: 1 },
+        { code: 'instructor_entry_basis', name_he: 'ביסוס', score_type: 'pass_fail', display_order: 2 },
+        { code: 'instructor_entry_tow', name_he: 'גרירת בן-זוג', score_type: 'pass_fail', display_order: 3 },
+        { code: 'instructor_entry_swim_800', name_he: 'שחייה 800 מ\'', score_type: 'pass_fail', display_order: 4 },
+        { code: 'instructor_entry_intro_dive', name_he: 'מבחן צלילת הכרות', score_type: 'pass_fail', display_order: 5 },
+        { code: 'instructor_entry_briefing', name_he: 'העברת תדריך', score_type: 'pass_fail', display_order: 6 },
+        { code: 'instructor_entry_equipment', name_he: 'העברת ש.ציוד', score_type: 'pass_fail', display_order: 7 }
       ]
     },
     {
-      code: 'instructor_external_tests',
-      name_he: 'מבחנים עיוניים',
+      code: 'instructor_knowledge_tests',
+      name_he: 'מבחני ידע',
       display_order: 2,
       tests: [
-        { code: 'ext_physics', name_he: 'מבחן פיזיקה', score_type: 'percentage', display_order: 1 },
-        { code: 'ext_physiology', name_he: 'מבחן פיזיולוגיה', score_type: 'percentage', display_order: 2 },
-        { code: 'ext_eye_contact', name_he: 'מבחן קשר עין', score_type: 'percentage', display_order: 3 },
-        { code: 'ext_equipment', name_he: 'מבחן ציוד', score_type: 'percentage', display_order: 4 },
-        { code: 'ext_decompression', name_he: 'מבחן דקומפרסיה', score_type: 'percentage', display_order: 5 }
+        { code: 'instructor_tables', name_he: 'טבלאות', score_type: 'percentage', display_order: 1 },
+        { code: 'instructor_tables_retake', name_he: 'טבלאות (חוזר)', score_type: 'percentage', display_order: 2 },
+        { code: 'instructor_physics', name_he: 'פיזיקה', score_type: 'percentage', display_order: 3 },
+        { code: 'instructor_physics_retake', name_he: 'פיזיקה (חוזר)', score_type: 'percentage', display_order: 4 },
+        { code: 'instructor_physiology', name_he: 'פיזיולוגיה', score_type: 'percentage', display_order: 5 },
+        { code: 'instructor_physiology_retake', name_he: 'פיזיולוגיה (חוזר)', score_type: 'percentage', display_order: 6 },
+        { code: 'instructor_eye_contact', name_he: 'קשר עין', score_type: 'percentage', display_order: 7 },
+        { code: 'instructor_eye_contact_retake', name_he: 'קשר עין (חוזר)', score_type: 'percentage', display_order: 8 },
+        { code: 'instructor_equipment_exam', name_he: 'ציוד צלילה', score_type: 'percentage', display_order: 9 },
+        { code: 'instructor_equipment_retake', name_he: 'ציוד צלילה (חוזר)', score_type: 'percentage', display_order: 10 },
+        { code: 'instructor_diving_law', name_he: 'חוק הצלילה', score_type: 'percentage', display_order: 11 },
+        { code: 'instructor_diving_law_retake', name_he: 'חוק הצלילה (חוזר)', score_type: 'percentage', display_order: 12 }
       ]
     },
     {
-      code: 'instructor_tests',
-      name_he: 'מבחני מדריך',
+      code: 'instructor_lecture_tests',
+      name_he: 'מבחני העברת הרצאה',
       display_order: 3,
       tests: [
-        // כיתה (Classroom) - percentage inputs from העברת שיעור כיתה forms
-        { code: 'classroom_behavior', name_he: 'כללי התנהגות', score_type: 'percentage', display_order: 1, location: 'כיתה' },
-        { code: 'classroom_risks', name_he: 'סיכוני צלילה', score_type: 'percentage', display_order: 2, location: 'כיתה' },
-        { code: 'classroom_free_lecture', name_he: 'הרצאה חופשית', score_type: 'percentage', display_order: 3, location: 'כיתה' },
-        { code: 'classroom_extra', name_he: 'נוסף', score_type: 'percentage', display_order: 4, location: 'כיתה' },
-        // מים (Water) - percentage inputs from העברת שיעור מים forms
-        { code: 'water_cmas', name_he: 'קמס', score_type: 'percentage', display_order: 5, location: 'מים' },
-        { code: 'water_scuba_1', name_he: 'סקובה 1', score_type: 'percentage', display_order: 6, location: 'מים' },
-        { code: 'water_scuba_3', name_he: 'סקובה 3', score_type: 'percentage', display_order: 7, location: 'מים' },
-        { code: 'water_scuba_5', name_he: 'סקובה 5', score_type: 'percentage', display_order: 8, location: 'מים' },
-        { code: 'water_extra', name_he: 'נוסף', score_type: 'percentage', display_order: 9, location: 'מים' }
+        { code: 'instructor_lecture_1', name_he: 'נושא הרצאה 1', score_type: 'pass_fail', display_order: 1 },
+        { code: 'instructor_lecture_2', name_he: 'נושא הרצאה 2', score_type: 'pass_fail', display_order: 2 },
+        { code: 'instructor_lecture_choice', name_he: 'הרצאת בחירה', score_type: 'pass_fail', display_order: 3 },
+        { code: 'instructor_lecture_retake', name_he: 'חוזר בנושא', score_type: 'pass_fail', display_order: 4 }
+      ]
+    },
+    {
+      code: 'instructor_water_tests',
+      name_he: 'מבחני העברת שיעור מים',
+      display_order: 4,
+      tests: [
+        { code: 'instructor_water_cmas', name_he: 'מבחן קמ"ס', score_type: 'pass_fail', display_order: 1 },
+        { code: 'instructor_water_protected_1', name_he: 'מבחן מים מוגנים 1', score_type: 'pass_fail', display_order: 2 },
+        { code: 'instructor_water_protected_2', name_he: 'מבחן מים מוגנים 2', score_type: 'pass_fail', display_order: 3 },
+        { code: 'instructor_water_open_sea', name_he: 'מבחן ים פתוח', score_type: 'pass_fail', display_order: 4 },
+        { code: 'instructor_water_retake', name_he: 'מבחן חוזר', score_type: 'pass_fail', display_order: 5 }
+      ]
+    },
+    {
+      code: 'instructor_rescue_test',
+      name_he: 'מבחן הצלה',
+      display_order: 5,
+      tests: [
+        { code: 'instructor_rescue_surface', name_he: 'העלאה לפני המים', score_type: 'pass_fail', display_order: 1 },
+        { code: 'instructor_rescue_tow_breath', name_he: 'גרירה והנשמה', score_type: 'pass_fail', display_order: 2 },
+        { code: 'instructor_rescue_cpr', name_he: 'הוצאה והחייאה', score_type: 'pass_fail', display_order: 3 }
       ]
     }
   ],

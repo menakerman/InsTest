@@ -128,7 +128,58 @@ const testStructure = {
     }
   ],
   'מדריך_עוזר_משולב_עם_מדריך': [], // Will combine both tracks
-  'קרוסאובר': [] // Empty for now
+  'קרוסאובר': [
+    {
+      code: 'crossover_knowledge_tests',
+      name_he: 'מבחני ידע',
+      display_order: 1,
+      tests: [
+        { code: 'crossover_decompression', name_he: 'מבחן דקומפרסיה', score_type: 'percentage', display_order: 1 },
+        { code: 'crossover_decompression_retake', name_he: 'דקומפרסיה (חוזר)', score_type: 'percentage', display_order: 2 },
+        { code: 'crossover_physics', name_he: 'פיזיקה', score_type: 'percentage', display_order: 3 },
+        { code: 'crossover_physics_retake', name_he: 'פיזיקה (חוזר)', score_type: 'percentage', display_order: 4 },
+        { code: 'crossover_physiology', name_he: 'פיזיולוגיה', score_type: 'percentage', display_order: 5 },
+        { code: 'crossover_physiology_retake', name_he: 'פיזיולוגיה (חוזר)', score_type: 'percentage', display_order: 6 },
+        { code: 'crossover_eye_contact', name_he: 'קשר עין', score_type: 'percentage', display_order: 7 },
+        { code: 'crossover_eye_contact_retake', name_he: 'קשר עין (חוזר)', score_type: 'percentage', display_order: 8 },
+        { code: 'crossover_equipment', name_he: 'ציוד צלילה', score_type: 'percentage', display_order: 9 },
+        { code: 'crossover_equipment_retake', name_he: 'ציוד צלילה (חוזר)', score_type: 'percentage', display_order: 10 },
+        { code: 'crossover_diving_law', name_he: 'חוק הצלילה', score_type: 'percentage', display_order: 11 },
+        { code: 'crossover_diving_law_retake', name_he: 'חוק הצלילה (חוזר)', score_type: 'percentage', display_order: 12 }
+      ]
+    },
+    {
+      code: 'crossover_lecture_tests',
+      name_he: 'מבחני העברת הרצאה',
+      display_order: 2,
+      tests: [
+        { code: 'crossover_lecture_1', name_he: 'נושא הרצאה 1', score_type: 'pass_fail', display_order: 1 },
+        { code: 'crossover_lecture_2', name_he: 'נושא הרצאה 2', score_type: 'pass_fail', display_order: 2 },
+        { code: 'crossover_lecture_retake', name_he: 'חוזר בנושא', score_type: 'pass_fail', display_order: 3 }
+      ]
+    },
+    {
+      code: 'crossover_water_tests',
+      name_he: 'מבחני העברת שיעור מים',
+      display_order: 3,
+      tests: [
+        { code: 'crossover_water_cmas', name_he: 'מבחן קמ"ס', score_type: 'pass_fail', display_order: 1 },
+        { code: 'crossover_water_protected', name_he: 'מבחן מים מוגנים', score_type: 'pass_fail', display_order: 2 },
+        { code: 'crossover_water_open_sea', name_he: 'מבחן ים פתוח', score_type: 'pass_fail', display_order: 3 },
+        { code: 'crossover_water_retake', name_he: 'מבחן חוזר', score_type: 'pass_fail', display_order: 4 }
+      ]
+    },
+    {
+      code: 'crossover_rescue_test',
+      name_he: 'מבחן הצלה',
+      display_order: 4,
+      tests: [
+        { code: 'crossover_rescue_surface', name_he: 'העלאה לפני המים', score_type: 'pass_fail', display_order: 1 },
+        { code: 'crossover_rescue_tow_breath', name_he: 'גרירה והנשמה', score_type: 'pass_fail', display_order: 2 },
+        { code: 'crossover_rescue_cpr', name_he: 'הוצאה והחייאה', score_type: 'pass_fail', display_order: 3 }
+      ]
+    }
+  ]
 };
 
 async function addCertificationTestsTables() {

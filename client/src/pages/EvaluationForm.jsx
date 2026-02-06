@@ -29,6 +29,8 @@ function EvaluationForm() {
   const [isFinalTest, setIsFinalTest] = useState(false);
   const [notes, setNotes] = useState('');
   const [scores, setScores] = useState({});
+  const [isSaved, setIsSaved] = useState(false);
+  const initialScoresRef = useRef(null);
 
   // Stopwatch state
   const [stopwatchTime, setStopwatchTime] = useState(0);
@@ -53,6 +55,50 @@ function EvaluationForm() {
     }
     return () => clearInterval(stopwatchInterval.current);
   }, [stopwatchRunning]);
+
+  // State for leave confirmation dialog
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = useCallback(() => {
+    if (isSaved) return false;
+    const currentScoreCount = Object.keys(scores).length;
+    if (currentScoreCount === 0) return false;
+
+    // In edit mode, compare with initial scores
+    if (isEditMode && initialScoresRef.current) {
+      const initialKeys = Object.keys(initialScoresRef.current);
+      const currentKeys = Object.keys(scores);
+      if (initialKeys.length !== currentKeys.length) return true;
+      return currentKeys.some(key => scores[key] !== initialScoresRef.current[key]);
+    }
+
+    // In new mode, any scores means unsaved changes
+    return true;
+  }, [isSaved, scores, isEditMode]);
+
+  // Handle cancel button click
+  const handleCancel = () => {
+    if (hasUnsavedChanges()) {
+      setShowLeaveConfirm(true);
+    } else {
+      navigate(-1);
+    }
+  };
+
+  // Handle browser close/refresh
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges()) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   // Format time as HH:MM:SS
   const formatStopwatchTime = (totalSeconds) => {
@@ -106,6 +152,7 @@ function EvaluationForm() {
           existingScores[item.criterion_id] = item.score;
         });
         setScores(existingScores);
+        initialScoresRef.current = { ...existingScores };
       } else {
         const data = await getEvaluationSubject(subjectCode);
         setSubject(data);
@@ -196,6 +243,7 @@ function EvaluationForm() {
         await createEvaluation(evaluationData);
       }
 
+      setIsSaved(true);
       navigate('/evaluations/history');
     } catch (err) {
       setError(err.message);
@@ -214,9 +262,42 @@ function EvaluationForm() {
 
   return (
     <div className="evaluation-form-page">
+      {/* Unsaved changes confirmation dialog */}
+      {showLeaveConfirm && (
+        <div className="modal-overlay">
+          <div className="modal confirmation-modal">
+            <div className="modal-header">
+              <h3>יציאה ללא שמירה?</h3>
+            </div>
+            <div className="modal-body">
+              <p>יש לך ציונים שלא נשמרו. האם אתה בטוח שברצונך לצאת?</p>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowLeaveConfirm(false)}
+              >
+                הישאר בדף
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => {
+                  setShowLeaveConfirm(false);
+                  navigate(-1);
+                }}
+              >
+                צא ללא שמירה
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="page-header">
         <h2>{isEditMode ? 'עריכת הערכה' : 'הערכה חדשה'}: {subject.name_he}</h2>
-        <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+        <button className="btn btn-secondary" onClick={handleCancel}>
           ביטול
         </button>
       </div>

@@ -464,6 +464,36 @@ body {
   color: #0077b6;
 }
 
+/* Confirmation modal */
+.confirmation-modal {
+  max-width: 400px;
+  text-align: center;
+}
+
+.confirmation-modal .modal-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.confirmation-modal .modal-header h3 {
+  margin-bottom: 0;
+  color: #dc3545;
+}
+
+.confirmation-modal .modal-body {
+  margin-bottom: var(--spacing-lg);
+  color: var(--color-gray-600);
+}
+
+.confirmation-modal .modal-footer {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: center;
+}
+
+.confirmation-modal .modal-footer .btn {
+  min-width: 120px;
+}
+
 /* ==================== FORM STYLES ==================== */
 .form-group {
   margin-bottom: var(--spacing-md);

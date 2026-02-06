@@ -16,37 +16,46 @@ const testStructure = {
   'מדריך_עוזר': [
     {
       code: 'assistant_entry_tests',
-      name_he: 'מבחני כניסה',
+      name_he: 'תנאי קבלה',
       display_order: 1,
       tests: [
-        { code: 'assistant_entry_basis', name_he: 'ביסוס', score_type: 'pass_fail', display_order: 1 },
-        { code: 'assistant_entry_free_swim', name_he: 'שחיה חופשית', score_type: 'pass_fail', display_order: 2 },
-        { code: 'assistant_entry_tow', name_he: 'גרירה', score_type: 'pass_fail', display_order: 3 },
-        { code: 'assistant_entry_package', name_he: 'חבילה', score_type: 'pass_fail', display_order: 4 },
-        { code: 'assistant_entry_free_dive', name_he: 'צלילה חופשית', score_type: 'pass_fail', display_order: 5 }
+        { code: 'assistant_entry_swim_200', name_he: 'שחייה 200 מ\'', score_type: 'pass_fail', display_order: 1 },
+        { code: 'assistant_entry_basis', name_he: 'ביסוס', score_type: 'pass_fail', display_order: 2 },
+        { code: 'assistant_entry_dive_10', name_he: 'צלילת 10 מ\'', score_type: 'pass_fail', display_order: 3 },
+        { code: 'assistant_entry_swim_800', name_he: 'שחייה 800 מ\'', score_type: 'pass_fail', display_order: 4 }
       ]
     },
     {
-      code: 'assistant_external_tests',
-      name_he: 'מבחנים עיוניים',
+      code: 'assistant_theory_tests',
+      name_he: 'מבחני תיאוריה',
       display_order: 2,
       tests: [
-        { code: 'assistant_instructor_exam', name_he: 'מבחן מדריך עוזר', score_type: 'percentage', display_order: 1 },
-        { code: 'diving_authority_exam', name_he: 'מבחן רשות הצלילה', score_type: 'percentage', display_order: 2 },
-        { code: 'three_stars_exam', name_he: 'מבחן שלושה כוכבים', score_type: 'percentage', display_order: 3 }
+        { code: 'assistant_general_knowledge', name_he: 'ידע כללי', score_type: 'percentage', display_order: 1 },
+        { code: 'assistant_general_knowledge_retake', name_he: 'ידע כללי (חוזר)', score_type: 'percentage', display_order: 2 },
+        { code: 'assistant_diving_law', name_he: 'חוק הצלילה', score_type: 'percentage', display_order: 3 },
+        { code: 'assistant_diving_law_retake', name_he: 'חוק הצלילה (חוזר)', score_type: 'percentage', display_order: 4 }
       ]
     },
     {
-      code: 'assistant_instructor_tests',
-      name_he: 'מבחני מדריך עוזר',
+      code: 'assistant_lecture_tests',
+      name_he: 'מבחני העברת הרצאה',
       display_order: 3,
       tests: [
-        // כיתה (Classroom) - percentage inputs
-        { code: 'assistant_briefing', name_he: 'תדריך', score_type: 'percentage', display_order: 1, location: 'כיתה' },
-        { code: 'assistant_equipment', name_he: 'ציוד', score_type: 'percentage', display_order: 2, location: 'כיתה' },
-        // מים (Water) - checkboxes
-        { code: 'assistant_rescue', name_he: 'הצלה', score_type: 'pass_fail', display_order: 3, location: 'מים' },
-        { code: 'assistant_intro', name_he: 'היכרות', score_type: 'pass_fail', display_order: 4, location: 'מים' }
+        { code: 'assistant_equipment_lecture', name_he: 'ציוד צלילה', score_type: 'pass_fail', display_order: 1 },
+        { code: 'assistant_pre_dive_briefing', name_he: 'תדריך לפני צלילה', score_type: 'pass_fail', display_order: 2 },
+        { code: 'assistant_review_topic', name_he: 'חוזר בנושא', score_type: 'pass_fail', display_order: 3 }
+      ]
+    },
+    {
+      code: 'assistant_practical_tests',
+      name_he: 'מבחנים מעשיים',
+      display_order: 4,
+      tests: [
+        { code: 'assistant_cmas_lesson', name_he: 'שיעור קמ"ס', score_type: 'pass_fail', display_order: 1 },
+        { code: 'assistant_dive_leading', name_he: 'הובלת צלילה', score_type: 'pass_fail', display_order: 2 },
+        { code: 'assistant_first_dive_leading', name_he: 'הובלת צלילת בכורה', score_type: 'pass_fail', display_order: 3 },
+        { code: 'assistant_rescue_procedure', name_he: 'נוהל הצלה', score_type: 'pass_fail', display_order: 4 },
+        { code: 'assistant_practical_retake', name_he: 'מבחן חוזר', score_type: 'pass_fail', display_order: 5 }
       ]
     }
   ],

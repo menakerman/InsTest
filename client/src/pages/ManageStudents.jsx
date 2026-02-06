@@ -557,8 +557,33 @@ function ManageStudents() {
           const checkboxTests = category.tests?.filter(t => !t.location && t.score_type === 'pass_fail') || [];
           const numericTests = category.tests?.filter(t => !t.location && t.score_type === 'percentage') || [];
 
+          // Helper function to check if original test failed (for showing retake)
+          const shouldShowRetake = (retakeTest) => {
+            // Find the original test code by removing "_retake" suffix
+            const originalCode = retakeTest.code.replace('_retake', '');
+            // Find the original test in the category
+            const originalTest = category.tests?.find(t => t.code === originalCode);
+            if (!originalTest) return true; // Show if can't find original
+
+            const originalScore = getTestScoreDisplay(originalTest.id);
+            // Show retake if original has a score and it's below passing (60%)
+            if (originalScore.value !== null && originalScore.value !== '' && originalScore.value !== undefined) {
+              const score = parseFloat(originalScore.value);
+              return !isNaN(score) && score < 60;
+            }
+            return false; // Don't show retake if original has no score yet
+          };
+
           // Helper function to render a test item
           const renderTestItem = (test) => {
+            // Check if this is a retake test
+            const isRetake = test.code.includes('_retake') || test.name_he.includes('(חוזר)') || test.name_he === 'חוזר בנושא' || test.name_he === 'מבחן חוזר';
+
+            // If it's a retake, check if we should show it
+            if (isRetake && !shouldShowRetake(test)) {
+              return null;
+            }
+
             const scoreDisplay = getTestScoreDisplay(test.id);
             const key = `${test.id}`;
             const isSaving = savingScores[key];

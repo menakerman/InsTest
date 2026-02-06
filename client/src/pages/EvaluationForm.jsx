@@ -204,6 +204,11 @@ function EvaluationForm() {
       return;
     }
 
+    if (isFinalTest && !instructorId) {
+      setError('נא לבחור מדריך מעריך עבור מבחן');
+      return;
+    }
+
     if (lessons.length > 0 && !lessonName) {
       setError('נא לבחור שם שיעור');
       return;
@@ -364,10 +369,11 @@ function EvaluationForm() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>מדריך מעריך</label>
+                  <label>מדריך מעריך{isFinalTest && ' *'}</label>
                   <InstructorSelector
                     value={instructorId}
                     onChange={setInstructorId}
+                    required={isFinalTest}
                   />
                 </div>
               </div>
@@ -492,7 +498,7 @@ function EvaluationForm() {
             <button
               type="submit"
               className="btn btn-primary btn-submit"
-              disabled={saving || !allAnswered || !studentId || (lessons.length > 0 && !lessonName)}
+              disabled={saving || !allAnswered || !studentId || (lessons.length > 0 && !lessonName) || (isFinalTest && !instructorId)}
             >
               {saving ? 'שומר...' : (isEditMode ? 'עדכון הערכה' : 'שמור הערכה')}
             </button>

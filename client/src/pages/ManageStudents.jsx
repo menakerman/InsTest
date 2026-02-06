@@ -359,6 +359,9 @@ function ManageStudents() {
   // Certification test score handlers
   const handleCertScoreChange = (testTypeId, value) => {
     const key = `${testTypeId}`;
+    const numVal = Number(value);
+    if (value !== '' && numVal > 100) value = '100';
+    if (value !== '' && numVal < 0) value = '0';
     setEditingScores(prev => ({ ...prev, [key]: value }));
   };
 

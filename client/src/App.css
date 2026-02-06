@@ -262,10 +262,19 @@ body {
   flex-shrink: 0;
 }
 
-.modal-close-btn {
+.modal-header-actions {
   position: absolute;
   top: 0.75rem;
   left: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.modal-close-btn {
+  position: relative;
+  top: auto;
+  left: auto;
   background: none;
   border: none;
   font-size: 1.25rem;
@@ -278,6 +287,21 @@ body {
 
 .modal-close-btn:hover {
   color: #343a40;
+}
+
+.modal-print-btn {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.modal-print-btn:hover {
+  color: #0077b6;
 }
 
 /* Student Details Header with Photo */
@@ -4461,4 +4485,193 @@ body {
 
 .info-note strong {
   color: #6d5300;
+}
+
+/* ==================== PRINT STYLES ==================== */
+
+@media print {
+  /* Hide everything except the modal */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Show modal and its content */
+  .modal-overlay,
+  .modal-overlay *,
+  #student-grades-modal,
+  #student-grades-modal * {
+    visibility: visible;
+  }
+
+  /* Hide action buttons and non-printable elements */
+  .modal-header-actions,
+  .modal-close-btn,
+  .modal-print-btn,
+  .form-actions,
+  .form-actions-sticky,
+  .photo-actions,
+  .btn,
+  .section-status,
+  .collapse-icon,
+  input[type="file"] {
+    display: none !important;
+  }
+
+  /* Position modal for printing */
+  .modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 0;
+  }
+
+  .modal.modal-large.modal-student-details {
+    position: relative;
+    max-width: 100%;
+    max-height: none;
+    overflow: visible;
+    box-shadow: none;
+    padding: 1cm;
+    margin: 0;
+  }
+
+  .modal-form-container {
+    overflow: visible;
+  }
+
+  .modal-scrollable-content {
+    overflow: visible;
+  }
+
+  /* Student header */
+  .student-details-header {
+    border-bottom: 2px solid #333;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .student-details-info h3 {
+    font-size: 18pt;
+    margin-bottom: 0.25rem;
+  }
+
+  .student-id-number,
+  .student-course-type,
+  .student-course-name {
+    font-size: 11pt;
+  }
+
+  .student-photo {
+    width: 80px;
+    height: 100px;
+    border: 1px solid #333;
+  }
+
+  /* Course sections */
+  .course-section {
+    break-inside: avoid;
+    margin-bottom: 0.75rem;
+    border: 1px solid #333;
+    padding: 0.5rem;
+  }
+
+  .course-section.section-disabled {
+    display: none;
+  }
+
+  .course-section-header {
+    border-bottom: 1px solid #333;
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .course-section-header h5 {
+    font-size: 14pt;
+    font-weight: bold;
+  }
+
+  .course-section-content {
+    display: block !important;
+    max-height: none !important;
+  }
+
+  .course-section-content.collapsed {
+    display: block !important;
+  }
+
+  /* Certification categories */
+  .certification-category-block {
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px dotted #999;
+  }
+
+  .certification-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .category-label {
+    font-weight: bold;
+    font-size: 10pt;
+    min-width: 120px;
+  }
+
+  /* Test items */
+  .test-item-inline {
+    font-size: 10pt;
+    margin-left: 0.5rem;
+  }
+
+  .test-name-inline {
+    font-size: 10pt;
+  }
+
+  .test-score-input {
+    border: 1px solid #333;
+    padding: 2px 4px;
+    width: 40px;
+    font-size: 10pt;
+    text-align: center;
+  }
+
+  .test-checkbox-item input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Section title */
+  .section-title {
+    font-size: 14pt;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 0.75rem;
+    border-bottom: 2px solid #333;
+    padding-bottom: 0.25rem;
+  }
+
+  /* Page setup */
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+
+  /* Print header/footer */
+  .print-header {
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  .print-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 9pt;
+    border-top: 1px solid #333;
+    padding-top: 0.25rem;
+  }
 }

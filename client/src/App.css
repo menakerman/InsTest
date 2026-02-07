@@ -7,19 +7,21 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
 
-  /* Colors */
-  --color-primary: #0077b6;
-  --color-primary-dark: #005a8c;
-  --color-primary-light: #00b4d8;
-  --color-success: #28a745;
-  --color-danger: #dc3545;
-  --color-warning: #ffc107;
-  --color-gray-100: #f8f9fa;
-  --color-gray-200: #e9ecef;
-  --color-gray-300: #dee2e6;
-  --color-gray-500: #6c757d;
-  --color-gray-700: #495057;
-  --color-gray-900: #333;
+  /* Colors - Diving Federation Theme (deep ocean blues) */
+  --color-primary: #1a3a5c;
+  --color-primary-dark: #0f2540;
+  --color-primary-light: #2c5282;
+  --color-accent: #3182ce;
+  --color-accent-light: #63b3ed;
+  --color-success: #38a169;
+  --color-danger: #e53e3e;
+  --color-warning: #dd6b20;
+  --color-gray-100: #f7fafc;
+  --color-gray-200: #edf2f7;
+  --color-gray-300: #e2e8f0;
+  --color-gray-500: #718096;
+  --color-gray-700: #4a5568;
+  --color-gray-900: #1a202c;
 
   /* Typography */
   --font-size-xs: 0.75rem;
@@ -64,10 +66,10 @@ body {
 }
 
 .header {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 50%, var(--color-accent) 100%);
   color: white;
   padding: var(--spacing-md) var(--spacing-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(26, 58, 92, 0.3);
 }
 
 .header h1 {
@@ -194,7 +196,7 @@ body {
 }
 
 .btn-primary:disabled {
-  background-color: #a0c4d8;
+  background-color: #7c9ab8;
   cursor: not-allowed;
   opacity: 0.7;
 }
@@ -384,7 +386,7 @@ body {
   height: 120px;
   border-radius: 12px;
   object-fit: cover;
-  border: 3px solid #0077b6;
+  border: 3px solid var(--color-accent);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
@@ -392,7 +394,7 @@ body {
   width: 120px;
   height: 120px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0077b6 0%, #00a8e8 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, #00a8e8 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -428,7 +430,7 @@ body {
 
 .student-details-info h3 {
   margin: 0 0 0.5rem 0;
-  color: #0077b6;
+  color: var(--color-accent);
   font-size: 1.5rem;
 }
 
@@ -439,7 +441,7 @@ body {
 }
 
 .student-course-type {
-  color: #0077b6;
+  color: var(--color-accent);
   font-size: 0.9rem;
   font-weight: 600;
   margin: 0.5rem 0 0.25rem 0;
@@ -456,12 +458,12 @@ body {
   font-size: 1.1rem;
   margin: 0 0 1rem 0;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #0077b6;
+  border-bottom: 2px solid var(--color-accent);
 }
 
 .modal h3 {
   margin-bottom: 1.5rem;
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 /* Confirmation modal */
@@ -573,7 +575,7 @@ body {
 
 .credentials-box {
   background-color: #e8f4f8;
-  border: 1px solid #0077b6;
+  border: 1px solid var(--color-accent);
   border-radius: 8px;
   padding: 1rem;
   margin: 1rem 0;
@@ -598,14 +600,14 @@ body {
 .credential-value {
   font-family: monospace;
   font-size: 1.1rem;
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 .credential-value.password {
   background-color: #fff;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  border: 1px dashed #0077b6;
+  border: 1px dashed var(--color-accent);
 }
 
 .password-info h3 {
@@ -655,7 +657,7 @@ body {
 }
 
 .profile-evaluations h4 {
-  color: #0077b6;
+  color: var(--color-accent);
   margin-bottom: 1rem;
   font-size: 1.1rem;
 }
@@ -697,7 +699,7 @@ body {
 
 .evaluation-lesson {
   font-size: 0.85rem;
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 .evaluation-list-meta {
@@ -797,7 +799,7 @@ body {
 }
 
 .evaluation-detail-scores h4 {
-  color: #0077b6;
+  color: var(--color-accent);
   margin-bottom: 1rem;
 }
 
@@ -869,7 +871,7 @@ body {
 }
 
 .evaluation-detail-notes h4 {
-  color: #0077b6;
+  color: var(--color-accent);
   margin-bottom: 0.5rem;
 }
 
@@ -881,7 +883,7 @@ body {
 /* Course Detail Modal */
 .course-detail-modal h3 {
   margin-bottom: 1.5rem;
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 .course-detail-header {
@@ -901,7 +903,7 @@ body {
 }
 
 .course-detail-students h4 {
-  color: #0077b6;
+  color: var(--color-accent);
   margin-bottom: 1rem;
 }
 
@@ -940,7 +942,7 @@ body {
   display: inline-block;
   padding: 0.2rem 0.5rem;
   background-color: #e3f2fd;
-  color: #0077b6;
+  color: var(--color-accent);
   border-radius: 4px;
   font-size: 0.8rem;
   white-space: nowrap;
@@ -1007,11 +1009,11 @@ body {
 .subject-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-  border-color: #0077b6;
+  border-color: var(--color-accent);
 }
 
 .subject-card h3 {
-  color: #0077b6;
+  color: var(--color-accent);
   margin-bottom: 0.5rem;
 }
 
@@ -1066,7 +1068,7 @@ body {
 .stopwatch-label {
   font-size: var(--font-size-xs);
   font-weight: 600;
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 .stopwatch-time {
@@ -1136,7 +1138,7 @@ body {
 
 /* Stopwatch minimize toggle button */
 .btn-stopwatch-toggle {
-  background: #0077b6;
+  background: var(--color-accent);
   color: white;
   border: none;
   border-radius: 4px;
@@ -1152,7 +1154,7 @@ body {
 }
 
 .btn-stopwatch-toggle:hover {
-  background: #005a8c;
+  background: var(--color-primary-dark);
 }
 
 /* Minimized stopwatch state */
@@ -1202,7 +1204,7 @@ body {
 
 .criteria-section h3 {
   margin-bottom: 0.5rem;
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 .criteria-legend {
@@ -1344,12 +1346,12 @@ body {
   padding: 0.75rem;
   background: #e8f4f8;
   border-radius: 6px;
-  border-right: 3px solid #0077b6;
+  border-right: 3px solid var(--color-accent);
 }
 
 .score-description-label {
   font-weight: 600;
-  color: #0077b6;
+  color: var(--color-accent);
   display: block;
   margin-bottom: 0.25rem;
   font-size: 0.85rem;
@@ -1652,7 +1654,7 @@ body {
 }
 
 .selector-display.open {
-  border-color: #0077b6;
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 2px rgba(0, 119, 182, 0.2);
 }
 
@@ -1724,7 +1726,7 @@ body {
 /* Evaluation History */
 .evaluation-history-page h2 {
   margin-bottom: 1.5rem;
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 .evaluations-list {
@@ -1770,7 +1772,7 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  color: #0077b6;
+  color: var(--color-accent);
   font-size: 0.9rem;
   line-height: 1.4;
 }
@@ -1826,7 +1828,7 @@ body {
 
 .evaluation-details h5 {
   margin-bottom: 0.75rem;
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 .details-scores {
@@ -2443,7 +2445,7 @@ body {
 }
 
 .login-header h1 {
-  color: #0077b6;
+  color: var(--color-primary);
   font-size: 1.8rem;
   margin-bottom: 0.5rem;
 }
@@ -2466,7 +2468,7 @@ body {
 }
 
 .login-links a {
-  color: #0077b6;
+  color: var(--color-accent);
   text-decoration: none;
   font-size: 0.9rem;
 }
@@ -2626,7 +2628,7 @@ body {
 
 /* Users Page */
 .users-page h2 {
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 /* Status Badge */
@@ -2662,7 +2664,7 @@ body {
 
 .form-select:focus {
   outline: none;
-  border-color: #0077b6;
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 2px rgba(0, 119, 182, 0.2);
 }
 
@@ -2749,7 +2751,7 @@ body {
 /* ==================== STUDENT STATS PAGE STYLES ==================== */
 
 .student-stats-page h2 {
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 /* Course Groups */
@@ -2771,7 +2773,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
   color: white;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -3419,7 +3421,7 @@ body {
   align-items: center;
   gap: 0.5rem;
   font-weight: 600;
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 .evaluation-item-details {
@@ -3537,7 +3539,7 @@ body {
 /* ==================== ABSENCES PAGE STYLES ==================== */
 
 .absences-page h2 {
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 .absences-table {
@@ -3627,7 +3629,7 @@ body {
 .filter-group select:focus,
 .filter-group input:focus {
   outline: none;
-  border-color: #0077b6;
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 2px rgba(0, 119, 182, 0.2);
 }
 
@@ -3665,7 +3667,7 @@ body {
 
 .form-group select:focus {
   outline: none;
-  border-color: #0077b6;
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 2px rgba(0, 119, 182, 0.2);
 }
 
@@ -3803,7 +3805,7 @@ body {
 /* ==================== COURSES PAGE STYLES ==================== */
 
 .courses-page h2 {
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 .courses-table {
@@ -3895,7 +3897,7 @@ body {
 }
 
 .multi-select-display.open {
-  border-color: #0077b6;
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 2px rgba(0, 119, 182, 0.2);
 }
 
@@ -4154,7 +4156,7 @@ body {
 
 .score-input-wrapper input:focus {
   outline: none;
-  border-color: #0077b6;
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.1);
 }
 
@@ -4208,7 +4210,7 @@ body {
 .external-tests-average .average-value {
   font-size: 1.35rem;
   font-weight: 700;
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 /* Skills Section */
@@ -4250,7 +4252,7 @@ body {
   width: 1.25rem;
   height: 1.25rem;
   cursor: pointer;
-  accent-color: #0077b6;
+  accent-color: var(--color-accent);
 }
 
 .skill-checkbox input[type="checkbox"]:disabled {
@@ -4497,7 +4499,7 @@ body {
 /* ==================== LESSONS PAGE STYLES ==================== */
 
 .lessons-page h2 {
-  color: #0077b6;
+  color: var(--color-accent);
 }
 
 .lessons-grouped {
@@ -4515,7 +4517,7 @@ body {
 
 .lessons-group-title {
   padding: 1rem 1.5rem;
-  background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
   color: white;
   margin: 0;
   font-size: 1.1rem;

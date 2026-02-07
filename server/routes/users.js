@@ -97,15 +97,48 @@ router.post('/', async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const userRole = role || 'student';
 
-    const result = await pool.query(
-      `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, instructor_number)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, email, first_name, last_name, role, is_active, instructor_number, created_at, updated_at`,
-      [email.toLowerCase(), passwordHash, first_name, last_name, role || 'student', is_active !== false, instructor_number || null]
-    );
+    // Start transaction to create user and corresponding student/instructor
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    res.status(201).json(result.rows[0]);
+      const result = await client.query(
+        `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, instructor_number)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id, email, first_name, last_name, role, is_active, instructor_number, created_at, updated_at`,
+        [email.toLowerCase(), passwordHash, first_name, last_name, userRole, is_active !== false, instructor_number || null]
+      );
+
+      // Also create entry in students table if role is student
+      if (userRole === 'student') {
+        await client.query(
+          `INSERT INTO students (first_name, last_name, email)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (email) DO NOTHING`,
+          [first_name, last_name, email.toLowerCase()]
+        );
+      }
+
+      // Also create entry in instructors table if role is instructor/madar/tester/admin
+      if (['admin', 'madar', 'instructor', 'tester'].includes(userRole)) {
+        await client.query(
+          `INSERT INTO instructors (first_name, last_name, email)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (email) DO NOTHING`,
+          [first_name, last_name, email.toLowerCase()]
+        );
+      }
+
+      await client.query('COMMIT');
+      res.status(201).json(result.rows[0]);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (error) {
     console.error('Error creating user:', error);
     if (error.code === '23505') {
@@ -118,8 +151,9 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update user
+// Update user (also updates corresponding student/instructor entry)
 router.put('/:id', async (req, res) => {
+  const client = await pool.connect();
   try {
     const { id } = req.params;
     const { email, password, first_name, last_name, role, is_active, instructor_number } = req.body;
@@ -151,7 +185,7 @@ router.put('/:id', async (req, res) => {
       }
 
       // Check if instructor_number already exists for another user
-      const existingUser = await pool.query(
+      const existingUser = await client.query(
         'SELECT first_name, last_name FROM users WHERE instructor_number = $1 AND id != $2',
         [num, id]
       );
@@ -163,11 +197,28 @@ router.put('/:id', async (req, res) => {
       }
     }
 
+    await client.query('BEGIN');
+
+    // Get current user data to find old email and role
+    const currentUser = await client.query(
+      'SELECT email, role FROM users WHERE id = $1',
+      [id]
+    );
+
+    if (currentUser.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'משתמש לא נמצא' });
+    }
+
+    const oldEmail = currentUser.rows[0].email;
+    const oldRole = currentUser.rows[0].role;
+
     let query;
     let params;
 
     if (password && password.length > 0) {
       if (password.length < 6) {
+        await client.query('ROLLBACK');
         return res.status(400).json({ error: 'הסיסמה חייבת להכיל לפחות 6 תווים' });
       }
       const passwordHash = await bcrypt.hash(password, 10);
@@ -184,14 +235,61 @@ router.put('/:id', async (req, res) => {
       params = [email.toLowerCase(), first_name, last_name, role, is_active, instructor_number || null, id];
     }
 
-    const result = await pool.query(query, params);
+    const result = await client.query(query, params);
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'משתמש לא נמצא' });
+    // Sync to students table if role is student
+    if (role === 'student') {
+      await client.query(
+        `INSERT INTO students (first_name, last_name, email)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (email) DO UPDATE SET first_name = $1, last_name = $2`,
+        [first_name, last_name, email.toLowerCase()]
+      );
+      // If role changed from instructor type, remove from instructors
+      if (['admin', 'madar', 'instructor', 'tester'].includes(oldRole)) {
+        await client.query(
+          `DELETE FROM instructors WHERE email = $1`,
+          [oldEmail.toLowerCase()]
+        );
+      }
     }
 
+    // Sync to instructors table if role is instructor/madar/tester/admin
+    if (['admin', 'madar', 'instructor', 'tester'].includes(role)) {
+      await client.query(
+        `INSERT INTO instructors (first_name, last_name, email)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (email) DO UPDATE SET first_name = $1, last_name = $2`,
+        [first_name, last_name, email.toLowerCase()]
+      );
+      // If role changed from student, remove from students
+      if (oldRole === 'student') {
+        await client.query(
+          `DELETE FROM students WHERE email = $1`,
+          [oldEmail.toLowerCase()]
+        );
+      }
+    }
+
+    // Update email in students/instructors if email changed
+    if (oldEmail.toLowerCase() !== email.toLowerCase()) {
+      if (role === 'student') {
+        await client.query(
+          `UPDATE students SET email = $1 WHERE email = $2`,
+          [email.toLowerCase(), oldEmail.toLowerCase()]
+        );
+      } else if (['admin', 'madar', 'instructor', 'tester'].includes(role)) {
+        await client.query(
+          `UPDATE instructors SET email = $1 WHERE email = $2`,
+          [email.toLowerCase(), oldEmail.toLowerCase()]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
     res.json(result.rows[0]);
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error updating user:', error);
     if (error.code === '23505') {
       if (error.constraint?.includes('instructor_number')) {
@@ -200,11 +298,14 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: 'משתמש עם אימייל זה כבר קיים' });
     }
     res.status(500).json({ error: 'שגיאה בעדכון משתמש' });
+  } finally {
+    client.release();
   }
 });
 
-// Delete user
+// Delete user (also deletes from students/instructors tables)
 router.delete('/:id', async (req, res) => {
+  const client = await pool.connect();
   try {
     const { id } = req.params;
 
@@ -213,19 +314,44 @@ router.delete('/:id', async (req, res) => {
       return res.status(400).json({ error: 'לא ניתן למחוק את החשבון שלך' });
     }
 
-    const result = await pool.query(
-      'DELETE FROM users WHERE id = $1 RETURNING *',
+    // Get user data before deleting
+    const userResult = await client.query(
+      'SELECT email, role FROM users WHERE id = $1',
       [id]
     );
 
-    if (result.rows.length === 0) {
+    if (userResult.rows.length === 0) {
       return res.status(404).json({ error: 'משתמש לא נמצא' });
     }
 
+    const { email, role } = userResult.rows[0];
+
+    await client.query('BEGIN');
+
+    // Delete user
+    await client.query('DELETE FROM users WHERE id = $1', [id]);
+
+    // Also delete from students/instructors tables
+    if (role === 'student') {
+      await client.query(
+        'DELETE FROM students WHERE email = $1',
+        [email.toLowerCase()]
+      );
+    } else if (['admin', 'madar', 'instructor', 'tester'].includes(role)) {
+      await client.query(
+        'DELETE FROM instructors WHERE email = $1',
+        [email.toLowerCase()]
+      );
+    }
+
+    await client.query('COMMIT');
     res.json({ message: 'המשתמש נמחק בהצלחה' });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error deleting user:', error);
     res.status(500).json({ error: 'שגיאה במחיקת משתמש' });
+  } finally {
+    client.release();
   }
 });
 

@@ -210,14 +210,24 @@ app.post('/api/students', authenticateToken, requireRole('admin', 'madar'), asyn
 
     await client.query('BEGIN');
 
+    // Create student
     const result = await client.query(
       `INSERT INTO students (first_name, last_name, email, phone, unit_id, id_number)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [first_name, last_name, email, phone || null, unit_id || null, id_number]
+      [first_name, last_name, email.toLowerCase(), phone || null, unit_id || null, id_number]
     );
 
     const studentId = result.rows[0].id;
+
+    // Also create user account with role='student' (password = id_number)
+    const passwordHash = await bcrypt.hash(id_number, 10);
+    await client.query(
+      `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active)
+       VALUES ($1, $2, $3, $4, 'student', true)
+       ON CONFLICT (email) DO UPDATE SET first_name = $3, last_name = $4`,
+      [email.toLowerCase(), passwordHash, first_name, last_name]
+    );
 
     // Associate student with courses
     if (course_ids && course_ids.length > 0) {
@@ -271,6 +281,19 @@ app.put('/api/students/:id', authenticateToken, requireRole('admin', 'madar'), a
 
     await client.query('BEGIN');
 
+    // Get current student email for user sync
+    const currentStudent = await client.query(
+      'SELECT email FROM students WHERE id = $1',
+      [id]
+    );
+
+    if (currentStudent.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const oldEmail = currentStudent.rows[0].email;
+
     const result = await client.query(
       `UPDATE students
        SET first_name = $1, last_name = $2, email = $3, phone = $4, unit_id = $5, id_number = $6
@@ -279,9 +302,14 @@ app.put('/api/students/:id', authenticateToken, requireRole('admin', 'madar'), a
       [first_name, last_name, email, phone || null, unit_id || null, id_number, id]
     );
 
-    if (result.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Student not found' });
+    // Also update associated user account
+    if (oldEmail) {
+      await client.query(
+        `UPDATE users
+         SET email = $1, first_name = $2, last_name = $3
+         WHERE email = $4 AND role = 'student'`,
+        [email.toLowerCase(), first_name, last_name, oldEmail.toLowerCase()]
+      );
     }
 
     // Update course associations - remove all and re-add
@@ -327,32 +355,49 @@ app.put('/api/students/:id', authenticateToken, requireRole('admin', 'madar'), a
   }
 });
 
-// Delete student (admin only)
+// Delete student (admin only) - also deletes associated user account
 app.delete('/api/students/:id', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
+  const client = await pool.connect();
   try {
     const { id } = req.params;
 
-    // Get student photo_url to delete the file
-    const studentResult = await pool.query('SELECT photo_url FROM students WHERE id = $1', [id]);
-    if (studentResult.rows.length > 0 && studentResult.rows[0].photo_url) {
-      const photoPath = path.join(__dirname, studentResult.rows[0].photo_url);
+    // Get student email and photo_url before deleting
+    const studentResult = await client.query('SELECT email, photo_url FROM students WHERE id = $1', [id]);
+    if (studentResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const { email, photo_url } = studentResult.rows[0];
+
+    // Delete the photo file if exists
+    if (photo_url) {
+      const photoPath = path.join(__dirname, photo_url);
       if (fs.existsSync(photoPath)) {
         fs.unlinkSync(photoPath);
       }
     }
 
-    const result = await pool.query(
-      'DELETE FROM students WHERE id = $1 RETURNING *',
-      [id]
-    );
+    await client.query('BEGIN');
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Student not found' });
+    // Delete student
+    await client.query('DELETE FROM students WHERE id = $1', [id]);
+
+    // Also delete associated user account
+    if (email) {
+      await client.query(
+        `DELETE FROM users WHERE email = $1 AND role = 'student'`,
+        [email.toLowerCase()]
+      );
     }
+
+    await client.query('COMMIT');
     res.json({ message: 'Student deleted successfully' });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error deleting student:', error);
     res.status(500).json({ error: 'Failed to delete student' });
+  } finally {
+    client.release();
   }
 });
 

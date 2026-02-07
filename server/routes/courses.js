@@ -49,8 +49,8 @@ router.get('/', authenticateToken, requireRole('admin', 'madar', 'instructor', '
     const params = [];
     const conditions = [];
 
-    // If user is instructor, only show courses they're assigned to
-    if (user.role === 'instructor') {
+    // If user is instructor or madar, only show courses they're assigned to
+    if (user.role === 'instructor' || user.role === 'madar') {
       // Find instructor_id by email
       const instructorResult = await pool.query(
         'SELECT id FROM instructors WHERE email = $1',
@@ -98,8 +98,8 @@ router.get('/:id', authenticateToken, requireRole('admin', 'madar', 'instructor'
     const { id } = req.params;
     const user = req.user;
 
-    // If instructor, verify they have access to this course
-    if (user.role === 'instructor') {
+    // If instructor or madar, verify they have access to this course
+    if (user.role === 'instructor' || user.role === 'madar') {
       const instructorResult = await pool.query(
         'SELECT id FROM instructors WHERE email = $1',
         [user.email]

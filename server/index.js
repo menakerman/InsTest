@@ -1111,7 +1111,7 @@ app.get('/api/external-tests', authenticateToken, requireRole('admin', 'madar', 
 });
 
 // Create or update external tests for a student
-app.put('/api/external-tests/:studentId', authenticateToken, requireRole('admin', 'madar', 'instructor'), async (req, res) => {
+app.put('/api/external-tests/:studentId', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   try {
     const { studentId } = req.params;
     const {
@@ -1164,7 +1164,7 @@ app.put('/api/external-tests/:studentId', authenticateToken, requireRole('admin'
 });
 
 // Delete external tests for a student
-app.delete('/api/external-tests/:studentId', authenticateToken, requireRole('admin', 'madar', 'instructor'), async (req, res) => {
+app.delete('/api/external-tests/:studentId', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   try {
     const { studentId } = req.params;
     const result = await pool.query(
@@ -1255,7 +1255,7 @@ app.get('/api/student-tests/:studentId', authenticateToken, requireRole('admin',
 });
 
 // Update test scores for a student
-app.put('/api/student-tests/:studentId', authenticateToken, requireRole('admin', 'madar', 'instructor'), async (req, res) => {
+app.put('/api/student-tests/:studentId', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -1323,7 +1323,7 @@ app.put('/api/student-tests/:studentId', authenticateToken, requireRole('admin',
 });
 
 // Delete a specific test score for a student
-app.delete('/api/student-tests/:studentId/:testTypeId', authenticateToken, requireRole('admin', 'madar', 'instructor'), async (req, res) => {
+app.delete('/api/student-tests/:studentId/:testTypeId', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   try {
     const { studentId, testTypeId } = req.params;
 
@@ -1387,7 +1387,7 @@ app.get('/api/student-skills', authenticateToken, requireRole('admin', 'madar', 
 });
 
 // Create or update skills for a student
-app.put('/api/student-skills/:studentId', authenticateToken, requireRole('admin', 'madar', 'instructor'), async (req, res) => {
+app.put('/api/student-skills/:studentId', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   try {
     const { studentId } = req.params;
     const { meters_30, meters_40, guidance } = req.body;

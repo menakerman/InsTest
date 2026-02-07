@@ -17,9 +17,9 @@ const pool = new Pool({
   }
 });
 
-// All routes require authentication and admin/instructor role
+// All routes require authentication and admin/madar role
 router.use(authenticateToken);
-router.use(requireRole('admin', 'madar', 'instructor'));
+router.use(requireRole('admin', 'madar'));
 
 // Get all absences with optional filters
 router.get('/', async (req, res) => {

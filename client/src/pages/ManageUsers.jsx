@@ -86,6 +86,7 @@ export default function ManageUsers() {
               <th>שם</th>
               <th>אימייל</th>
               <th>תפקיד</th>
+              <th>תאריך הוספה</th>
               <th>סטטוס</th>
               <th>פעולות</th>
             </tr>
@@ -93,7 +94,7 @@ export default function ManageUsers() {
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan="5" className="empty-state">אין משתמשים</td>
+                <td colSpan="6" className="empty-state">אין משתמשים</td>
               </tr>
             ) : (
               users.map((user) => (
@@ -101,6 +102,9 @@ export default function ManageUsers() {
                   <td data-label="שם">{user.first_name} {user.last_name}</td>
                   <td data-label="אימייל">{user.email}</td>
                   <td data-label="תפקיד">{roleLabels[user.role]}</td>
+                  <td data-label="תאריך הוספה">
+                    {user.created_at ? new Date(user.created_at).toLocaleDateString('he-IL') : '-'}
+                  </td>
                   <td data-label="סטטוס">
                     <span className={`status-badge ${user.is_active ? 'active' : 'inactive'}`}>
                       {user.is_active ? 'פעיל' : 'לא פעיל'}

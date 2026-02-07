@@ -26,7 +26,7 @@ router.use(requireRole('admin', 'madar'));
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, email, first_name, last_name, role, is_active, created_at, updated_at
+      `SELECT id, email, first_name, last_name, role, is_active, instructor_number, created_at, updated_at
        FROM users
        ORDER BY created_at DESC`
     );
@@ -42,7 +42,7 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      `SELECT id, email, first_name, last_name, role, is_active, created_at, updated_at
+      `SELECT id, email, first_name, last_name, role, is_active, instructor_number, created_at, updated_at
        FROM users WHERE id = $1`,
       [id]
     );
@@ -61,7 +61,7 @@ router.get('/:id', async (req, res) => {
 // Create user
 router.post('/', async (req, res) => {
   try {
-    const { email, password, first_name, last_name, role, is_active } = req.body;
+    const { email, password, first_name, last_name, role, is_active, instructor_number } = req.body;
 
     if (!email || !password || !first_name || !last_name) {
       return res.status(400).json({ error: 'נדרשים אימייל, סיסמה, שם פרטי ושם משפחה' });
@@ -76,13 +76,21 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'תפקיד לא תקין' });
     }
 
+    // Validate instructor_number if provided
+    if (instructor_number !== undefined && instructor_number !== null && instructor_number !== '') {
+      const num = parseInt(instructor_number);
+      if (isNaN(num) || num < 1 || num > 100000) {
+        return res.status(400).json({ error: 'מספר מדריך חייב להיות בין 1 ל-100000' });
+      }
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, email, first_name, last_name, role, is_active, created_at, updated_at`,
-      [email.toLowerCase(), passwordHash, first_name, last_name, role || 'student', is_active !== false]
+      `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, instructor_number)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, email, first_name, last_name, role, is_active, instructor_number, created_at, updated_at`,
+      [email.toLowerCase(), passwordHash, first_name, last_name, role || 'student', is_active !== false, instructor_number || null]
     );
 
     res.status(201).json(result.rows[0]);
@@ -99,7 +107,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { email, password, first_name, last_name, role, is_active } = req.body;
+    const { email, password, first_name, last_name, role, is_active, instructor_number } = req.body;
 
     if (!first_name || !last_name) {
       return res.status(400).json({ error: 'נדרשים שם פרטי ושם משפחה' });
@@ -120,6 +128,14 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: 'תפקיד לא תקין' });
     }
 
+    // Validate instructor_number if provided
+    if (instructor_number !== undefined && instructor_number !== null && instructor_number !== '') {
+      const num = parseInt(instructor_number);
+      if (isNaN(num) || num < 1 || num > 100000) {
+        return res.status(400).json({ error: 'מספר מדריך חייב להיות בין 1 ל-100000' });
+      }
+    }
+
     let query;
     let params;
 
@@ -129,16 +145,16 @@ router.put('/:id', async (req, res) => {
       }
       const passwordHash = await bcrypt.hash(password, 10);
       query = `UPDATE users
-               SET email = $1, password_hash = $2, first_name = $3, last_name = $4, role = $5, is_active = $6
-               WHERE id = $7
-               RETURNING id, email, first_name, last_name, role, is_active, created_at, updated_at`;
-      params = [email.toLowerCase(), passwordHash, first_name, last_name, role, is_active, id];
+               SET email = $1, password_hash = $2, first_name = $3, last_name = $4, role = $5, is_active = $6, instructor_number = $7
+               WHERE id = $8
+               RETURNING id, email, first_name, last_name, role, is_active, instructor_number, created_at, updated_at`;
+      params = [email.toLowerCase(), passwordHash, first_name, last_name, role, is_active, instructor_number || null, id];
     } else {
       query = `UPDATE users
-               SET email = $1, first_name = $2, last_name = $3, role = $4, is_active = $5
-               WHERE id = $6
-               RETURNING id, email, first_name, last_name, role, is_active, created_at, updated_at`;
-      params = [email.toLowerCase(), first_name, last_name, role, is_active, id];
+               SET email = $1, first_name = $2, last_name = $3, role = $4, is_active = $5, instructor_number = $6
+               WHERE id = $7
+               RETURNING id, email, first_name, last_name, role, is_active, instructor_number, created_at, updated_at`;
+      params = [email.toLowerCase(), first_name, last_name, role, is_active, instructor_number || null, id];
     }
 
     const result = await pool.query(query, params);

@@ -86,6 +86,7 @@ export default function ManageUsers() {
               <th>שם</th>
               <th>אימייל</th>
               <th>תפקיד</th>
+              <th>מספר מדריך</th>
               <th>תאריך הוספה</th>
               <th>סטטוס</th>
               <th>פעולות</th>
@@ -94,7 +95,7 @@ export default function ManageUsers() {
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan="6" className="empty-state">אין משתמשים</td>
+                <td colSpan="7" className="empty-state">אין משתמשים</td>
               </tr>
             ) : (
               users.map((user) => (
@@ -102,6 +103,7 @@ export default function ManageUsers() {
                   <td data-label="שם">{user.first_name} {user.last_name}</td>
                   <td data-label="אימייל">{user.email}</td>
                   <td data-label="תפקיד">{roleLabels[user.role]}</td>
+                  <td data-label="מספר מדריך">{user.instructor_number || '-'}</td>
                   <td data-label="תאריך הוספה">
                     {user.created_at ? new Date(user.created_at).toLocaleDateString('he-IL') : '-'}
                   </td>
@@ -169,7 +171,8 @@ function UserModal({ user, onSave, onClose }) {
     last_name: user?.last_name || '',
     role: user?.role || 'student',
     is_active: user?.is_active ?? true,
-    course_id: ''
+    course_id: '',
+    instructor_number: user?.instructor_number || ''
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -316,6 +319,22 @@ function UserModal({ user, onSave, onClose }) {
               </label>
             </div>
           </div>
+
+          {['admin', 'madar', 'instructor', 'tester'].includes(formData.role) && (
+            <div className="form-group">
+              <label htmlFor="instructor_number">מספר מדריך</label>
+              <input
+                type="number"
+                id="instructor_number"
+                name="instructor_number"
+                value={formData.instructor_number}
+                onChange={handleChange}
+                min="1"
+                max="100000"
+                placeholder="1-100000"
+              />
+            </div>
+          )}
 
           {formData.role !== 'admin' && (
             <div className="form-group">

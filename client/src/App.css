@@ -2672,7 +2672,26 @@ body {
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
-  padding-top: 1.5rem;
+}
+
+.checkbox-label-aligned {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.5rem;
+  cursor: pointer;
+  height: 38px;
+  white-space: nowrap;
+}
+
+.checkbox-group-aligned {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.checkbox-group-aligned .checkbox-label-aligned {
+  margin-top: auto;
 }
 
 .checkbox-label input[type="checkbox"] {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getUsers, createUser, updateUser, deleteUser } from '../utils/api';
+import { getUsers, createUser, updateUser, deleteUser, getCourses } from '../utils/api';
 
 export default function ManageUsers() {
   const [users, setUsers] = useState([]);
@@ -164,10 +164,24 @@ function UserModal({ user, onSave, onClose }) {
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
     role: user?.role || 'student',
-    is_active: user?.is_active ?? true
+    is_active: user?.is_active ?? true,
+    course_id: ''
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [courses, setCourses] = useState([]);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const data = await getCourses();
+        setCourses(data.filter(c => c.is_active));
+      } catch (err) {
+        console.error('Error fetching courses:', err);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -286,8 +300,8 @@ function UserModal({ user, onSave, onClose }) {
               </select>
             </div>
 
-            <div className="form-group">
-              <label className="checkbox-label">
+            <div className="form-group checkbox-group-aligned">
+              <label className="checkbox-label-aligned">
                 <input
                   type="checkbox"
                   name="is_active"
@@ -298,6 +312,26 @@ function UserModal({ user, onSave, onClose }) {
               </label>
             </div>
           </div>
+
+          {formData.role !== 'admin' && (
+            <div className="form-group">
+              <label htmlFor="course_id">קורס משויך</label>
+              <select
+                id="course_id"
+                name="course_id"
+                value={formData.course_id}
+                onChange={handleChange}
+                className="form-select"
+              >
+                <option value="">בחר קורס...</option>
+                {courses.map(course => (
+                  <option key={course.id} value={course.id}>
+                    {course.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={saving}>

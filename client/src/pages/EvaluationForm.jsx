@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getEvaluationSubject, getEvaluation, createEvaluation, updateEvaluation, getLessons } from '../utils/api';
 import { calculateEvaluationScores } from '../utils/scoreCalculations';
+import { useAuth } from '../contexts/useAuth';
 import StudentSelector from '../components/StudentSelector';
 import InstructorSelector from '../components/InstructorSelector';
 import CriterionCard from '../components/CriterionCard';
@@ -13,7 +14,11 @@ const STOPWATCH_SUBJECT_CODES = ['equipment_lesson', 'pre_dive_briefing', 'lectu
 function EvaluationForm() {
   const { subjectCode, evaluationId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isEditMode = !!evaluationId;
+
+  // Default to מבחן (test) for בוחן role, תרגול (practice) for others
+  const defaultIsFinalTest = user?.role === 'tester';
 
   const [subject, setSubject] = useState(null);
   const [lessons, setLessons] = useState([]);
@@ -26,7 +31,7 @@ function EvaluationForm() {
   const [lessonName, setLessonName] = useState('');
   const [lessonNameSelection, setLessonNameSelection] = useState('');
   const [customLessonName, setCustomLessonName] = useState('');
-  const [isFinalTest, setIsFinalTest] = useState(false);
+  const [isFinalTest, setIsFinalTest] = useState(defaultIsFinalTest);
   const [notes, setNotes] = useState('');
   const [scores, setScores] = useState({});
   const [isSaved, setIsSaved] = useState(false);

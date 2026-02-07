@@ -26,7 +26,7 @@ export default function UserMenu() {
     madar: 'מד"ר',
     instructor: 'מדריך',
     tester: 'בוחן',
-    student: 'תלמיד'
+    student: 'חניך'
   };
 
   return (

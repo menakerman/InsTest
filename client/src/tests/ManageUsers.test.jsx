@@ -50,7 +50,7 @@ describe('ManageUsers', () => {
     });
 
     expect(screen.getByText('מדריך')).toBeInTheDocument();
-    expect(screen.getByText('תלמיד')).toBeInTheDocument();
+    expect(screen.getByText('חניך')).toBeInTheDocument();
   });
 
   it('should show active/inactive status', async () => {

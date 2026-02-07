@@ -14,7 +14,7 @@ export default function ManageUsers() {
     madar: 'מד"ר',
     instructor: 'מדריך',
     tester: 'בוחן',
-    student: 'תלמיד'
+    student: 'חניך'
   };
 
   useEffect(() => {
@@ -282,7 +282,7 @@ function UserModal({ user, onSave, onClose }) {
                 <option value="madar">מד"ר</option>
                 <option value="instructor">מדריך</option>
                 <option value="tester">בוחן</option>
-                <option value="student">תלמיד</option>
+                <option value="student">חניך</option>
               </select>
             </div>
 

@@ -114,7 +114,7 @@ describe('UserMenu', () => {
     });
 
     render(<UserMenu />);
-    expect(screen.getByText('תלמיד')).toBeInTheDocument();
+    expect(screen.getByText('חניך')).toBeInTheDocument();
   });
 
   it('should close dropdown when clicking outside', async () => {

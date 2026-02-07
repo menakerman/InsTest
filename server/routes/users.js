@@ -26,9 +26,11 @@ router.use(requireRole('admin', 'madar'));
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, email, first_name, last_name, role, is_active, instructor_number, created_at, updated_at
-       FROM users
-       ORDER BY created_at DESC`
+      `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.instructor_number, u.created_at, u.updated_at,
+              i.id_number
+       FROM users u
+       LEFT JOIN instructors i ON LOWER(u.email) = LOWER(i.email)
+       ORDER BY u.created_at DESC`
     );
     res.json(result.rows);
   } catch (error) {
@@ -42,8 +44,11 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      `SELECT id, email, first_name, last_name, role, is_active, instructor_number, created_at, updated_at
-       FROM users WHERE id = $1`,
+      `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.instructor_number, u.created_at, u.updated_at,
+              i.id_number
+       FROM users u
+       LEFT JOIN instructors i ON LOWER(u.email) = LOWER(i.email)
+       WHERE u.id = $1`,
       [id]
     );
 
@@ -61,10 +66,10 @@ router.get('/:id', async (req, res) => {
 // Create user
 router.post('/', async (req, res) => {
   try {
-    const { email, password, first_name, last_name, role, is_active, instructor_number } = req.body;
+    const { email, password, first_name, last_name, role, is_active, instructor_number, id_number } = req.body;
 
-    if (!email || !password || !first_name || !last_name) {
-      return res.status(400).json({ error: 'נדרשים אימייל, סיסמה, שם פרטי ושם משפחה' });
+    if (!email || !password || !first_name || !last_name || !id_number) {
+      return res.status(400).json({ error: 'נדרשים אימייל, סיסמה, שם פרטי, שם משפחה ותעודת זהות' });
     }
 
     if (password.length < 6) {
@@ -117,10 +122,10 @@ router.post('/', async (req, res) => {
 
       // Also create entry in instructors table
       await client.query(
-        `INSERT INTO instructors (first_name, last_name, email)
-         VALUES ($1, $2, $3)
+        `INSERT INTO instructors (first_name, last_name, email, id_number)
+         VALUES ($1, $2, $3, $4)
          ON CONFLICT (email) DO NOTHING`,
-        [first_name, last_name, email.toLowerCase()]
+        [first_name, last_name, email.toLowerCase(), id_number]
       );
 
       await client.query('COMMIT');
@@ -148,7 +153,7 @@ router.put('/:id', async (req, res) => {
   const client = await pool.connect();
   try {
     const { id } = req.params;
-    const { email, password, first_name, last_name, role, is_active, instructor_number } = req.body;
+    const { email, password, first_name, last_name, role, is_active, instructor_number, id_number } = req.body;
 
     if (!first_name || !last_name) {
       return res.status(400).json({ error: 'נדרשים שם פרטי ושם משפחה' });
@@ -249,10 +254,10 @@ router.put('/:id', async (req, res) => {
     // Sync to instructors table if role is instructor/madar/tester/admin
     if (['admin', 'madar', 'instructor', 'tester'].includes(role)) {
       await client.query(
-        `INSERT INTO instructors (first_name, last_name, email)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (email) DO UPDATE SET first_name = $1, last_name = $2`,
-        [first_name, last_name, email.toLowerCase()]
+        `INSERT INTO instructors (first_name, last_name, email, id_number)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (email) DO UPDATE SET first_name = $1, last_name = $2, id_number = $4`,
+        [first_name, last_name, email.toLowerCase(), id_number || null]
       );
       // If role changed from student, remove from students
       if (oldRole === 'student') {

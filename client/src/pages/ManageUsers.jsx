@@ -84,6 +84,7 @@ export default function ManageUsers() {
           <thead>
             <tr>
               <th>שם</th>
+              <th>ת.ז.</th>
               <th>אימייל</th>
               <th>תפקיד</th>
               <th>מספר מדריך</th>
@@ -95,12 +96,13 @@ export default function ManageUsers() {
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan="7" className="empty-state">אין משתמשים</td>
+                <td colSpan="8" className="empty-state">אין משתמשים</td>
               </tr>
             ) : (
               users.map((user) => (
                 <tr key={user.id}>
                   <td data-label="שם">{user.first_name} {user.last_name}</td>
+                  <td data-label="ת.ז.">{user.id_number || '-'}</td>
                   <td data-label="אימייל">{user.email}</td>
                   <td data-label="תפקיד">{roleLabels[user.role]}</td>
                   <td data-label="מספר מדריך">{user.instructor_number || '-'}</td>
@@ -172,7 +174,8 @@ function UserModal({ user, onSave, onClose }) {
     role: user?.role || 'instructor',
     is_active: user?.is_active ?? true,
     course_id: '',
-    instructor_number: user?.instructor_number || ''
+    instructor_number: user?.instructor_number || '',
+    id_number: user?.id_number || ''
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -268,6 +271,18 @@ function UserModal({ user, onSave, onClose }) {
               id="email"
               name="email"
               value={formData.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="id_number">תעודת זהות</label>
+            <input
+              type="text"
+              id="id_number"
+              name="id_number"
+              value={formData.id_number}
               onChange={handleChange}
               required
             />

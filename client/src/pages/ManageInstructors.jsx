@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts';
-import { getInstructors, createInstructor, updateInstructor, deleteInstructor, getEvaluations } from '../utils/api';
+import { getInstructors, createInstructor, updateInstructor, deleteInstructor, getEvaluations, getCourses } from '../utils/api';
 
 function ManageInstructors() {
   const { user } = useAuth();
@@ -21,15 +21,21 @@ function ManageInstructors() {
     first_name: '',
     last_name: '',
     email: '',
-    phone: '',
-    id_number: ''
+    id_number: '',
+    password: '',
+    role: 'instructor',
+    instructor_number: '',
+    is_active: true,
+    course_id: ''
   });
+  const [courses, setCourses] = useState([]);
 
   // Only admin can edit instructors
   const canEdit = user && user.role === 'admin';
 
   useEffect(() => {
     fetchInstructors();
+    fetchCourses();
   }, []);
 
   const fetchInstructors = async () => {
@@ -45,6 +51,15 @@ function ManageInstructors() {
     }
   };
 
+  const fetchCourses = async () => {
+    try {
+      const data = await getCourses();
+      setCourses(data.filter(c => c.is_active));
+    } catch (err) {
+      console.error('Error fetching courses:', err);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -56,9 +71,14 @@ function ManageInstructors() {
       first_name: '',
       last_name: '',
       email: '',
-      phone: '',
-      id_number: ''
+      id_number: '',
+      password: '',
+      role: 'instructor',
+      instructor_number: '',
+      is_active: true,
+      course_id: ''
     });
+    setError(null);
     setShowModal(true);
   };
 
@@ -68,9 +88,14 @@ function ManageInstructors() {
       first_name: instructor.first_name,
       last_name: instructor.last_name,
       email: instructor.email || '',
-      phone: instructor.phone || '',
-      id_number: instructor.id_number || ''
+      id_number: instructor.id_number || '',
+      password: '',
+      role: instructor.role || 'instructor',
+      instructor_number: instructor.instructor_number || '',
+      is_active: instructor.is_active ?? true,
+      course_id: instructor.course_id || ''
     });
+    setError(null);
     setShowModal(true);
   };
 
@@ -240,30 +265,36 @@ function ManageInstructors() {
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3>{editingInstructor ? 'עריכת מדריך' : 'הוספת מדריך'}</h3>
             <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label htmlFor="first_name">שם פרטי *</label>
-                <input
-                  type="text"
-                  id="first_name"
-                  name="first_name"
-                  value={formData.first_name}
-                  onChange={handleInputChange}
-                  required
-                />
+              {error && <div className="error">{error}</div>}
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="first_name">שם פרטי</label>
+                  <input
+                    type="text"
+                    id="first_name"
+                    name="first_name"
+                    value={formData.first_name}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="last_name">שם משפחה</label>
+                  <input
+                    type="text"
+                    id="last_name"
+                    name="last_name"
+                    value={formData.last_name}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
               </div>
+
               <div className="form-group">
-                <label htmlFor="last_name">שם משפחה *</label>
-                <input
-                  type="text"
-                  id="last_name"
-                  name="last_name"
-                  value={formData.last_name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="email">אימייל *</label>
+                <label htmlFor="email">אימייל</label>
                 <input
                   type="email"
                   id="email"
@@ -272,12 +303,10 @@ function ManageInstructors() {
                   onChange={handleInputChange}
                   required
                 />
-                {!editingInstructor && (
-                  <small className="form-hint">המדריך ישתמש באימייל זה כדי להתחבר למערכת</small>
-                )}
               </div>
+
               <div className="form-group">
-                <label htmlFor="id_number">מספר תעודת זהות *</label>
+                <label htmlFor="id_number">תעודת זהות</label>
                 <input
                   type="text"
                   id="id_number"
@@ -287,22 +316,89 @@ function ManageInstructors() {
                   required
                 />
               </div>
+
               <div className="form-group">
-                <label htmlFor="phone">טלפון</label>
+                <label htmlFor="password">
+                  {editingInstructor ? 'סיסמה חדשה (השאר ריק לשמירה על הקיימת)' : 'סיסמה'}
+                </label>
                 <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={formData.password}
                   onChange={handleInputChange}
+                  required={!editingInstructor}
+                  minLength={editingInstructor ? 0 : 6}
+                  autoComplete="new-password"
                 />
               </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="role">תפקיד</label>
+                  <select
+                    id="role"
+                    name="role"
+                    value={formData.role}
+                    onChange={handleInputChange}
+                    className="form-select"
+                  >
+                    <option value="instructor">מדריך</option>
+                    <option value="tester">בוחן</option>
+                  </select>
+                </div>
+
+                <div className="form-group checkbox-group-aligned">
+                  <label className="checkbox-label-aligned">
+                    <input
+                      type="checkbox"
+                      name="is_active"
+                      checked={formData.is_active}
+                      onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                    />
+                    משתמש פעיל
+                  </label>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="instructor_number">מספר מדריך</label>
+                <input
+                  type="number"
+                  id="instructor_number"
+                  name="instructor_number"
+                  value={formData.instructor_number}
+                  onChange={handleInputChange}
+                  min="1"
+                  max="100000"
+                  placeholder="1-100000"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="course_id">קורס משויך</label>
+                <select
+                  id="course_id"
+                  name="course_id"
+                  value={formData.course_id}
+                  onChange={handleInputChange}
+                  className="form-select"
+                >
+                  <option value="">בחר קורס...</option>
+                  {courses.map(course => (
+                    <option key={course.id} value={course.id}>
+                      {course.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="form-actions">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>
-                  ביטול
-                </button>
                 <button type="submit" className="btn btn-primary">
                   {editingInstructor ? 'שמור שינויים' : 'הוסף מדריך'}
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal}>
+                  ביטול
                 </button>
               </div>
             </form>

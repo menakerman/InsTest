@@ -476,6 +476,10 @@ app.get('/api/instructors', authenticateToken, requireRole('admin', 'madar', 'in
   try {
     const result = await pool.query(
       `SELECT i.*,
+        u.role,
+        u.instructor_number,
+        u.is_active,
+        (SELECT ci.course_id FROM course_instructors ci WHERE ci.instructor_id = i.id LIMIT 1) as course_id,
         COALESCE(
           (SELECT json_agg(DISTINCT jsonb_build_object('name', se.course_name))
            FROM student_evaluations se
@@ -483,6 +487,7 @@ app.get('/api/instructors', authenticateToken, requireRole('admin', 'madar', 'in
           '[]'
         ) as courses
        FROM instructors i
+       LEFT JOIN users u ON LOWER(i.email) = LOWER(u.email) AND u.role IN ('instructor', 'tester')
        ORDER BY i.created_at DESC`
     );
     res.json(result.rows);
@@ -511,7 +516,7 @@ app.get('/api/instructors/:id', authenticateToken, requireRole('admin', 'madar',
 app.post('/api/instructors', authenticateToken, requireRole('admin', 'madar'), async (req, res) => {
   const client = await pool.connect();
   try {
-    const { first_name, last_name, email, phone, id_number } = req.body;
+    const { first_name, last_name, email, id_number, password, role, instructor_number, is_active, course_id } = req.body;
 
     if (!first_name || !last_name) {
       return res.status(400).json({ error: 'First name and last name are required' });
@@ -525,33 +530,72 @@ app.post('/api/instructors', authenticateToken, requireRole('admin', 'madar'), a
       return res.status(400).json({ error: 'ID number is required' });
     }
 
+    // Validate role - only instructor or tester allowed
+    const validRoles = ['instructor', 'tester'];
+    const userRole = validRoles.includes(role) ? role : 'instructor';
+
+    // Validate password - required for new instructors
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'הסיסמה חייבת להכיל לפחות 6 תווים' });
+    }
+
+    // Validate instructor_number if provided
+    if (instructor_number !== undefined && instructor_number !== null && instructor_number !== '') {
+      const num = parseInt(instructor_number);
+      if (isNaN(num) || num < 1 || num > 100000) {
+        return res.status(400).json({ error: 'מספר מדריך חייב להיות בין 1 ל-100000' });
+      }
+
+      // Check if instructor_number already exists
+      const existingUser = await client.query(
+        'SELECT first_name, last_name FROM users WHERE instructor_number = $1',
+        [num]
+      );
+      if (existingUser.rows.length > 0) {
+        const user = existingUser.rows[0];
+        return res.status(400).json({
+          error: `מספר מדריך ${num} כבר קיים עבור ${user.first_name} ${user.last_name}`
+        });
+      }
+    }
+
     await client.query('BEGIN');
 
     // Create instructor record
     const instructorResult = await client.query(
-      `INSERT INTO instructors (first_name, last_name, email, phone, id_number)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO instructors (first_name, last_name, email, id_number)
+       VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [first_name, last_name, email, phone || null, id_number]
+      [first_name, last_name, email, id_number]
     );
 
-    // Create user account with default password (instructor's email as initial password)
-    const defaultPassword = email.split('@')[0] + '123';
-    const passwordHash = await bcrypt.hash(defaultPassword, 10);
+    // Create user account
+    const passwordHash = await bcrypt.hash(password, 10);
 
     await client.query(
-      `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active)
-       VALUES ($1, $2, $3, $4, 'instructor', true)`,
-      [email.toLowerCase(), passwordHash, first_name, last_name]
+      `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, instructor_number)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [email.toLowerCase(), passwordHash, first_name, last_name, userRole, is_active !== false, instructor_number || null]
     );
+
+    // Associate instructor with course if provided
+    if (course_id) {
+      await client.query(
+        `INSERT INTO course_instructors (course_id, instructor_id) VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [course_id, instructorResult.rows[0].id]
+      );
+    }
 
     await client.query('COMMIT');
 
     res.status(201).json({
       ...instructorResult.rows[0],
-      user_created: true,
-      default_password: defaultPassword,
-      message: `User account created. Default password: ${defaultPassword}`
+      role: userRole,
+      instructor_number: instructor_number || null,
+      is_active: is_active !== false,
+      course_id: course_id || null,
+      user_created: true
     });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -573,7 +617,7 @@ app.put('/api/instructors/:id', authenticateToken, requireRole('admin', 'madar')
   const client = await pool.connect();
   try {
     const { id } = req.params;
-    const { first_name, last_name, email, phone, id_number } = req.body;
+    const { first_name, last_name, email, id_number, password, role, instructor_number, is_active, course_id } = req.body;
 
     if (!first_name || !last_name) {
       return res.status(400).json({ error: 'First name and last name are required' });
@@ -585,6 +629,37 @@ app.put('/api/instructors/:id', authenticateToken, requireRole('admin', 'madar')
 
     if (!id_number) {
       return res.status(400).json({ error: 'ID number is required' });
+    }
+
+    // Validate role - only instructor or tester allowed
+    const validRoles = ['instructor', 'tester'];
+    const userRole = validRoles.includes(role) ? role : 'instructor';
+
+    // Validate password if provided
+    if (password && password.length < 6) {
+      return res.status(400).json({ error: 'הסיסמה חייבת להכיל לפחות 6 תווים' });
+    }
+
+    // Validate instructor_number if provided
+    if (instructor_number !== undefined && instructor_number !== null && instructor_number !== '') {
+      const num = parseInt(instructor_number);
+      if (isNaN(num) || num < 1 || num > 100000) {
+        return res.status(400).json({ error: 'מספר מדריך חייב להיות בין 1 ל-100000' });
+      }
+
+      // Check if instructor_number already exists for another user
+      const existingUser = await client.query(
+        `SELECT u.first_name, u.last_name FROM users u
+         JOIN instructors i ON u.email = i.email
+         WHERE u.instructor_number = $1 AND i.id != $2`,
+        [num, id]
+      );
+      if (existingUser.rows.length > 0) {
+        const user = existingUser.rows[0];
+        return res.status(400).json({
+          error: `מספר מדריך ${num} כבר קיים עבור ${user.first_name} ${user.last_name}`
+        });
+      }
     }
 
     await client.query('BEGIN');
@@ -613,16 +688,48 @@ app.put('/api/instructors/:id', authenticateToken, requireRole('admin', 'madar')
 
     // Update associated user account
     if (oldEmail) {
+      if (password) {
+        const passwordHash = await bcrypt.hash(password, 10);
+        await client.query(
+          `UPDATE users
+           SET email = $1, first_name = $2, last_name = $3, password_hash = $4, role = $5, is_active = $6, instructor_number = $7
+           WHERE email = $8 AND role IN ('instructor', 'tester')`,
+          [email.toLowerCase(), first_name, last_name, passwordHash, userRole, is_active !== false, instructor_number || null, oldEmail.toLowerCase()]
+        );
+      } else {
+        await client.query(
+          `UPDATE users
+           SET email = $1, first_name = $2, last_name = $3, role = $4, is_active = $5, instructor_number = $6
+           WHERE email = $7 AND role IN ('instructor', 'tester')`,
+          [email.toLowerCase(), first_name, last_name, userRole, is_active !== false, instructor_number || null, oldEmail.toLowerCase()]
+        );
+      }
+    }
+
+    // Update course association if provided
+    if (course_id !== undefined) {
+      // Remove existing course associations
       await client.query(
-        `UPDATE users
-         SET email = $1, first_name = $2, last_name = $3
-         WHERE email = $4 AND role = 'instructor'`,
-        [email.toLowerCase(), first_name, last_name, oldEmail.toLowerCase()]
+        `DELETE FROM course_instructors WHERE instructor_id = $1`,
+        [id]
       );
+      // Add new course association if course_id is provided
+      if (course_id) {
+        await client.query(
+          `INSERT INTO course_instructors (course_id, instructor_id) VALUES ($1, $2)`,
+          [course_id, id]
+        );
+      }
     }
 
     await client.query('COMMIT');
-    res.json(result.rows[0]);
+    res.json({
+      ...result.rows[0],
+      role: userRole,
+      instructor_number: instructor_number || null,
+      is_active: is_active !== false,
+      course_id: course_id || null
+    });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error updating instructor:', error);

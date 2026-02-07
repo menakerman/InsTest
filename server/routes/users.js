@@ -82,6 +82,18 @@ router.post('/', async (req, res) => {
       if (isNaN(num) || num < 1 || num > 100000) {
         return res.status(400).json({ error: 'מספר מדריך חייב להיות בין 1 ל-100000' });
       }
+
+      // Check if instructor_number already exists
+      const existingUser = await pool.query(
+        'SELECT first_name, last_name FROM users WHERE instructor_number = $1',
+        [num]
+      );
+      if (existingUser.rows.length > 0) {
+        const user = existingUser.rows[0];
+        return res.status(400).json({
+          error: `מספר מדריך ${num} כבר קיים עבור ${user.first_name} ${user.last_name}`
+        });
+      }
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -97,6 +109,9 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('Error creating user:', error);
     if (error.code === '23505') {
+      if (error.constraint?.includes('instructor_number')) {
+        return res.status(400).json({ error: 'מספר מדריך זה כבר קיים' });
+      }
       return res.status(400).json({ error: 'משתמש עם אימייל זה כבר קיים' });
     }
     res.status(500).json({ error: 'שגיאה ביצירת משתמש' });
@@ -134,6 +149,18 @@ router.put('/:id', async (req, res) => {
       if (isNaN(num) || num < 1 || num > 100000) {
         return res.status(400).json({ error: 'מספר מדריך חייב להיות בין 1 ל-100000' });
       }
+
+      // Check if instructor_number already exists for another user
+      const existingUser = await pool.query(
+        'SELECT first_name, last_name FROM users WHERE instructor_number = $1 AND id != $2',
+        [num, id]
+      );
+      if (existingUser.rows.length > 0) {
+        const user = existingUser.rows[0];
+        return res.status(400).json({
+          error: `מספר מדריך ${num} כבר קיים עבור ${user.first_name} ${user.last_name}`
+        });
+      }
     }
 
     let query;
@@ -167,6 +194,9 @@ router.put('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error updating user:', error);
     if (error.code === '23505') {
+      if (error.constraint?.includes('instructor_number')) {
+        return res.status(400).json({ error: 'מספר מדריך זה כבר קיים' });
+      }
       return res.status(400).json({ error: 'משתמש עם אימייל זה כבר קיים' });
     }
     res.status(500).json({ error: 'שגיאה בעדכון משתמש' });

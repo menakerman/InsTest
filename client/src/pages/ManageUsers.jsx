@@ -169,7 +169,7 @@ function UserModal({ user, onSave, onClose }) {
     password: '',
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
-    role: user?.role || 'student',
+    role: user?.role || 'instructor',
     is_active: user?.is_active ?? true,
     course_id: '',
     instructor_number: user?.instructor_number || ''
@@ -303,7 +303,6 @@ function UserModal({ user, onSave, onClose }) {
                 <option value="madar">מד"ר</option>
                 <option value="instructor">מדריך</option>
                 <option value="tester">בוחן</option>
-                <option value="student">חניך</option>
               </select>
             </div>
 

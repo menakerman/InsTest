@@ -71,7 +71,11 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'הסיסמה חייבת להכיל לפחות 6 תווים' });
     }
 
-    const validRoles = ['admin', 'madar', 'instructor', 'tester', 'student'];
+    // Students must be added via ניהול חניכים
+    const validRoles = ['admin', 'madar', 'instructor', 'tester'];
+    if (role === 'student') {
+      return res.status(400).json({ error: 'להוספת חניכים יש להשתמש בניהול חניכים' });
+    }
     if (role && !validRoles.includes(role)) {
       return res.status(400).json({ error: 'תפקיד לא תקין' });
     }
@@ -97,7 +101,7 @@ router.post('/', async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const userRole = role || 'student';
+    const userRole = role || 'instructor';
 
     // Start transaction to create user and corresponding student/instructor
     const client = await pool.connect();
@@ -111,25 +115,13 @@ router.post('/', async (req, res) => {
         [email.toLowerCase(), passwordHash, first_name, last_name, userRole, is_active !== false, instructor_number || null]
       );
 
-      // Also create entry in students table if role is student
-      if (userRole === 'student') {
-        await client.query(
-          `INSERT INTO students (first_name, last_name, email)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (email) DO NOTHING`,
-          [first_name, last_name, email.toLowerCase()]
-        );
-      }
-
-      // Also create entry in instructors table if role is instructor/madar/tester/admin
-      if (['admin', 'madar', 'instructor', 'tester'].includes(userRole)) {
-        await client.query(
-          `INSERT INTO instructors (first_name, last_name, email)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (email) DO NOTHING`,
-          [first_name, last_name, email.toLowerCase()]
-        );
-      }
+      // Also create entry in instructors table
+      await client.query(
+        `INSERT INTO instructors (first_name, last_name, email)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (email) DO NOTHING`,
+        [first_name, last_name, email.toLowerCase()]
+      );
 
       await client.query('COMMIT');
       res.status(201).json(result.rows[0]);

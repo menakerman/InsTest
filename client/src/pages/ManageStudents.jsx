@@ -793,6 +793,7 @@ function ManageStudents() {
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={closeModal} type="button">✕</button>
             <h3>{editingStudent ? 'עריכת חניך' : 'הוספת חניך'}</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -884,6 +885,7 @@ function ManageStudents() {
       {showDeleteModal && (
         <div className="modal-overlay" onClick={closeDeleteModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={closeDeleteModal} type="button">✕</button>
             <div className="delete-confirm">
               <h3>מחיקת חניך</h3>
               <p>

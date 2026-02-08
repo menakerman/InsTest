@@ -233,6 +233,7 @@ function UserModal({ user, onSave, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close-btn" onClick={onClose} type="button">✕</button>
         <h3>{user ? 'עריכת משתמש' : 'הוספת משתמש'}</h3>
 
         <form onSubmit={handleSubmit}>

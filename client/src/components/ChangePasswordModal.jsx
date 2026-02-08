@@ -42,6 +42,7 @@ export default function ChangePasswordModal({ onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close-btn" onClick={onClose} type="button">✕</button>
         <h3>שינוי סיסמה</h3>
 
         {success ? (

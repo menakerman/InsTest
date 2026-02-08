@@ -632,6 +632,7 @@ function StudentStats() {
       {showDetailModal && (
         <div className="modal-overlay" onClick={closeDetailModal}>
           <div className="modal modal-large" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={closeDetailModal} type="button">✕</button>
             {loadingDetail ? (
               <div className="loading-small">טוען פרטים...</div>
             ) : selectedEvaluation ? (

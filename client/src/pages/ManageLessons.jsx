@@ -230,6 +230,7 @@ function ManageLessons() {
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={closeModal} type="button">✕</button>
             <h3>{editingLesson ? 'עריכת שיעור' : 'הוספת שיעור'}</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -314,6 +315,7 @@ function ManageLessons() {
       {showDeleteModal && (
         <div className="modal-overlay" onClick={closeDeleteModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={closeDeleteModal} type="button">✕</button>
             <div className="delete-confirm">
               <h3>מחיקת שיעור</h3>
               <p>

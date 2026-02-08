@@ -276,6 +276,7 @@ function ManageAbsences() {
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={closeModal} type="button">✕</button>
             <h3>{editingAbsence ? 'עריכת העדרות' : 'הוספת העדרות'}</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -356,6 +357,7 @@ function ManageAbsences() {
       {showDeleteModal && (
         <div className="modal-overlay" onClick={closeDeleteModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={closeDeleteModal} type="button">✕</button>
             <div className="delete-confirm">
               <h3>מחיקת העדרות</h3>
               <p>

@@ -263,6 +263,7 @@ function ManageInstructors() {
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={closeModal} type="button">✕</button>
             <h3>{editingInstructor ? 'עריכת מדריך' : 'הוספת מדריך'}</h3>
             <form onSubmit={handleSubmit}>
               {error && <div className="error">{error}</div>}
@@ -409,6 +410,7 @@ function ManageInstructors() {
       {showDeleteModal && (
         <div className="modal-overlay" onClick={closeDeleteModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={closeDeleteModal} type="button">✕</button>
             <div className="delete-confirm">
               <h3>מחיקת מדריך</h3>
               <p>
@@ -471,6 +473,7 @@ function ManageInstructors() {
       {showProfileModal && selectedInstructor && (
         <div className="modal-overlay" onClick={closeProfileModal}>
           <div className="modal modal-large" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={closeProfileModal} type="button">✕</button>
             <div className="profile-modal">
               <h3>פרופיל מדריך</h3>
               <div className="profile-details">

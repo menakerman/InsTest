@@ -907,24 +907,22 @@ function ManageStudents() {
       {showExternalTestsModal && selectedStudent && (
         <div className="modal-overlay" onClick={closeExternalTestsModal}>
           <div className="modal modal-large modal-student-details" onClick={e => e.stopPropagation()} id="student-grades-modal">
-            <div className="modal-header-actions">
-              <button className="modal-close-btn" onClick={closeExternalTestsModal} type="button">
-                ✕
-              </button>
-              {canEdit && (
-                <button
-                  className="modal-print-btn"
-                  onClick={() => window.print()}
-                  type="button"
-                  title="הדפס ציונים"
-                >
-                  🖨️
-                </button>
-              )}
-            </div>
+            <button className="modal-close-btn" onClick={closeExternalTestsModal} type="button">
+              ✕
+            </button>
             <form onSubmit={handleSaveExternalTests} className="modal-form-container">
               <div className="modal-scrollable-content">
                 <div className="student-details-header">
+                  {canEdit && (
+                    <button
+                      className="modal-print-btn"
+                      onClick={() => window.print()}
+                      type="button"
+                      title="הדפס ציונים"
+                    >
+                      🖨️
+                    </button>
+                  )}
                   <div className="student-details-info">
                     <h3>{selectedStudent.first_name} {selectedStudent.last_name}</h3>
                     {selectedStudent.id_number && <p className="student-id-number">ת.ז.: {selectedStudent.id_number}</p>}

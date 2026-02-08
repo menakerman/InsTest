@@ -972,48 +972,141 @@ app.get('/api/evaluations/:id', authenticateToken, requireRole('admin', 'madar',
   }
 });
 
-// Mapping from lesson names to test type codes
-const lessonToTestTypeMapping = {
-  'קמס': 'water_cmas',
-  'קמס 1': 'water_cmas',
-  'סקובה 1': 'water_scuba_1',
-  'סקובה 3': 'water_scuba_3',
-  'סקובה 5': 'water_scuba_5',
-  // מבחני כיתה
-  'כללי התנהגות': 'classroom_behavior',
-  'סיכוני צלילה': 'classroom_risks',
-  'הרצאה חופשית': 'classroom_free_lecture',
+// Direct mapping: for subjects where the subject itself determines the test type (entry tests)
+// subject_code → { course_type → test_type_code }
+const directSubjectMapping = {
+  intro_dive: {
+    'מדריך': 'instructor_entry_intro_dive',
+  },
+  pre_dive_briefing: {
+    'מדריך': 'instructor_entry_briefing',
+    'מדריך_עוזר': 'assistant_pre_dive_briefing',
+  },
+  equipment_lesson: {
+    'מדריך': 'instructor_entry_equipment',
+    'מדריך_עוזר': 'assistant_equipment_lecture',
+  },
 };
 
+// For subjects with multiple test types, map to test category code suffixes to search in
+// subject_code → [category code suffixes]
+const subjectToCategorySuffixes = {
+  water_lesson: ['water_tests', 'practical_tests'],
+  lecture_delivery: ['lecture_tests'],
+};
+
+// Normalize lesson name: remove quotes, replace dashes with spaces, trim
+function normalizeLessonName(name) {
+  return name.replace(/["""״]/g, '').replace(/-/g, ' ').trim();
+}
+
+// Normalize for matching: also strip common prefixes like מבחן, שיעור
+function normalizeForMatching(name) {
+  return name.replace(/["""״]/g, '').replace(/-/g, ' ')
+    .replace(/^(מבחן|שיעור)\s+/, '')
+    .trim();
+}
+
 // Helper function to link evaluation to test score
-async function linkEvaluationToTestScore(client, studentId, lessonName, evaluationId, percentageScore, isPassing) {
+async function linkEvaluationToTestScore(client, studentId, lessonName, subjectId, evaluationId, percentageScore, isPassing) {
   if (!lessonName) return;
 
-  const testTypeCode = lessonToTestTypeMapping[lessonName];
-  if (!testTypeCode) return;
+  // Look up the subject code
+  const subjectResult = await client.query('SELECT code FROM evaluation_subjects WHERE id = $1', [subjectId]);
+  if (subjectResult.rows.length === 0) return;
+  const subjectCode = subjectResult.rows[0].code;
 
-  // Find the test type
-  const testTypeResult = await client.query(
-    'SELECT id FROM test_types WHERE code = $1',
-    [testTypeCode]
-  );
+  // Get student's course types
+  const courseTypesResult = await client.query(`
+    SELECT DISTINCT c.course_type
+    FROM course_students cs
+    JOIN courses c ON cs.course_id = c.id
+    WHERE cs.student_id = $1 AND c.course_type IS NOT NULL
+  `, [studentId]);
 
-  if (testTypeResult.rows.length === 0) return;
+  const courseTypes = new Set();
+  for (const row of courseTypesResult.rows) {
+    if (row.course_type === 'מדריך_עוזר_משולב_עם_מדריך') {
+      courseTypes.add('מדריך_עוזר');
+      courseTypes.add('מדריך');
+    } else {
+      courseTypes.add(row.course_type);
+    }
+  }
 
-  const testTypeId = testTypeResult.rows[0].id;
+  // Try direct subject mapping first (entry tests where subject determines test type)
+  const directMapping = directSubjectMapping[subjectCode];
+  if (directMapping) {
+    for (const courseType of courseTypes) {
+      const testTypeCode = directMapping[courseType];
+      if (!testTypeCode) continue;
 
-  // Insert or update the test score with evaluation link
-  await client.query(`
-    INSERT INTO student_test_scores (student_id, test_type_id, score, passed, evaluation_id, test_date)
-    VALUES ($1, $2, $3, $4, $5, CURRENT_DATE)
-    ON CONFLICT (student_id, test_type_id)
-    DO UPDATE SET
-      score = EXCLUDED.score,
-      passed = EXCLUDED.passed,
-      evaluation_id = EXCLUDED.evaluation_id,
-      test_date = EXCLUDED.test_date,
-      updated_at = CURRENT_TIMESTAMP
-  `, [studentId, testTypeId, Math.round(percentageScore), isPassing, evaluationId]);
+      const testTypeResult = await client.query(
+        'SELECT id FROM test_types WHERE code = $1',
+        [testTypeCode]
+      );
+      if (testTypeResult.rows.length === 0) continue;
+
+      await client.query(`
+        INSERT INTO student_test_scores (student_id, test_type_id, score, passed, evaluation_id, test_date)
+        VALUES ($1, $2, $3, $4, $5, CURRENT_DATE)
+        ON CONFLICT (student_id, test_type_id)
+        DO UPDATE SET
+          score = EXCLUDED.score,
+          passed = EXCLUDED.passed,
+          evaluation_id = EXCLUDED.evaluation_id,
+          test_date = EXCLUDED.test_date,
+          updated_at = CURRENT_TIMESTAMP
+      `, [studentId, testTypeResult.rows[0].id, Math.round(percentageScore), isPassing, evaluationId]);
+    }
+    return;
+  }
+
+  // Dynamic name matching for subjects with multiple test types (water, lectures)
+  const categorySuffixes = subjectToCategorySuffixes[subjectCode];
+  if (!categorySuffixes) return;
+
+  const normalizedLesson = normalizeForMatching(lessonName);
+
+  for (const courseType of courseTypes) {
+    // Find test types in matching categories for this course type
+    const conditions = categorySuffixes.map((_, i) => `tc.code LIKE $${i + 2}`);
+    const params = [courseType, ...categorySuffixes.map(s => `%${s}`)];
+
+    const testTypesResult = await client.query(`
+      SELECT tt.id, tt.code, tt.name_he
+      FROM test_types tt
+      JOIN test_categories tc ON tt.category_id = tc.id
+      WHERE tc.course_type = $1 AND (${conditions.join(' OR ')})
+      ORDER BY tt.display_order
+    `, params);
+
+    // Match lesson name against test type names
+    let matchedTestType = null;
+    for (const tt of testTypesResult.rows) {
+      const normalizedTestName = normalizeForMatching(tt.name_he);
+      if (normalizedTestName === normalizedLesson ||
+          normalizedTestName.includes(normalizedLesson) ||
+          normalizedLesson.includes(normalizedTestName)) {
+        matchedTestType = tt;
+        break;
+      }
+    }
+
+    if (matchedTestType) {
+      await client.query(`
+        INSERT INTO student_test_scores (student_id, test_type_id, score, passed, evaluation_id, test_date)
+        VALUES ($1, $2, $3, $4, $5, CURRENT_DATE)
+        ON CONFLICT (student_id, test_type_id)
+        DO UPDATE SET
+          score = EXCLUDED.score,
+          passed = EXCLUDED.passed,
+          evaluation_id = EXCLUDED.evaluation_id,
+          test_date = EXCLUDED.test_date,
+          updated_at = CURRENT_TIMESTAMP
+      `, [studentId, matchedTestType.id, Math.round(percentageScore), isPassing, evaluationId]);
+    }
+  }
 }
 
 // Create evaluation with item scores
@@ -1081,7 +1174,7 @@ app.post('/api/evaluations', authenticateToken, requireRole('admin', 'madar', 'i
 
     // If this is a final test, link to student_test_scores
     if (is_final_test && lesson_name) {
-      await linkEvaluationToTestScore(client, student_id, lesson_name, evaluationId, percentage_score, is_passing);
+      await linkEvaluationToTestScore(client, student_id, lesson_name, subject_id, evaluationId, percentage_score, is_passing);
     }
 
     await client.query('COMMIT');
@@ -1181,7 +1274,7 @@ app.put('/api/evaluations/:id', authenticateToken, requireRole('admin', 'madar',
 
     // If this is a final test, link to student_test_scores
     if (is_final_test && lesson_name) {
-      await linkEvaluationToTestScore(client, student_id, lesson_name, parseInt(id), percentage_score, is_passing);
+      await linkEvaluationToTestScore(client, student_id, lesson_name, subject_id, parseInt(id), percentage_score, is_passing);
     }
 
     await client.query('COMMIT');

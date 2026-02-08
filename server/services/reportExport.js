@@ -411,10 +411,11 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
     }
   });
 
-  // Column layout: A (criterion) | practice lessons | ממוצע | מגמה | exam lessons
+  // Column layout: A (criterion) | practice lessons | ממוצע | מגמה | (spacer) | exam lessons
   const avgColNum = practiceLessons.length + 2;
   const trendColNum = practiceLessons.length + 3;
-  const totalCols = 1 + practiceLessons.length + 2 + examLessons.length;
+  const examStartColNum = trendColNum + (examLessons.length > 0 ? 2 : 1); // +2 for spacer column
+  const totalCols = 1 + practiceLessons.length + 2 + (examLessons.length > 0 ? 1 : 0) + examLessons.length;
 
   // Table header
   sheet.getCell(`A${startRow}`).value = tableTitle;
@@ -438,7 +439,7 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
 
   // Exam lessons type indicators (after מגמה)
   examLessons.forEach((lessonName, index) => {
-    const col = getColumnLetter(trendColNum + 1 + index);
+    const col = getColumnLetter(examStartColNum + index);
     const cell = sheet.getCell(`${col}${typeRow}`);
     cell.value = 'מבחן';
     cell.font = { bold: true, size: 10, color: { argb: 'FF9C0006' } };
@@ -470,7 +471,7 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
 
   // Exam lesson headers (after מגמה)
   examLessons.forEach((lessonName, index) => {
-    const col = getColumnLetter(trendColNum + 1 + index);
+    const col = getColumnLetter(examStartColNum + index);
     sheet.getCell(`${col}${headerRow}`).value = lessonName;
     sheet.getColumn(col).width = 12;
   });
@@ -567,7 +568,7 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
 
     // Exam lesson scores (after מגמה)
     examLessons.forEach((lessonName, lessonIndex) => {
-      const col = getColumnLetter(trendColNum + 1 + lessonIndex);
+      const col = getColumnLetter(examStartColNum + lessonIndex);
       const cellRef = `${col}${currentRow}`;
 
       const evals = evalsByLesson[lessonName] || [];
@@ -671,7 +672,7 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
 
   // Exam lesson percentages (after מגמה)
   examLessons.forEach((lessonName, lessonIndex) => {
-    const col = getColumnLetter(trendColNum + 1 + lessonIndex);
+    const col = getColumnLetter(examStartColNum + lessonIndex);
 
     const evals = evalsByLesson[lessonName] || [];
     const latestEval = [...evals].sort((a, b) =>

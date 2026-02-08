@@ -51,7 +51,7 @@ function AppContent() {
                 ניהול קורסים
               </NavLink>
               <NavLink to="/grade" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                הערכות
+                דפי ציונים
               </NavLink>
               <NavLink to="/absences" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 העדרויות

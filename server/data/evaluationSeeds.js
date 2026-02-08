@@ -4,36 +4,12 @@
 
 export const evaluationSubjects = [
   {
-    code: 'intro_dive',
-    name_he: 'צלילת היכרות',
-    max_raw_score: 70,
-    passing_raw_score: 40,
-    description_he: 'הערכת צלילת היכרות - 7 קריטריונים',
-    display_order: 1
-  },
-  {
-    code: 'equipment_lesson',
-    name_he: 'שיעור ציוד',
-    max_raw_score: 100,
-    passing_raw_score: 55, // 55% of 100 (8 criteria × 10 + 3 quality sections: 5+10+5)
-    description_he: 'הערכת שיעור ציוד - 11 קריטריונים',
-    display_order: 2
-  },
-  {
-    code: 'pre_dive_briefing',
-    name_he: 'העברת תדריך לפני צלילה',
-    max_raw_score: 70,
-    passing_raw_score: 40,
-    description_he: 'הערכת תדריך לפני צלילה - 7 קריטריונים',
-    display_order: 3
-  },
-  {
     code: 'lecture_delivery',
     name_he: 'העברת הרצאה',
     max_raw_score: 100,
     passing_raw_score: 55, // 55% of 100 (8 criteria × 10 + 3 quality sections: 5+10+5)
     description_he: 'הערכת העברת הרצאה - 11 קריטריונים',
-    display_order: 4
+    display_order: 1
   },
   {
     code: 'water_lesson',
@@ -41,6 +17,30 @@ export const evaluationSubjects = [
     max_raw_score: 60,
     passing_raw_score: 33, // Based on PDF: 6 items, passing at ~55%
     description_he: 'הערכת שיעור מים - 6 קריטריונים',
+    display_order: 2
+  },
+  {
+    code: 'equipment_lesson',
+    name_he: 'שיעור ציוד',
+    max_raw_score: 100,
+    passing_raw_score: 55, // 55% of 100 (8 criteria × 10 + 3 quality sections: 5+10+5)
+    description_he: 'הערכת שיעור ציוד - 11 קריטריונים',
+    display_order: 3
+  },
+  {
+    code: 'pre_dive_briefing',
+    name_he: 'העברת תדריך לפני צלילה',
+    max_raw_score: 70,
+    passing_raw_score: 40,
+    description_he: 'הערכת תדריך לפני צלילה - 7 קריטריונים',
+    display_order: 4
+  },
+  {
+    code: 'intro_dive',
+    name_he: 'צלילת היכרות',
+    max_raw_score: 70,
+    passing_raw_score: 40,
+    description_he: 'הערכת צלילת היכרות - 7 קריטריונים',
     display_order: 5
   }
 ];

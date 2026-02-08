@@ -394,61 +394,86 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
     return startRow + 3;
   }
 
+  // Split lessons into practice (תרגול) and exam (מבחן) based on is_final_test
+  const practiceLessons = [];
+  const examLessons = [];
+
+  lessonOrder.forEach(lessonName => {
+    const evals = evalsByLesson[lessonName] || [];
+    const latestEval = [...evals].sort((a, b) =>
+      new Date(b.evaluation_date) - new Date(a.evaluation_date)
+    )[0];
+
+    if (latestEval && latestEval.is_final_test) {
+      examLessons.push(lessonName);
+    } else {
+      practiceLessons.push(lessonName);
+    }
+  });
+
+  // Column layout: A (criterion) | practice lessons | ממוצע | מגמה | exam lessons
+  const avgColNum = practiceLessons.length + 2;
+  const trendColNum = practiceLessons.length + 3;
+  const totalCols = 1 + practiceLessons.length + 2 + examLessons.length;
+
   // Table header
   sheet.getCell(`A${startRow}`).value = tableTitle;
   sheet.getCell(`A${startRow}`).font = { bold: true, size: 12 };
-  sheet.mergeCells(`A${startRow}:${getColumnLetter(lessonOrder.length + 3)}${startRow}`);
+  sheet.mergeCells(`A${startRow}:${getColumnLetter(totalCols)}${startRow}`);
 
   // Add evaluation type row (מבחן/תרגול)
   const typeRow = startRow + 1;
   sheet.getCell(`A${typeRow}`).value = 'סוג';
   sheet.getCell(`A${typeRow}`).font = { bold: true, size: 10 };
 
-  lessonOrder.forEach((lessonName, index) => {
+  // Practice lessons type indicators
+  practiceLessons.forEach((lessonName, index) => {
     const col = getColumnLetter(index + 2); // B, C, D...
-    const evals = evalsByLesson[lessonName] || [];
-    const latestEval = evals.sort((a, b) =>
-      new Date(b.evaluation_date) - new Date(a.evaluation_date)
-    )[0];
-
     const cell = sheet.getCell(`${col}${typeRow}`);
-    if (latestEval && latestEval.is_final_test !== undefined && latestEval.is_final_test !== null) {
-      cell.value = latestEval.is_final_test ? 'מבחן' : 'תרגול';
-      cell.font = { bold: true, size: 10 };
-      cell.alignment = { horizontal: 'center' };
-      if (latestEval.is_final_test) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } }; // Light red for test
-        cell.font = { bold: true, size: 10, color: { argb: 'FF9C0006' } };
-      } else {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } }; // Light green for training
-        cell.font = { bold: true, size: 10, color: { argb: 'FF006100' } };
-      }
-    } else {
-      cell.value = '-';
-      cell.alignment = { horizontal: 'center' };
-    }
+    cell.value = 'תרגול';
+    cell.font = { bold: true, size: 10, color: { argb: 'FF006100' } };
+    cell.alignment = { horizontal: 'center' };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+  });
+
+  // Exam lessons type indicators (after מגמה)
+  examLessons.forEach((lessonName, index) => {
+    const col = getColumnLetter(trendColNum + 1 + index);
+    const cell = sheet.getCell(`${col}${typeRow}`);
+    cell.value = 'מבחן';
+    cell.font = { bold: true, size: 10, color: { argb: 'FF9C0006' } };
+    cell.alignment = { horizontal: 'center' };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
   });
 
   const headerRow = startRow + 2;
 
-  // Column headers: Criterion (A) | Lessons | Average | Trend
-  // RTL layout: Criterion on the right (A), lessons in middle, Average & Trend on the left
+  // Column headers: Criterion (A) | Practice Lessons | Average | Trend | Exam Lessons
+  // RTL layout: Criterion on the right (A), practice in middle, Average & Trend, then exams on the left
 
   sheet.getCell(`A${headerRow}`).value = 'קריטריון';
   sheet.getColumn('A').width = 25;
 
-  lessonOrder.forEach((lessonName, index) => {
+  // Practice lesson headers
+  practiceLessons.forEach((lessonName, index) => {
     const col = getColumnLetter(index + 2); // B, C, D...
     sheet.getCell(`${col}${headerRow}`).value = lessonName;
     sheet.getColumn(col).width = 12;
   });
 
-  const avgCol = getColumnLetter(lessonOrder.length + 2);
-  const trendCol = getColumnLetter(lessonOrder.length + 3);
+  const avgCol = getColumnLetter(avgColNum);
+  const trendCol = getColumnLetter(trendColNum);
   sheet.getCell(`${avgCol}${headerRow}`).value = 'ממוצע';
   sheet.getCell(`${trendCol}${headerRow}`).value = 'מגמה';
   sheet.getColumn(avgCol).width = 8;
   sheet.getColumn(trendCol).width = 8;
+
+  // Exam lesson headers (after מגמה)
+  examLessons.forEach((lessonName, index) => {
+    const col = getColumnLetter(trendColNum + 1 + index);
+    sheet.getCell(`${col}${headerRow}`).value = lessonName;
+    sheet.getColumn(col).width = 12;
+  });
 
   // Style header row
   const headerRowObj = sheet.getRow(headerRow);
@@ -471,20 +496,19 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
     sheet.getCell(`A${currentRow}`).value = criterion.name_he;
     sheet.getCell(`A${currentRow}`).alignment = { horizontal: 'right' };
 
-    let hasScores = false;
+    let hasPracticeScores = false;
 
-    lessonOrder.forEach((lessonName, lessonIndex) => {
+    // Practice lesson scores
+    practiceLessons.forEach((lessonName, lessonIndex) => {
       const col = getColumnLetter(lessonIndex + 2); // B, C, D...
       const cellRef = `${col}${currentRow}`;
 
-      // Find the evaluation for this lesson (most recent if multiple)
       const evals = evalsByLesson[lessonName] || [];
-      const latestEval = evals.sort((a, b) =>
+      const latestEval = [...evals].sort((a, b) =>
         new Date(b.evaluation_date) - new Date(a.evaluation_date)
       )[0];
 
       if (latestEval) {
-        // Find the item score for this criterion by criterion_id
         const evalItemScores = itemScores.filter(is => is.evaluation_id === latestEval.id);
         const criterionItemScore = evalItemScores.find(is =>
           is.criterion_id === criterion.id
@@ -494,9 +518,8 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
           const cell = sheet.getCell(cellRef);
           cell.value = criterionItemScore.score;
           cell.alignment = { horizontal: 'center' };
-          hasScores = true;
+          hasPracticeScores = true;
 
-          // Color coding based on score
           if (criterionItemScore.score >= 7) {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
           } else if (criterionItemScore.score >= 4) {
@@ -514,10 +537,10 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
       }
     });
 
-    // Average formula
-    if (hasScores) {
+    // Average formula (from practice lessons only)
+    if (hasPracticeScores && practiceLessons.length > 0) {
       const startCol = getColumnLetter(2); // B
-      const endCol = getColumnLetter(lessonOrder.length + 1);
+      const endCol = getColumnLetter(practiceLessons.length + 1);
       sheet.getCell(`${avgCol}${currentRow}`).value = {
         formula: `IFERROR(AVERAGE(${startCol}${currentRow}:${endCol}${currentRow}),"-")`
       };
@@ -528,10 +551,10 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
       sheet.getCell(`${avgCol}${currentRow}`).alignment = { horizontal: 'center' };
     }
 
-    // SLOPE formula for trend (using row 5 sequential numbers)
-    if (lessonOrder.length >= 2 && hasScores) {
+    // SLOPE formula for trend (from practice lessons only, using row 5 sequential numbers)
+    if (practiceLessons.length >= 2 && hasPracticeScores) {
       const startCol = getColumnLetter(2); // B
-      const endCol = getColumnLetter(lessonOrder.length + 1);
+      const endCol = getColumnLetter(practiceLessons.length + 1);
       sheet.getCell(`${trendCol}${currentRow}`).value = {
         formula: `IFERROR(SLOPE(${startCol}${currentRow}:${endCol}${currentRow},$${startCol}$5:$${endCol}$5),"-")`
       };
@@ -542,6 +565,44 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
       sheet.getCell(`${trendCol}${currentRow}`).alignment = { horizontal: 'center' };
     }
 
+    // Exam lesson scores (after מגמה)
+    examLessons.forEach((lessonName, lessonIndex) => {
+      const col = getColumnLetter(trendColNum + 1 + lessonIndex);
+      const cellRef = `${col}${currentRow}`;
+
+      const evals = evalsByLesson[lessonName] || [];
+      const latestEval = [...evals].sort((a, b) =>
+        new Date(b.evaluation_date) - new Date(a.evaluation_date)
+      )[0];
+
+      if (latestEval) {
+        const evalItemScores = itemScores.filter(is => is.evaluation_id === latestEval.id);
+        const criterionItemScore = evalItemScores.find(is =>
+          is.criterion_id === criterion.id
+        );
+
+        if (criterionItemScore) {
+          const cell = sheet.getCell(cellRef);
+          cell.value = criterionItemScore.score;
+          cell.alignment = { horizontal: 'center' };
+
+          if (criterionItemScore.score >= 7) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+          } else if (criterionItemScore.score >= 4) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEB9C' } };
+          } else {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+          }
+        } else {
+          sheet.getCell(cellRef).value = '-';
+          sheet.getCell(cellRef).alignment = { horizontal: 'center' };
+        }
+      } else {
+        sheet.getCell(cellRef).value = '-';
+        sheet.getCell(cellRef).alignment = { horizontal: 'center' };
+      }
+    });
+
     currentRow++;
   });
 
@@ -551,12 +612,12 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
   sheet.getCell(`A${percentRow}`).font = { bold: true };
   sheet.getCell(`A${percentRow}`).alignment = { horizontal: 'right' };
 
-  lessonOrder.forEach((lessonName, lessonIndex) => {
+  // Practice lesson percentages
+  practiceLessons.forEach((lessonName, lessonIndex) => {
     const col = getColumnLetter(lessonIndex + 2); // B, C, D...
 
-    // Find the evaluation for this lesson
     const evals = evalsByLesson[lessonName] || [];
-    const latestEval = evals.sort((a, b) =>
+    const latestEval = [...evals].sort((a, b) =>
       new Date(b.evaluation_date) - new Date(a.evaluation_date)
     )[0];
 
@@ -565,7 +626,6 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
       cell.value = Math.round(latestEval.percentage_score);
       cell.alignment = { horizontal: 'center' };
 
-      // Color coding based on pass/fail - both background and text color
       if (latestEval.is_passing && !latestEval.has_critical_fail) {
         cell.font = { bold: true, color: { argb: 'FF008000' } }; // Green text
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
@@ -579,18 +639,25 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
     }
   });
 
-  // Average of percentages
-  const startColPercent = getColumnLetter(2); // B
-  const endColPercent = getColumnLetter(lessonOrder.length + 1);
-  sheet.getCell(`${avgCol}${percentRow}`).value = {
-    formula: `IFERROR(AVERAGE(${startColPercent}${percentRow}:${endColPercent}${percentRow}),"-")`
-  };
-  sheet.getCell(`${avgCol}${percentRow}`).numFmt = '0.0';
-  sheet.getCell(`${avgCol}${percentRow}`).font = { bold: true };
-  sheet.getCell(`${avgCol}${percentRow}`).alignment = { horizontal: 'center' };
+  // Average of practice percentages
+  if (practiceLessons.length > 0) {
+    const startColPercent = getColumnLetter(2); // B
+    const endColPercent = getColumnLetter(practiceLessons.length + 1);
+    sheet.getCell(`${avgCol}${percentRow}`).value = {
+      formula: `IFERROR(AVERAGE(${startColPercent}${percentRow}:${endColPercent}${percentRow}),"-")`
+    };
+    sheet.getCell(`${avgCol}${percentRow}`).numFmt = '0.0';
+    sheet.getCell(`${avgCol}${percentRow}`).font = { bold: true };
+    sheet.getCell(`${avgCol}${percentRow}`).alignment = { horizontal: 'center' };
+  } else {
+    sheet.getCell(`${avgCol}${percentRow}`).value = '-';
+    sheet.getCell(`${avgCol}${percentRow}`).alignment = { horizontal: 'center' };
+  }
 
-  // Trend of percentages (using row 5 sequential numbers)
-  if (lessonOrder.length >= 2) {
+  // Trend of practice percentages (using row 5 sequential numbers)
+  if (practiceLessons.length >= 2) {
+    const startColPercent = getColumnLetter(2); // B
+    const endColPercent = getColumnLetter(practiceLessons.length + 1);
     sheet.getCell(`${trendCol}${percentRow}`).value = {
       formula: `IFERROR(SLOPE(${startColPercent}${percentRow}:${endColPercent}${percentRow},$${startColPercent}$5:$${endColPercent}$5),"-")`
     };
@@ -601,6 +668,33 @@ function createLessonTable(sheet, startRow, evaluations, itemScores, criteria, t
     sheet.getCell(`${trendCol}${percentRow}`).value = '-';
     sheet.getCell(`${trendCol}${percentRow}`).alignment = { horizontal: 'center' };
   }
+
+  // Exam lesson percentages (after מגמה)
+  examLessons.forEach((lessonName, lessonIndex) => {
+    const col = getColumnLetter(trendColNum + 1 + lessonIndex);
+
+    const evals = evalsByLesson[lessonName] || [];
+    const latestEval = [...evals].sort((a, b) =>
+      new Date(b.evaluation_date) - new Date(a.evaluation_date)
+    )[0];
+
+    if (latestEval) {
+      const cell = sheet.getCell(`${col}${percentRow}`);
+      cell.value = Math.round(latestEval.percentage_score);
+      cell.alignment = { horizontal: 'center' };
+
+      if (latestEval.is_passing && !latestEval.has_critical_fail) {
+        cell.font = { bold: true, color: { argb: 'FF008000' } }; // Green text
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+      } else {
+        cell.font = { bold: true, color: { argb: 'FFFF0000' } }; // Red text
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+      }
+    } else {
+      sheet.getCell(`${col}${percentRow}`).value = '-';
+      sheet.getCell(`${col}${percentRow}`).alignment = { horizontal: 'center' };
+    }
+  });
 
   // Style percentage row
   const percentRowObj = sheet.getRow(percentRow);
@@ -623,7 +717,7 @@ function createStudentSheet(workbook, student, evaluations, subjects, absences, 
   });
 
   // Student header
-  sheet.getCell('A1').value = `כרטיס תלמיד: ${student.first_name} ${student.last_name}`;
+  sheet.getCell('A1').value = `כרטיס חניך: ${student.first_name} ${student.last_name}`;
   sheet.getCell('A1').font = { bold: true, size: 14 };
   sheet.mergeCells('A1:F1');
 
